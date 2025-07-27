@@ -9,7 +9,7 @@ import (
 // app2unit firefox-developer-edition.desktop:new-private-window
 
 func Activate(sid uint32, identifier, action string) {
-	cmd := exec.Command("app2unit", identifier)
+	cmd := exec.Command(config.Runner, identifier)
 
 	err := cmd.Start()
 	if err != nil {
