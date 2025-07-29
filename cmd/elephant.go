@@ -19,6 +19,7 @@ import (
 func main() {
 	var config string
 	var socketrequest string
+	var debug bool
 
 	cmd := &cli.Command{
 		Name:                   "Elephant",
@@ -63,9 +64,23 @@ func main() {
 					return nil
 				},
 			},
+			&cli.BoolFlag{
+				Name:        "debug",
+				Aliases:     []string{"d"},
+				Usage:       "enable debug logging",
+				Destination: &debug,
+			},
 		},
 		Action: func(context.Context, *cli.Command) error {
 			start := time.Now()
+
+			if debug {
+				logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+					Level: slog.LevelDebug,
+				}))
+				slog.SetDefault(logger)
+			}
+
 			loadLocalEnv()
 
 			common.InitRunPrefix()
