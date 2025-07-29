@@ -208,12 +208,14 @@ if no symlinks resolve to it, we set the desktop entry for itself
 */
 func handleFileCreate(path string) {
 	symlinkTargetsMu.Lock()
-	defer symlinkTargetsMu.Unlock()
+	clone := realToSymlink[path]
+	symlinkTargetsMu.Unlock()
+
 	_, sym := isSymlink(path)
 	defer slog.Debug(Name, "file_created", path)
 	if !sym {
-		if realToSymlink[path] != nil {
-			for _, symedFile := range realToSymlink[path] {
+		if clone != nil {
+			for _, symedFile := range clone {
 				addNewEntry(symedFile)
 			}
 			return
@@ -236,12 +238,15 @@ if no symlinks resolve to it, we set the desktop entry for itself
 */
 func handleFileUpdate(path string) {
 	symlinkTargetsMu.Lock()
-	defer symlinkTargetsMu.Unlock()
-	_, sym := isSymlink(path)
+	clone := realToSymlink[path]
+	symlinkTargetsMu.Unlock()
+
 	defer slog.Debug(Name, "file_updated", path)
+
+	_, sym := isSymlink(path)
 	if !sym {
-		if realToSymlink[path] != nil {
-			for _, symedFile := range realToSymlink[path] {
+		if clone != nil {
+			for _, symedFile := range clone {
 				addNewEntry(symedFile)
 			}
 			return
@@ -250,7 +255,6 @@ func handleFileUpdate(path string) {
 			return
 		}
 	}
-
 	addNewEntry(path)
 }
 
