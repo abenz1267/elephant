@@ -1,12 +1,12 @@
-flake:
-{ config, lib, pkgs, ... }:
-
-with lib;
-
-let
+flake: {
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+with lib; let
   cfg = config.services.elephant;
-in
-{
+in {
   options.services.elephant = {
     enable = mkEnableOption "Elephant launcher backend system service";
 
@@ -65,8 +65,8 @@ in
 
     systemd.services.elephant = {
       description = "Elephant launcher backend";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
       serviceConfig = {
         Type = "simple";
@@ -75,14 +75,14 @@ in
         ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
         Restart = "on-failure";
         RestartSec = 1;
-        
+
         # Security settings
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ "/var/lib/elephant" "/tmp" ];
-        
+        ReadWritePaths = ["/var/lib/elephant" "/tmp"];
+
         # Clean up socket on stop
         ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
       };
@@ -92,7 +92,6 @@ in
       };
     };
 
-    # Add elephant to system packages
-    environment.systemPackages = [ cfg.package ];
+    environment.systemPackages = [cfg.package];
   };
 }
