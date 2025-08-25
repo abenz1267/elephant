@@ -36,30 +36,36 @@
 
     packages = eachSystem (pkgs: {
       default = self.packages.${pkgs.system}.elephant-with-providers;
-      
+
       # Main elephant binary
       elephant = pkgs.buildGoModule {
         pname = "elephant";
         version = "0.1.0";
-        
+
         src = ./.;
-        
-        vendorHash = "sha256-bx6/ww7jE8VxDgSLVB12PeXGgxd3k/Brfjhl3qSJBL4=";
-        
+
+        vendorHash = "sha256-MQ97Z+xOdjYfcV+XxpXP5n7ep87rWVAZgx+EK6KIiVg=";
+
         buildInputs = with pkgs; [
           protobuf
         ];
-        
+
         nativeBuildInputs = with pkgs; [
           protoc-gen-go
+          makeWrapper
         ];
-        
+
         # Build from cmd/elephant.go
-        subPackages = [ "cmd" ];
-        
+        subPackages = ["cmd"];
+
         # Rename the binary from cmd to elephant
         postInstall = ''
           mv $out/bin/cmd $out/bin/elephant
+        '';
+        
+        postFixup = ''
+          wrapProgram $out/bin/elephant \
+         	    --prefix PATH : ${lib.makeBinPath (with pkgs; [ fd ])}
         '';
 
         meta = with lib; {
@@ -70,29 +76,29 @@
           platforms = platforms.linux;
         };
       };
-      
-      # Providers package - builds all providers with same Go toolchain  
+
+      # Providers package - builds all providers with same Go toolchain
       elephant-providers = pkgs.buildGoModule {
         pname = "elephant-providers";
         version = "0.1.0";
-        
+
         src = ./.;
-        
-        vendorHash = "sha256-bx6/ww7jE8VxDgSLVB12PeXGgxd3k/Brfjhl3qSJBL4=";
-        
+
+        vendorHash = "sha256-MQ97Z+xOdjYfcV+XxpXP5n7ep87rWVAZgx+EK6KIiVg=";
+
         nativeBuildInputs = with pkgs; [
           protobuf
           protoc-gen-go
         ];
-        
+
         # Override the default build process
         buildPhase = ''
           runHook preBuild
-          
+
           # Available providers
           PROVIDERS=(
             "files"
-            "desktopapplications" 
+            "desktopapplications"
             "calc"
             "runner"
             "clipboard"
@@ -101,9 +107,9 @@
             "menus"
             "providerlist"
           )
-          
+
           echo "Building elephant providers..."
-          
+
           for provider in "''${PROVIDERS[@]}"; do
             if [[ -d "./internal/providers/$provider" ]]; then
               echo "Building $provider provider..."
@@ -113,15 +119,15 @@
               echo "⚠ Provider $provider not found, skipping"
             fi
           done
-          
+
           runHook postBuild
         '';
-        
+
         installPhase = ''
           runHook preInstall
-          
+
           mkdir -p $out/lib/elephant/providers
-          
+
           # Copy all built .so files
           for so_file in *.so; do
             if [[ -f "$so_file" ]]; then
@@ -129,10 +135,10 @@
               echo "Installed provider: $so_file"
             fi
           done
-          
+
           runHook postInstall
         '';
-        
+
         meta = with lib; {
           description = "Elephant providers (Go plugins)";
           homepage = "https://github.com/abenz1267/elephant";
@@ -140,50 +146,34 @@
           platforms = platforms.linux;
         };
       };
-      
+
       # Combined package with elephant + providers
       elephant-with-providers = pkgs.stdenv.mkDerivation {
         pname = "elephant-with-providers";
         version = "0.1.0";
-        
+
         dontUnpack = true;
-        
+
         buildInputs = [
           self.packages.${pkgs.system}.elephant
           self.packages.${pkgs.system}.elephant-providers
         ];
         
+        nativeBuildInputs = with pkgs; [
+          makeWrapper
+        ];
+
         installPhase = ''
           mkdir -p $out/bin $out/lib/elephant
-          
-          # Copy elephant binary
           cp ${self.packages.${pkgs.system}.elephant}/bin/elephant $out/bin/
-          
-          # Copy providers
           cp -r ${self.packages.${pkgs.system}.elephant-providers}/lib/elephant/providers $out/lib/elephant/
-          
-          # Create setup script
-          cat > $out/bin/elephant-setup <<EOF
-#!/usr/bin/env bash
-set -e
-
-echo "🐘 Setting up Elephant providers..."
-
-# Create config directory
-mkdir -p ~/.config/elephant/providers
-
-# Copy providers to user config
-cp $out/lib/elephant/providers/*.so ~/.config/elephant/providers/
-
-echo "✅ Elephant providers installed to ~/.config/elephant/providers/"
-echo ""
-echo "🚀 Usage:"
-echo "  elephant --debug    # Start elephant service"
-echo "  elephant listproviders  # List installed providers"
-EOF
-          chmod +x $out/bin/elephant-setup
         '';
         
+        postFixup = ''
+          wrapProgram $out/bin/elephant \
+         	  --prefix PATH : ${lib.makeBinPath (with pkgs; [ wl-clipboard libqalculate ])}
+        '';
+
         meta = with lib; {
           description = "Elephant with all providers (complete installation)";
           homepage = "https://github.com/abenz1267/elephant";
