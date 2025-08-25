@@ -48,6 +48,7 @@
 
         buildInputs = with pkgs; [
           protobuf
+          makeWrapper
         ];
 
         nativeBuildInputs = with pkgs; [
