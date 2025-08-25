@@ -48,11 +48,11 @@
 
         buildInputs = with pkgs; [
           protobuf
-          makeWrapper
         ];
 
         nativeBuildInputs = with pkgs; [
           protoc-gen-go
+          makeWrapper
         ];
 
         # Build from cmd/elephant.go
@@ -61,8 +61,11 @@
         # Rename the binary from cmd to elephant
         postInstall = ''
           mv $out/bin/cmd $out/bin/elephant
-          wrapProgram $out/bin/elephant \
-            --prefix PATH : ${lib.makeBinPath with pkgs; [ fd libqalculate ]}
+        '';
+        
+        postFixup = ''
+          wrapProgram $out/bin/elephant
+         	--prefix PATH : ${lib.makeBinPath (with pkgs; [ fd ])}
         '';
 
         meta = with lib; {
@@ -155,11 +158,20 @@
           self.packages.${pkgs.system}.elephant
           self.packages.${pkgs.system}.elephant-providers
         ];
+        
+        nativeBuildInputs = with pkgs; [
+          makeWrapper
+        ];
 
         installPhase = ''
           mkdir -p $out/bin $out/lib/elephant
           cp ${self.packages.${pkgs.system}.elephant}/bin/elephant $out/bin/
           cp -r ${self.packages.${pkgs.system}.elephant-providers}/lib/elephant/providers $out/lib/elephant/
+        '';
+        
+        postFixup = ''
+          wrapProgram $out/bin/elephant
+         	--prefix PATH : ${lib.makeBinPath (with pkgs; [ wl-clipboard libqalculator ])}
         '';
 
         meta = with lib; {
