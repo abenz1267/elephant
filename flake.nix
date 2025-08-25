@@ -64,8 +64,8 @@
         '';
         
         postFixup = ''
-          wrapProgram $out/bin/elephant
-         	--prefix PATH : ${lib.makeBinPath (with pkgs; [ fd ])}
+          wrapProgram $out/bin/elephant \
+         	    --prefix PATH : ${lib.makeBinPath (with pkgs; [ fd ])}
         '';
 
         meta = with lib; {
@@ -170,8 +170,8 @@
         '';
         
         postFixup = ''
-          wrapProgram $out/bin/elephant
-         	--prefix PATH : ${lib.makeBinPath (with pkgs; [ wl-clipboard libqalculate ])}
+          wrapProgram $out/bin/elephant \
+         	  --prefix PATH : ${lib.makeBinPath (with pkgs; [ wl-clipboard libqalculate ])}
         '';
 
         meta = with lib; {
