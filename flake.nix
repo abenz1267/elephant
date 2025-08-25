@@ -171,7 +171,7 @@
         
         postFixup = ''
           wrapProgram $out/bin/elephant
-         	--prefix PATH : ${lib.makeBinPath (with pkgs; [ wl-clipboard libqalculator ])}
+         	--prefix PATH : ${lib.makeBinPath (with pkgs; [ wl-clipboard libqalculate ])}
         '';
 
         meta = with lib; {
