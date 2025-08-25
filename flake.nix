@@ -60,6 +60,8 @@
         # Rename the binary from cmd to elephant
         postInstall = ''
           mv $out/bin/cmd $out/bin/elephant
+          wrapProgram $out/bin/elephant \
+            --prefix PATH : ${lib.makeBinPath [ pkgs.fd pkgs.libqalculate ]}
         '';
 
         meta = with lib; {
