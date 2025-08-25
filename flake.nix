@@ -62,7 +62,7 @@
         postInstall = ''
           mv $out/bin/cmd $out/bin/elephant
           wrapProgram $out/bin/elephant \
-            --prefix PATH : ${lib.makeBinPath [ pkgs.fd pkgs.libqalculate ]}
+            --prefix PATH : ${lib.makeBinPath with pkgs; [ fd libqalculate ]}
         '';
 
         meta = with lib; {
