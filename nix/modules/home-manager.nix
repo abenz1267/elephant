@@ -40,7 +40,7 @@ in {
       '';
     };
 
-    useService = mkOption {
+    installService = mkOption {
       type = types.bool;
       default = true;
       description = "Create a systemd service for elephant.";
