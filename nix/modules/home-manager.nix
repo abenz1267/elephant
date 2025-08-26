@@ -40,6 +40,12 @@ in {
       '';
     };
 
+    useService = mkOption {
+      type = bool;
+      default = true;
+      description = "Create a systemd service for elephant.";
+    };
+
     debug = mkOption {
       type = types.bool;
       default = false;
@@ -88,7 +94,7 @@ in {
       source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
     };
 
-    systemd.user.services.elephant = {
+    systemd.user.services.elephant = mkIf cfg.useService {
       Unit = {
         Description = "Elephant launcher backend";
         After = ["graphical-session-pre.target"];
