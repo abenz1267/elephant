@@ -40,6 +40,12 @@ in {
       default = {};
       description = "Elephant configuration as Nix attributes.";
     };
+
+    installService = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Create a systemd service for elephant.";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -63,7 +69,7 @@ in {
       source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
     };
 
-    systemd.services.elephant = {
+    systemd.services.elephant = mkIf cfg.installService {
       description = "Elephant launcher backend";
       wantedBy = ["multi-user.target"];
       after = ["network.target"];
