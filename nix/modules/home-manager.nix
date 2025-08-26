@@ -94,7 +94,7 @@ in {
       source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
     };
 
-    systemd.user.services.elephant = mkIf cfg.useService {
+    systemd.user.services.elephant = mkIf cfg.installService {
       Unit = {
         Description = "Elephant launcher backend";
         After = ["graphical-session-pre.target"];
