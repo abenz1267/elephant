@@ -210,6 +210,7 @@ func Query(qid uint32, iid uint32, query string, single bool, _ bool) []*pb.Quer
 			Provider:   Name,
 			Score:      int32(config.MaxItems) + 1,
 			Type:       pb.QueryResponse_REGULAR,
+			State:      []string{"current"},
 		}
 
 		go func() {

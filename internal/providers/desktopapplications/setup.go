@@ -32,6 +32,7 @@ type Config struct {
 
 	IconPlaceholder string            `koanf:"icon_placeholder" desc:"placeholder icon for apps without icon" default:"applications-other"`
 	Aliases         map[string]string `koanf:"aliases" desc:"setup aliases for applications. Matched aliases will always be placed on top of the list. Example: 'ffp' => '<identifier>'. Check elephant log output when activating an item to get its identifier." default:""`
+	Pinned          []string          `koanf:"pinned" desc:"Pinned items will appear in order on top of list. Value = <identifier>. Check elephant log output when activating an item to get its identifier." default:"<empty>"`
 }
 
 func init() {

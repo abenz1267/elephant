@@ -19,25 +19,28 @@ type MenuConfig struct {
 }
 
 type Menu struct {
-	Name                 string  `toml:"name"`
-	NamePretty           string  `toml:"name_pretty"`
-	Description          string  `toml:"description"`
-	Icon                 string  `toml:"icon"`
-	Action               string  `toml:"action"`
-	GlobalSearch         bool    `toml:"global_search"`
-	HideFromProviderlist bool    `toml:"hide_from_providerlist"`
-	Entries              []Entry `toml:"entries"`
+	Name         string   `toml:"name"`
+	NamePretty   string   `toml:"name_pretty"`
+	Description  string   `toml:"description"`
+	Icon         string   `toml:"icon"`
+	Action       string   `toml:"action"`
+	GlobalSearch bool     `toml:"global_search"`
+	Entries      []Entry  `toml:"entries"`
+	Terminal     bool     `toml:"terminal"`
+	Keywords     []string `toml:"keywords"`
 }
 
 type Entry struct {
-	Text    string `toml:"text"`
-	Async   string `toml:"async"`
-	Subtext string `toml:"subtext"`
-	Value   string `toml:"value"`
-	Action  string `toml:"action"`
-	Icon    string `toml:"icon"`
-	SubMenu string `toml:"submenu"`
-	Preview string `toml:"preview"`
+	Text     string   `toml:"text"`
+	Async    string   `toml:"async"`
+	Subtext  string   `toml:"subtext"`
+	Value    string   `toml:"value"`
+	Action   string   `toml:"action"`
+	Terminal bool     `toml:"terminal"`
+	Icon     string   `toml:"icon"`
+	SubMenu  string   `toml:"submenu"`
+	Preview  string   `toml:"preview"`
+	Keywords []string `toml:"keywords"`
 
 	Identifier string `toml:"-"`
 	Menu       string `toml:"-"`

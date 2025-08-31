@@ -14,6 +14,9 @@ pre_cmd = [
   "cd internal/providers/providerlist && go build -buildmode=plugin && cp providerlist.so /home/andrej/.config/elephant/providers/",
   "cd internal/providers/menus && go build -buildmode=plugin && cp menus.so /home/andrej/.config/elephant/providers/",
   "cd internal/providers/websearch && go build -buildmode=plugin && cp websearch.so /home/andrej/.config/elephant/providers/",
+  "cd internal/providers/archlinuxpkgs && go build -buildmode=plugin && cp archlinuxpkgs.so /home/andrej/.config/elephant/providers/",
+  "cd internal/providers/todo && go build -buildmode=plugin && cp todo.so /home/andrej/.config/elephant/providers/",
+  "cd internal/providers/unicode && go build -buildmode=plugin && cp unicode.so /home/andrej/.config/elephant/providers/",
 ]
 # Binary file yields from `cmd`.
 bin = "/tmp/elephant-air"

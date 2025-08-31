@@ -73,6 +73,15 @@ func Query(qid uint32, iid uint32, query string, _ bool, exact bool) []*pb.Query
 			score = score + usageScore
 		}
 
+		if query == "" {
+			i := slices.Index(config.Pinned, k)
+
+			if i != -1 {
+				score = 1000000 - int32(i)
+				usageScore = score
+			}
+		}
+
 		if usageScore != 0 || config.ShowActions && config.ShowGeneric || !config.ShowActions || (config.ShowActions && len(v.Actions) == 0) || query == "" {
 			if score >= config.MinScore || query == "" {
 				entries = append(entries, &pb.QueryResponse_Item{
@@ -131,6 +140,15 @@ func Query(qid uint32, iid uint32, query string, _ bool, exact bool) []*pb.Query
 				if score > config.MinScore || query == "" && config.HistoryWhenEmpty {
 					usageScore = h.CalcUsageScore(query, identifier)
 					score = score + usageScore
+				}
+			}
+
+			if query == "" {
+				i := slices.Index(config.Pinned, identifier)
+
+				if i != -1 {
+					score = 1000000 - int32(i)
+					usageScore = score
 				}
 			}
 

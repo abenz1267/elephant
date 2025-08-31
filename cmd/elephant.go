@@ -33,6 +33,7 @@ func main() {
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGTERM,
+		syscall.SIGKILL,
 		syscall.SIGQUIT, syscall.SIGUSR1)
 
 	go func() {

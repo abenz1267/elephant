@@ -79,7 +79,7 @@ func walkFunction(path string, d fs.DirEntry, err error) error {
 	}
 
 	filesMu.RLock()
-	_, exists := files[path]
+	_, exists := files[filepath.Base(path)]
 	filesMu.RUnlock()
 
 	if exists {
@@ -274,7 +274,7 @@ func addNewEntry(path string) {
 	}
 
 	filesMu.Lock()
-	files[path] = parseFile(path, langLocale, regionLocale)
+	files[filepath.Base(path)] = parseFile(path, langLocale, regionLocale)
 	filesMu.Unlock()
 }
 

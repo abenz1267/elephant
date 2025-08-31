@@ -3,12 +3,13 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
 	"os/exec"
-	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
+
+	_ "embed"
 
 	"github.com/abenz1267/elephant/internal/common"
 	"github.com/abenz1267/elephant/internal/common/history"
@@ -18,11 +19,14 @@ import (
 )
 
 var (
-	Name       = "symbols"
-	NamePretty = "Symbols/Emojis"
+	Name       = "unicode"
+	NamePretty = "Unicode"
 	h          = history.Load(Name)
 	results    = providers.QueryData{}
 )
+
+//go:embed data/UnicodeData.txt
+var data string
 
 type Config struct {
 	common.Config    `koanf:",squash"`
@@ -31,14 +35,17 @@ type Config struct {
 	HistoryWhenEmpty bool   `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
 }
 
-var config *Config
+var (
+	config  *Config
+	symbols = make(map[string]string)
+)
 
 func init() {
 	start := time.Now()
 
 	config = &Config{
 		Config: common.Config{
-			Icon:     "face-smile",
+			Icon:     "accessories-character-map-symbolic",
 			MinScore: 50,
 		},
 		Locale:           "en",
@@ -48,43 +55,43 @@ func init() {
 
 	common.LoadConfig(Name, config)
 
-	parse()
+	for v := range strings.Lines(data) {
+		if v == "" {
+			continue
+		}
 
-	slog.Info(Name, "symbols/emojis", len(symbols), "time", time.Since(start))
+		fields := strings.SplitN(v, ";", 3)
+		symbols[fields[1]] = fields[0]
+	}
+
+	slog.Info(Name, "loaded", time.Since(start))
 }
 
 func PrintDoc() {
 	fmt.Printf("### %s\n", NamePretty)
-	fmt.Println("Find symbols and emojis.")
-	fmt.Println()
-	fmt.Println("Possible locales:")
-
-	entries, err := files.ReadDir("data")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, v := range entries {
-		fmt.Printf("%s,", strings.TrimSuffix(filepath.Base(v.Name()), ".xml"))
-	}
-
-	fmt.Println()
+	fmt.Println("Find unicode symbols.")
 	fmt.Println()
 	util.PrintConfig(Config{}, Name)
 }
 
 func Cleanup(qid uint32) {
-	slog.Info(Name, "cleanup", qid)
-	results.Lock()
-	delete(results.Queries, qid)
-	results.Unlock()
 }
 
 func Activate(qid uint32, identifier, action string, arguments string) {
 	cmd := exec.Command("wl-copy")
-	cmd.Stdin = strings.NewReader(symbols[identifier].CP)
 
-	err := cmd.Start()
+	symbol := fmt.Sprintf("'\\u%s'", symbols[identifier])
+
+	toUse, err := strconv.Unquote(symbol)
+	if err != nil {
+		slog.Error(Name, "activate", err)
+		return
+
+	}
+
+	cmd.Stdin = strings.NewReader(toUse)
+
+	err = cmd.Start()
 	if err != nil {
 		slog.Error(Name, "activate", err)
 	} else {
@@ -119,30 +126,7 @@ func Query(qid uint32, iid uint32, query string, _ bool, exact bool) []*pb.Query
 	}
 
 	for k, v := range symbols {
-		field := "subtext"
-		var positions []int32
-		var fs int32
-		var score int32
-
-		if query != "" {
-			var bestScore int32
-			var bestPos []int32
-			var bestStart int32
-
-			for _, m := range v.Searchable {
-				score, positions, start := common.FuzzyScore(query, m, exact)
-
-				if score > bestScore {
-					bestScore = score
-					bestPos = positions
-					bestStart = start
-				}
-			}
-
-			positions = bestPos
-			fs = bestStart
-			score = bestScore
-		}
+		score, positions, start := common.FuzzyScore(query, k, exact)
 
 		var usageScore int32
 		if config.History {
@@ -156,12 +140,12 @@ func Query(qid uint32, iid uint32, query string, _ bool, exact bool) []*pb.Query
 			entries = append(entries, &pb.QueryResponse_Item{
 				Identifier: k,
 				Score:      score,
-				Text:       v.Searchable[len(v.Searchable)-1],
-				Icon:       v.CP,
+				Text:       k,
+				Icon:       v,
 				Provider:   Name,
 				Fuzzyinfo: &pb.QueryResponse_Item_FuzzyInfo{
-					Start:     fs,
-					Field:     field,
+					Start:     start,
+					Field:     "text",
 					Positions: positions,
 				},
 				Type: pb.QueryResponse_REGULAR,

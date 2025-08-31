@@ -2,7 +2,6 @@ name = "screenshots"
 name_pretty = "Screenshots"
 icon = "camera-photo"
 global_search = true
-hide_from_providerlist = false
 
 [[entries]]
 text = "View"

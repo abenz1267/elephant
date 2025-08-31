@@ -13,41 +13,54 @@ Elephant acts as a unified backend service that aggregates data from various sou
 
 ### Current Providers
 
-- **🚀 Desktop Applications**
+- **Desktop Applications**
   - Auto-detection of `uwsm` or `app2unit`
   - Application launch history
   - Desktop entry parsing
 
-- **📁 Files**
+- **Files**
   - File preview (text/image)
   - File operations: open, copy path, copy content
   - Directory navigation
 
-- **📋 Clipboard**
+- **Clipboard**
   - Text and image clipboard history
   - Clipboard content management
 
-- **⚡ Runner**
+- **Runner**
   - Command execution from explicit lists
   - `$PATH` scanning for executables
 
-- **🔣 Symbols/Emojis**
+- **Symbols/Emojis**
   - Multi-locale emoji and symbol support
   - Unicode character database
 
-- **🧮 Calculator/Unit Conversion**
+- **Calculator/Unit Conversion**
   - Mathematical calculations with history
   - Unit conversion using `qalc`
 
-- **📋 Custom Menus**
+- **Custom Menus**
   - User-defined menu creation
   - Custom action definitions
 
-- **📊 Provider List**
+- **Provider List**
   - Dynamic listing of all loaded providers and menus
 
-- **🌐 Websearch**
+- **Websearch**
   - ... define custom search engines
+
+- **Archlinux Packages**
+  - list all packages: official and AUR
+  - list all explicitly installed packages `i:`
+  - remove / install packages (pacman, yay/paru)
+
+- **Todo List**
+  - add items, mark as active/done, clear done items
+  - create items with due times
+  - notifications
+
+- **Unicodes**
+  - find unicode symbols
 
 ## Installation
 

@@ -20,6 +20,7 @@ var (
 
 type Config struct {
 	common.Config `koanf:",squash"`
+	Hidden        []string `koanf:"hidden" desc:"hidden providers" default:"<empty>"`
 }
 
 func init() {
@@ -28,6 +29,7 @@ func init() {
 			Icon:     "applications-other",
 			MinScore: 10,
 		},
+		Hidden: []string{},
 	}
 
 	common.LoadConfig(Name, config)
@@ -56,12 +58,14 @@ func Query(qid uint32, iid uint32, query string, single bool, exact bool) []*pb.
 
 		if *v.Name == "menus" {
 			for _, v := range common.Menus {
-				if v.HideFromProviderlist {
+				identifier := fmt.Sprintf("%s:%s", "menus", v.Name)
+
+				if slices.Contains(config.Hidden, identifier) {
 					continue
 				}
 
 				e := &pb.QueryResponse_Item{
-					Identifier: fmt.Sprintf("%s:%s", "menus", v.Name),
+					Identifier: identifier,
 					Text:       v.NamePretty,
 					Subtext:    v.Description,
 					Provider:   Name,
@@ -75,6 +79,16 @@ func Query(qid uint32, iid uint32, query string, single bool, exact bool) []*pb.
 					}
 
 					e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, e.Text, exact)
+
+					for _, v := range v.Keywords {
+						score, positions, start := common.FuzzyScore(query, v, exact)
+
+						if score > e.Score {
+							e.Score = score
+							e.Fuzzyinfo.Positions = positions
+							e.Fuzzyinfo.Start = start
+						}
+					}
 				}
 
 				if e.Score > config.MinScore || query == "" {
@@ -82,6 +96,10 @@ func Query(qid uint32, iid uint32, query string, single bool, exact bool) []*pb.
 				}
 			}
 		} else {
+			if slices.Contains(config.Hidden, *v.Name) {
+				continue
+			}
+
 			e := &pb.QueryResponse_Item{
 				Identifier: *v.Name,
 				Text:       *v.NamePretty,

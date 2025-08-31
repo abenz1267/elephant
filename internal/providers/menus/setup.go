@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"strings"
 	"syscall"
@@ -57,6 +58,8 @@ func Activate(qid uint32, identifier, action string, arguments string) {
 
 	openmenu := false
 
+	terminal := false
+
 	for _, v := range common.Menus {
 		if identifier == v.Name {
 			menu = v
@@ -68,6 +71,9 @@ func Activate(qid uint32, identifier, action string, arguments string) {
 			if identifier == entry.Identifier {
 				menu = v
 				e = entry
+
+				terminal = v.Terminal || entry.Terminal
+
 				break
 			}
 		}
@@ -79,6 +85,15 @@ func Activate(qid uint32, identifier, action string, arguments string) {
 	}
 
 	run := menu.Action
+
+	if after, ok := strings.CutPrefix(identifier, "dmenu:"); ok {
+		run = after
+
+		if strings.Contains(run, "~") {
+			home, _ := os.UserHomeDir()
+			run = strings.ReplaceAll(run, "~", home)
+		}
+	}
 
 	if e.Action != "" {
 		run = e.Action
@@ -99,6 +114,10 @@ func Activate(qid uint32, identifier, action string, arguments string) {
 		pipe = true
 	} else {
 		run = strings.ReplaceAll(run, "%RESULT%", val)
+	}
+
+	if terminal {
+		run = common.WrapWithTerminal(run)
 	}
 
 	cmd := exec.Command("sh", "-c", run)
@@ -141,24 +160,32 @@ func Query(qid uint32, iid uint32, query string, _ bool, exact bool) []*pb.Query
 
 		icon := v.Icon
 
-		for _, v := range v.Entries {
-			if v.Icon != "" {
-				icon = v.Icon
+		for _, me := range v.Entries {
+			if me.Icon != "" {
+				icon = me.Icon
+			}
+
+			sub := me.Subtext
+
+			if !single && v.GlobalSearch {
+				if sub == "" {
+					sub = v.NamePretty
+				}
 			}
 
 			e := &pb.QueryResponse_Item{
-				Identifier: v.Identifier,
-				Text:       v.Text,
-				Subtext:    v.Subtext,
-				Provider:   fmt.Sprintf("%s:%s", Name, v.Menu),
+				Identifier: me.Identifier,
+				Text:       me.Text,
+				Subtext:    sub,
+				Provider:   fmt.Sprintf("%s:%s", Name, me.Menu),
 				Icon:       icon,
 				Type:       pb.QueryResponse_REGULAR,
-				Preview:    v.Preview,
+				Preview:    me.Preview,
 			}
 
-			if v.Async != "" {
+			if me.Async != "" {
 				go func() {
-					cmd := exec.Command("sh", "-c", v.Async)
+					cmd := exec.Command("sh", "-c", me.Async)
 					out, err := cmd.CombinedOutput()
 
 					if err == nil {
@@ -177,6 +204,16 @@ func Query(qid uint32, iid uint32, query string, _ bool, exact bool) []*pb.Query
 				}
 
 				e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, e.Text, exact)
+
+				for _, v := range me.Keywords {
+					score, positions, start := common.FuzzyScore(query, v, exact)
+
+					if score > e.Score {
+						e.Score = score
+						e.Fuzzyinfo.Positions = positions
+						e.Fuzzyinfo.Start = start
+					}
+				}
 			}
 
 			if e.Score > common.MenuConfigLoaded.MinScore || query == "" {
