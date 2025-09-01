@@ -93,8 +93,7 @@
           ];
 
           excludedProviders = [
-            "clipboard"
-            "calc"
+            "archlinuxpkgs"
           ];
 
           buildPhase = ''
