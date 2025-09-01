@@ -11,15 +11,17 @@ let
 
   # Available providers
   providerOptions = {
-    files = "File search and management";
     desktopapplications = "Desktop application launcher";
-    calc = "Calculator and unit conversion";
-    runner = "Command runner";
+    files = "File search and management";
     clipboard = "Clipboard history management";
+    runner = "Command runner";
     symbols = "Symbols and emojis";
-    websearch = "Web search integration";
+    calc = "Calculator and unit conversion";
     menus = "Custom menu system";
     providerlist = "Provider listing and management";
+    websearch = "Web search integration";
+    todo = "Todo list";
+    unicode = "Unicode symbol search";
   };
 in
 {
