@@ -1,10 +1,12 @@
-flake: {
+flake:
+{
   config,
   lib,
   pkgs,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.programs.elephant;
 
   # Available providers
@@ -19,7 +21,8 @@ with lib; let
     menus = "Custom menu system";
     providerlist = "Provider listing and management";
   };
-in {
+in
+{
   options.programs.elephant = {
     enable = mkEnableOption "Elephant launcher backend";
 
@@ -33,7 +36,11 @@ in {
     providers = mkOption {
       type = types.listOf (types.enum (attrNames providerOptions));
       default = attrNames providerOptions;
-      example = ["files" "desktopapplications" "calc"];
+      example = [
+        "files"
+        "desktopapplications"
+        "calc"
+      ];
       description = ''
         List of providers to enable. Available providers:
         ${concatStringsSep "\n" (mapAttrsToList (name: desc: "  - ${name}: ${desc}") providerOptions)}
@@ -54,7 +61,7 @@ in {
 
     config = mkOption {
       type = types.attrs;
-      default = {};
+      default = { };
       example = literalExpression ''
         {
           providers = {
@@ -72,33 +79,34 @@ in {
   };
 
   config = mkIf cfg.enable {
-    home.packages = [cfg.package];
+    home.packages = [ cfg.package ];
 
     # Install providers to user config
-    home.activation.elephantProviders = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    home.activation.elephantProviders = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       $DRY_RUN_CMD mkdir -p $HOME/.config/elephant/providers
       $DRY_RUN_CMD rm -f $HOME/.config/elephant/providers/*.so
 
       # Copy enabled providers
-      ${concatStringsSep "\n" (map (provider: ''
+      ${concatStringsSep "\n" (
+        map (provider: ''
           if [[ -f "${cfg.package}/lib/elephant/providers/${provider}.so" ]]; then
             $DRY_RUN_CMD cp "${cfg.package}/lib/elephant/providers/${provider}.so" "$HOME/.config/elephant/providers/"
             $VERBOSE_ECHO "Installed elephant provider: ${provider}"
           fi
-        '')
-        cfg.providers)}
+        '') cfg.providers
+      )}
     '';
 
     # Generate elephant config file
-    xdg.configFile."elephant/elephant.toml" = mkIf (cfg.config != {}) {
-      source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
+    xdg.configFile."elephant/elephant.toml" = mkIf (cfg.config != { }) {
+      source = (pkgs.formats.toml { }).generate "elephant.toml" cfg.config;
     };
 
     systemd.user.services.elephant = mkIf cfg.installService {
       Unit = {
         Description = "Elephant launcher backend";
-        After = ["graphical-session-pre.target"];
-        PartOf = ["graphical-session.target"];
+        After = [ "graphical-session-pre.target" ];
+        PartOf = [ "graphical-session.target" ];
       };
 
       Service = {
@@ -112,7 +120,7 @@ in {
       };
 
       Install = {
-        WantedBy = ["graphical-session.target"];
+        WantedBy = [ "graphical-session.target" ];
       };
     };
   };

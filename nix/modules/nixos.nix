@@ -1,12 +1,15 @@
-flake: {
+flake:
+{
   config,
   lib,
   pkgs,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.services.elephant;
-in {
+in
+{
   options.services.elephant = {
     enable = mkEnableOption "Elephant launcher backend system service";
 
@@ -37,7 +40,7 @@ in {
 
     config = mkOption {
       type = types.attrs;
-      default = {};
+      default = { };
       description = "Elephant configuration as Nix attributes.";
     };
 
@@ -57,7 +60,7 @@ in {
       createHome = true;
     };
 
-    users.groups.${cfg.group} = {};
+    users.groups.${cfg.group} = { };
 
     # Install providers system-wide
     environment.etc."xdg/elephant/providers" = {
@@ -65,14 +68,14 @@ in {
     };
 
     # System-wide config
-    environment.etc."xdg/elephant/elephant.toml" = mkIf (cfg.config != {}) {
-      source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
+    environment.etc."xdg/elephant/elephant.toml" = mkIf (cfg.config != { }) {
+      source = (pkgs.formats.toml { }).generate "elephant.toml" cfg.config;
     };
 
     systemd.services.elephant = mkIf cfg.installService {
       description = "Elephant launcher backend";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target"];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network.target" ];
 
       serviceConfig = {
         Type = "simple";
@@ -87,7 +90,10 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = ["/var/lib/elephant" "/tmp"];
+        ReadWritePaths = [
+          "/var/lib/elephant"
+          "/tmp"
+        ];
 
         # Clean up socket on stop
         ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
@@ -98,6 +104,6 @@ in {
       };
     };
 
-    environment.systemPackages = [cfg.package];
+    environment.systemPackages = [ cfg.package ];
   };
 }
