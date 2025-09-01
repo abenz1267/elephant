@@ -101,7 +101,6 @@
 
             echo "Building elephant providers..."
 
-            # Nix will expand this to a space-separated list, e.g. "clipboard calc"
             EXCLUDE_LIST="${lib.concatStringsSep " " excludedProviders}"
 
             is_excluded() {
@@ -120,7 +119,7 @@
                 [ -d "$dir" ] || continue
                 provider=$(basename "$dir")
                 if is_excluded "$provider"; then
-                  echo "⚠ Skipping excluded provider: $provider"
+                  echo "Skipping excluded provider: $provider"
                   continue
                 fi
                 set -- "$dir"/*.go
@@ -130,13 +129,13 @@
                     echo "⚠ Failed to build provider: $provider"
                     exit 1
                   fi
-                  echo "✓ Built $provider.so"
+                  echo "Built $provider.so"
                 else
-                  echo "⚠ Skipping $provider: no .go files found"
+                  echo "Skipping $provider: no .go files found"
                 fi
               done
             else
-              echo "⚠ No providers directory found at ./internal/providers"
+              echo "No providers directory found at ./internal/providers"
             fi
 
             runHook postBuild
