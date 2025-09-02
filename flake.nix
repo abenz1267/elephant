@@ -126,7 +126,7 @@
                 if [ -e "$1" ]; then
                   echo "Building provider: $provider"
                   if ! go build -buildmode=plugin -o "$provider.so" ./internal/providers/"$provider"; then
-                    echo "Failed to build provider: $provider"
+                    echo "⚠ Failed to build provider: $provider"
                     exit 1
                   fi
                   echo "Built $provider.so"
