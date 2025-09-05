@@ -109,6 +109,7 @@ in
         Description = "Elephant launcher backend";
         After = [ "graphical-session-pre.target" ];
         PartOf = [ "graphical-session.target" ];
+        ConditionEnvironment = "WAYLAND_DISPLAY";
       };
 
       Service = {
