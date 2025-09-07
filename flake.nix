@@ -45,7 +45,7 @@
 
           src = ./.;
 
-          vendorHash = "sha256-MQ97Z+xOdjYfcV+XxpXP5n7ep87rWVAZgx+EK6KIiVg=";
+          vendorHash = "sha256-shdrMMCdAntH/V1wWHG6kBYWf3Kn4DNimHyCtLrWIWE=";
 
           buildInputs = with pkgs; [
             protobuf
@@ -57,12 +57,9 @@
           ];
 
           # Build from cmd/elephant/elephant.go
-          subPackages = [ "cmd" "elephant" ];
-
-          # Rename the binary from cmd to elephant
-          postInstall = ''
-            mv $out/bin/cmd $out/bin/elephant
-          '';
+          subPackages = [
+            "cmd/elephant"
+          ];
 
           postFixup = ''
              wrapProgram $out/bin/elephant \
@@ -79,13 +76,13 @@
         };
 
         # Providers package - builds all providers with same Go toolchain
-        elephant-providers = pkgs.buildGoModule rec {
+        elephant-providers = pkgs.buildGo125Module rec {
           pname = "elephant-providers";
           version = "0.1.0";
 
           src = ./.;
 
-          vendorHash = "sha256-MQ97Z+xOdjYfcV+XxpXP5n7ep87rWVAZgx+EK6KIiVg=";
+          vendorHash = "sha256-shdrMMCdAntH/V1wWHG6kBYWf3Kn4DNimHyCtLrWIWE=";
 
           nativeBuildInputs = with pkgs; [
             protobuf
