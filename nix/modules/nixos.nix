@@ -15,8 +15,8 @@ in
 
     package = mkOption {
       type = types.package;
-      default = flake.packages.${pkgs.system}.elephant-with-providers;
-      defaultText = literalExpression "flake.packages.\${pkgs.system}.elephant-with-providers";
+      default = flake.packages.${pkgs.stdenv.system}.elephant-with-providers;
+      defaultText = literalExpression "flake.packages.\${pkgs.stdenv.system}.elephant-with-providers";
       description = "The elephant package to use.";
     };
 

@@ -25,7 +25,7 @@
       devShells = eachSystem (pkgs: {
         default = pkgs.mkShell {
           name = "elephant-dev-shell";
-          inputsFrom = [ self.packages.${pkgs.system}.elephant ];
+          inputsFrom = [ self.packages.${pkgs.stdenv.system}.elephant ];
           buildInputs = with pkgs; [
             go
             gcc
@@ -36,7 +36,7 @@
       });
 
       packages = eachSystem (pkgs: {
-        default = self.packages.${pkgs.system}.elephant-with-providers;
+        default = self.packages.${pkgs.stdenv.system}.elephant-with-providers;
 
         # Main elephant binary
         elephant = pkgs.buildGo125Module {
@@ -170,8 +170,8 @@
           dontUnpack = true;
 
           buildInputs = [
-            self.packages.${pkgs.system}.elephant
-            self.packages.${pkgs.system}.elephant-providers
+            self.packages.${pkgs.stdenv.system}.elephant
+            self.packages.${pkgs.stdenv.system}.elephant-providers
           ];
 
           nativeBuildInputs = with pkgs; [
@@ -180,8 +180,8 @@
 
           installPhase = ''
             mkdir -p $out/bin $out/lib/elephant
-            cp ${self.packages.${pkgs.system}.elephant}/bin/elephant $out/bin/
-            cp -r ${self.packages.${pkgs.system}.elephant-providers}/lib/elephant/providers $out/lib/elephant/
+            cp ${self.packages.${pkgs.stdenv.system}.elephant}/bin/elephant $out/bin/
+            cp -r ${self.packages.${pkgs.stdenv.system}.elephant-providers}/lib/elephant/providers $out/lib/elephant/
           '';
 
           postFixup = ''
