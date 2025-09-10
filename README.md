@@ -83,7 +83,7 @@ git clone https://github.com/abenz1267/elephant
 cd elephant
 
 # Build and install the main binary
-cd cmd
+cd cmd/elephant
 go install elephant.go
 
 # Create configuration directories
