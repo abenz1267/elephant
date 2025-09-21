@@ -58,7 +58,7 @@ func main() {
 			},
 			{
 				Name:    "listproviders",
-				Aliases: []string{"d"},
+				Aliases: []string{"l"},
 				Usage:   "lists all installed providers",
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					logger := slog.New(slog.DiscardHandler)
