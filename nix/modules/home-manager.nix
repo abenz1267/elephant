@@ -107,7 +107,7 @@ in
     systemd.user.services.elephant = mkIf cfg.installService {
       Unit = {
         Description = "Elephant launcher backend";
-        After = [ "graphical-session-pre.target" ];
+        After = [ "graphical-session.target" ];
         PartOf = [ "graphical-session.target" ];
         ConditionEnvironment = "WAYLAND_DISPLAY";
       };
