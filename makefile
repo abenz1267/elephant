@@ -12,7 +12,7 @@ BUILD_DIR = cmd
 all: build
 
 build:
-	cd $(BUILD_DIR) && go build $(GO_BUILD_FLAGS) -o elephant
+	cd $(BUILD_DIR)/elephant && go build $(GO_BUILD_FLAGS) -o elephant
 
 install: build
 	install -Dm 755 $(BUILD_DIR)/elephant $(BINDIR)/elephant

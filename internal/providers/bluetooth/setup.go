@@ -11,8 +11,8 @@ import (
 	_ "embed"
 
 	"github.com/abenz1267/elephant/internal/comm/handlers"
-	"github.com/abenz1267/elephant/internal/common"
 	"github.com/abenz1267/elephant/internal/util"
+	"github.com/abenz1267/elephant/pkg/common"
 	"github.com/abenz1267/elephant/pkg/pb/pb"
 )
 

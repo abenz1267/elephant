@@ -8,7 +8,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/abenz1267/elephant/internal/common"
+	"github.com/abenz1267/elephant/pkg/common"
 )
 
 const (

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/abenz1267/elephant/internal/common"
-	"github.com/abenz1267/elephant/internal/common/history"
+	"github.com/abenz1267/elephant/pkg/common"
+	"github.com/abenz1267/elephant/pkg/common/history"
 )
 
 const ActionTogglePin = "toggle_pin"
