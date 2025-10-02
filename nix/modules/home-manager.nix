@@ -22,6 +22,7 @@ let
     websearch = "Web search integration";
     todo = "Todo list";
     unicode = "Unicode symbol search";
+    bluetooth = "Basic Bluetooth management";
   };
 in
 {
