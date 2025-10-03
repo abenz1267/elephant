@@ -1,2 +1,3 @@
 *.so
+cmd/elephant/elephant
 tmp
