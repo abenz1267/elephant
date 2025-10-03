@@ -38,7 +38,7 @@ func InitRunPrefix() {
 	if spid != "" {
 		systemdrun, err := exec.LookPath("systemd-run")
 		if err == nil && systemdrun != "" {
-			runPrefix = "systemd-run --user"
+			runPrefix = "systemd-run --user --scope"
 			slog.Info("config", "runprefix autodetect", runPrefix)
 			return
 		}
