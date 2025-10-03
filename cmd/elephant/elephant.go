@@ -73,7 +73,7 @@ ExecStart=elephant
 Restart=on-failure
 
 [Install]
-WantedBy=xdg-desktop-autostart.target
+WantedBy=graphical-session.target
 							`
 
 							if !common.FileExists(file) {
