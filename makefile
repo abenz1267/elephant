@@ -12,17 +12,17 @@ BUILD_DIR = cmd/elephant
 all: build
 
 build:
-	cd $(BUILD_DIR)/elephant && go build $(GO_BUILD_FLAGS) -o elephant
+	cd $(BUILD_DIR) && go build $(GO_BUILD_FLAGS) -o elephant
 
 install: build
-	install -Dm 755 $(BUILD_DIR) $(BINDIR)/elephant
+	install -Dm 755 $(BUILD_DIR)/elephant $(BINDIR)/elephant
 
 uninstall:
 	rm -f $(BINDIR)/elephant
 
 clean:
 	cd $(BUILD_DIR) && go clean
-	rm -f $(BUILD_DIR)
+	rm -f $(BUILD_DIR)/elephant
 
 dev-install: PREFIX = /usr/local
 dev-install: install
