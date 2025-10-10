@@ -417,7 +417,7 @@ func Activate(identifier, action string, query string, args string) {
 			}
 		} else {
 			// Usa l'implementazione clipboard per il testo
-			err := clipboardImpl.CopyToClipboard(item.Content)
+			err := clipboardImpl.CopyToClipboard(item.ID, item.Content)
 			if err != nil {
 				slog.Error("clipboard", "activate", err)
 			}
