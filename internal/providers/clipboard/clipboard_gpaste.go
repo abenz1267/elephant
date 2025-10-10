@@ -68,7 +68,7 @@ func (g *GPaste) getCurrentContent() (string, error) {
     return strings.TrimSpace(string(out)), nil
 }
 
-func (g *GPaste) CopyToClipboard(content string) error {
+func (g *GPaste) CopyToClipboard(id string, content string) error {
     cmd := exec.Command("gpaste-client", "set", content)
     return cmd.Run()
 }
