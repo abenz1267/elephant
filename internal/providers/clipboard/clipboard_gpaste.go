@@ -69,6 +69,6 @@ func (g *GPaste) getCurrentContent() (string, error) {
 }
 
 func (g *GPaste) CopyToClipboard(id string, content string) error {
-    cmd := exec.Command("gpaste-client", "set", content)
+    cmd := exec.Command("gpaste-client", "get", id)
     return cmd.Run()
 }
