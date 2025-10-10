@@ -7,8 +7,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/abenz1267/elephant/internal/providers"
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/internal/providers"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 	"google.golang.org/protobuf/proto"
 )
 

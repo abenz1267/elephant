@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/common/history"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common/history"
 )
 
 type DesktopFile struct {

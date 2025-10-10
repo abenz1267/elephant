@@ -11,8 +11,8 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 	"github.com/charlievieth/fastwalk"
 )
 

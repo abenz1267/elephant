@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/abenz1267/elephant/internal/util"
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/internal/util"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
 var (

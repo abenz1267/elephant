@@ -1,4 +1,4 @@
-module github.com/abenz1267/elephant
+module github.com/abenz1267/elephant/v2
 
 go 1.25.0
 

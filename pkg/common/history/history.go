@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/abenz1267/elephant/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common"
 )
 
 type HistoryData struct {

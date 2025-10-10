@@ -13,11 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/abenz1267/elephant/internal/comm"
-	"github.com/abenz1267/elephant/internal/comm/client"
-	"github.com/abenz1267/elephant/internal/providers"
-	"github.com/abenz1267/elephant/internal/util"
-	"github.com/abenz1267/elephant/pkg/common"
+	"github.com/abenz1267/elephant/v2/internal/comm"
+	"github.com/abenz1267/elephant/v2/internal/comm/client"
+	"github.com/abenz1267/elephant/v2/internal/providers"
+	"github.com/abenz1267/elephant/v2/internal/util"
+	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/adrg/xdg"
 	"github.com/urfave/cli/v3"
 )
