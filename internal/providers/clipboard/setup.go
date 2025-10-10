@@ -2,14 +2,12 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/md5"
 	_ "embed"
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"log/slog"
 	"net"
 	"os"
@@ -35,6 +33,7 @@ var (
 	clipboardhistory = make(map[string]*Item)
 	mu               sync.Mutex
 	imagesOnly       = false
+	clipboardImpl    Clipboard
 )
 
 //go:embed README.md
@@ -43,6 +42,7 @@ var readme string
 const StateEditable = "editable"
 
 type Item struct {
+	ID       string
 	Content  string
 	Img      string
 	Mimetype string
@@ -78,6 +78,16 @@ func Setup() {
 	imgTypes["image/jpg"] = "jpg"
 	imgTypes["image/jpeg"] = "jpeg"
 	imgTypes["image/webm"] = "webm"
+
+	// Crea l'implementazione corretta della clipboard
+	var err error
+	clipboardImpl, err = CreateClipboard()
+	if err != nil {
+		slog.Error(Name, "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info(Name, "using", clipboardImpl.GetName())
 
 	loadFromFile()
 
@@ -125,27 +135,15 @@ func saveToFile() {
 }
 
 func handleChange() {
-	cmd := exec.Command("wl-paste", "--watch", "echo", "")
-
-	stdout, err := cmd.StdoutPipe()
+	changed := make(chan bool, 10)
+	
+	err := clipboardImpl.StartMonitoring(changed)
 	if err != nil {
-		slog.Error(Name, "load", err)
-		os.Exit(1)
+		slog.Error(Name, "monitoring", err)
+		return
 	}
-
-	err = cmd.Start()
-	if err != nil {
-		slog.Error(Name, "load", err)
-		os.Exit(1)
-	} else {
-		go func() {
-			cmd.Wait()
-		}()
-	}
-
-	scanner := bufio.NewScanner(stdout)
-
-	for scanner.Scan() {
+	
+	for range changed {
 		update()
 	}
 }
@@ -157,28 +155,20 @@ var (
 )
 
 func update() {
-	cmd := exec.Command("wl-paste", "-n")
-	out, err := cmd.CombinedOutput()
+	content, mimetypes, err := clipboardImpl.GetContent()
 	if err != nil {
-		if strings.Contains(string(out), "Nothing is copied") {
-			return
-		}
-
 		slog.Error("clipboard", "error", err)
-
 		return
 	}
 
-	mt := getMimetypes()
-
-	if len(mt) == 0 {
+	if len(mimetypes) == 0 || len(content) == 0 {
 		return
 	}
 
 	isImg := false
 	isFF, isChrome := false, false
 
-	for _, v := range mt {
+	for _, v := range mimetypes {
 		if slices.Contains(ignoreMimetypes, v) {
 			return
 		}
@@ -201,29 +191,49 @@ func update() {
 		return
 	}
 
-	md5 := md5.Sum(out)
-	md5str := hex.EncodeToString(md5[:])
+	// Calcola MD5 del contenuto per identificatore univoco
+	md5Hash := md5.Sum(content)
+	md5str := hex.EncodeToString(md5Hash[:])
 
-	if val, ok := clipboardhistory[md5str]; ok {
+	// Per GPaste, estrai ID e contenuto separatamente
+	var itemID, itemContent string
+	if clipboardImpl.GetName() == "GPaste" {
+		parts := strings.SplitN(string(content), ":", 2)
+		if len(parts) >= 2 {
+			itemID = strings.TrimSpace(parts[0])
+			itemContent = strings.TrimSpace(parts[1])
+		} else {
+			itemID = md5str
+			itemContent = string(content)
+		}
+	} else {
+		// Per Wayland, usa MD5 come ID
+		itemID = md5str
+		itemContent = string(content)
+	}
+
+	if val, ok := clipboardhistory[itemID]; ok {
 		val.Time = time.Now()
 		return
 	}
 
-	if !isImg && !utf8.Valid(out) {
+	if !isImg && !utf8.Valid(content) {
 		slog.Error(Name, "updating", "string content contains invalid UTF-8")
 	}
 
 	if !isImg {
-		clipboardhistory[md5str] = &Item{
-			Content: string(out),
+		clipboardhistory[itemID] = &Item{
+			ID:      itemID,
+			Content: itemContent,
 			Time:    time.Now(),
 			State:   StateEditable,
 		}
 	} else {
-		if file := saveImg(out, imgTypes[mt[0]]); file != "" {
-			clipboardhistory[md5str] = &Item{
+		if file := saveImg(content, imgTypes[mimetypes[0]]); file != "" {
+			clipboardhistory[itemID] = &Item{
+				ID:       itemID,
 				Img:      file,
-				Mimetype: mt[0],
+				Mimetype: mimetypes[0],
 				Time:     time.Now(),
 				State:    StateEditable,
 			}
@@ -233,7 +243,6 @@ func update() {
 	if len(clipboardhistory) > config.MaxItems {
 		trim()
 		saveToFile()
-
 		return
 	}
 
@@ -390,24 +399,28 @@ func Activate(identifier, action string, query string, args string) {
 		saveToFile()
 		mu.Unlock()
 	case ActionCopy:
-		cmd := exec.Command("sh", "-c", config.Command)
-
 		item := clipboardhistory[identifier]
 		if item.Img != "" {
-			f, _ := os.ReadFile(item.Img)
-			cmd.Stdin = bytes.NewReader(f)
+			// Per le immagini, usa sempre wl-copy se disponibile
+			if checkToolAvailable("wl-copy") {
+				f, _ := os.ReadFile(item.Img)
+				cmd := exec.Command("wl-copy")
+				cmd.Stdin = bytes.NewReader(f)
+				err := cmd.Start()
+				if err != nil {
+					slog.Error("clipboard", "activate", err)
+				} else {
+					go cmd.Wait()
+				}
+			} else {
+				slog.Error(Name, "copy image", "wl-copy required for images")
+			}
 		} else {
-			cmd.Stdin = strings.NewReader(item.Content)
-		}
-
-		err := cmd.Start()
-		if err != nil {
-			slog.Error("clipboard", "activate", err)
-			return
-		} else {
-			go func() {
-				cmd.Wait()
-			}()
+			// Usa l'implementazione clipboard per il testo
+			err := clipboardImpl.CopyToClipboard(item.Content)
+			if err != nil {
+				slog.Error("clipboard", "activate", err)
+			}
 		}
 	default:
 		slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
@@ -467,19 +480,13 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 	return entries
 }
 
-func getMimetypes() []string {
-	cmd := exec.Command("wl-paste", "--list-types")
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Println(err)
-		log.Println(string(out))
-		return []string{}
-	}
-
-	return strings.Fields(string(out))
-}
-
 func Icon() string {
 	return config.Icon
+}
+
+// Funzione helper mantenuta per compatibilità
+func checkToolAvailable(tool string) bool {
+	cmd := exec.Command("which", tool)
+	err := cmd.Run()
+	return err == nil
 }
