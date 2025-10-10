@@ -257,7 +257,7 @@ func calcScore(q string, d *Data, exact bool) (string, int32, []int32, int32, bo
 
 	toSearch := []string{d.Name}
 	if !config.OnlySearchTitle {
-		toSearch = []string{d.Name, d.Parent, d.GenericName, strings.Join(d.Keywords, ","), d.Comment}
+		toSearch = []string{d.Name, d.Exec, d.Parent, d.GenericName, strings.Join(d.Keywords, ","), d.Comment}
 	}
 
 	for k, v := range toSearch {
