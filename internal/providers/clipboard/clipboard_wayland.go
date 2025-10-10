@@ -72,7 +72,7 @@ func (w *Wayland) StartMonitoring(changed chan<- bool) error {
     return nil
 }
 
-func (w *Wayland) CopyToClipboard(content string) error {
+func (w *Wayland) CopyToClipboard(id string, content string) error {
     cmd := exec.Command("wl-copy")
     cmd.Stdin = strings.NewReader(content)
     return cmd.Run()
