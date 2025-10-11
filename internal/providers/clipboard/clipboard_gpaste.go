@@ -64,17 +64,37 @@ func (g *GPaste) GetContentParsed() (itemID string, content string, mimetypes []
 
 func (g *GPaste) getRawContent() (string, error) {
 	cmd := exec.Command("gpaste-client", "history")
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", err
+		return "", nil
 	}
 
-	content := strings.TrimSpace(string(out))
-	if content == "" {
-		return "", fmt.Errorf("clipboard vuota")
+	output := string(out)
+
+	// Dividi per newline - considera diversi tipi di newline
+	var items []string
+
+	// Prova prima con \n (Linux/Unix)
+	if strings.Contains(output, "\n") {
+		items = strings.Split(output, "\n")
+	} else {
+		items = []string{output}
 	}
 
-	return content, nil
+	// Rimuovi elementi vuoti e pulisci
+	var cleanItems []string
+	for i, item := range items {
+		trimmed := strings.TrimSpace(item)
+		if trimmed != "" {
+			cleanItems = append(cleanItems, trimmed)
+			// Mostra solo i primi 3 elementi per non intasare il log
+			if i < 3 {
+				fmt.Printf("  %d: '%s' (len: %d)\n", i, trimmed, len(trimmed))
+			}
+		}
+	}
+
+	return items[len(cleanItems)], nil
 }
 
 func (g *GPaste) StartMonitoring(changed chan<- bool) error {
