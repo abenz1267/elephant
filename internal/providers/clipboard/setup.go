@@ -94,8 +94,6 @@ func Setup() {
 }
 
 func loadFromFile() {
-	fmt.Println("=== loadFromFile Clipboard Provider ===")
-
 	if common.FileExists(file) {
 		f, err := os.ReadFile(file)
 		if err != nil {
@@ -135,8 +133,6 @@ func saveToFile() {
 
 func handleChange() {
 	changed := make(chan bool, 10)
-	fmt.Println("=== handleChange Clipboard Provider ===")
-
 	err := clipboardImpl.StartMonitoring(changed)
 
 	if err != nil {
@@ -158,7 +154,6 @@ var (
 
 func update() {
 	content, mimetypes, err := clipboardImpl.GetContent()
-	fmt.Println("=== update Clipboard Provider ===")
 	if err != nil {
 		slog.Error("clipboard", "error", err)
 		return
@@ -196,7 +191,6 @@ func update() {
 
 	// Per GPaste, estrai ID e contenuto separatamente
 	itemID, itemContent, mimetypes, err := clipboardImpl.GetContentParsed()
-	fmt.Println("=== itemID %s", string(itemID))
 
 	if err != nil {
 		slog.Error("clipboard", "error", err)

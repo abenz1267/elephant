@@ -83,18 +83,14 @@ func (g *GPaste) getRawContent() (string, error) {
 
 	// Rimuovi elementi vuoti e pulisci
 	var cleanItems []string
-	for i, item := range items {
+	for _, item := range items {
 		trimmed := strings.TrimSpace(item)
 		if trimmed != "" {
 			cleanItems = append(cleanItems, trimmed)
-			// Mostra solo i primi 3 elementi per non intasare il log
-			if i < 3 {
-				fmt.Printf("  %d: '%s' (len: %d)\n", i, trimmed, len(trimmed))
-			}
 		}
 	}
 
-	return items[len(cleanItems)], nil
+	return cleanItems[0], nil
 }
 
 func (g *GPaste) StartMonitoring(changed chan<- bool) error {
