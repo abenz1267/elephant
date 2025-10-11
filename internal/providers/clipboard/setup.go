@@ -136,13 +136,13 @@ func saveToFile() {
 
 func handleChange() {
 	changed := make(chan bool, 10)
-	
+
 	err := clipboardImpl.StartMonitoring(changed)
 	if err != nil {
 		slog.Error(Name, "monitoring", err)
 		return
 	}
-	
+
 	for range changed {
 		update()
 	}
@@ -482,11 +482,4 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 
 func Icon() string {
 	return config.Icon
-}
-
-// Funzione helper mantenuta per compatibilità
-func checkToolAvailable(tool string) bool {
-	cmd := exec.Command("which", tool)
-	err := cmd.Run()
-	return err == nil
 }
