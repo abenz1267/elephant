@@ -3,10 +3,8 @@ package main
 
 import (
 	"bytes"
-	"crypto/md5"
 	_ "embed"
 	"encoding/gob"
-	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net"
@@ -60,7 +58,6 @@ type Config struct {
 
 func Setup() {
 	start := time.Now()
-
 	config = &Config{
 		Config: common.Config{
 			Icon:     "user-bookmarks",
@@ -97,6 +94,8 @@ func Setup() {
 }
 
 func loadFromFile() {
+	fmt.Println("=== loadFromFile Clipboard Provider ===")
+
 	if common.FileExists(file) {
 		f, err := os.ReadFile(file)
 		if err != nil {
@@ -136,10 +135,13 @@ func saveToFile() {
 
 func handleChange() {
 	changed := make(chan bool, 10)
+	fmt.Println("=== handleChange Clipboard Provider ===")
 
 	err := clipboardImpl.StartMonitoring(changed)
+
 	if err != nil {
 		slog.Error(Name, "monitoring", err)
+		fmt.Println("=== ERROR handleChange Clipboard Provider ===")
 		return
 	}
 
@@ -156,6 +158,7 @@ var (
 
 func update() {
 	content, mimetypes, err := clipboardImpl.GetContent()
+	fmt.Println("=== update Clipboard Provider ===")
 	if err != nil {
 		slog.Error("clipboard", "error", err)
 		return
@@ -191,25 +194,17 @@ func update() {
 		return
 	}
 
-	// Calcola MD5 del contenuto per identificatore univoco
-	md5Hash := md5.Sum(content)
-	md5str := hex.EncodeToString(md5Hash[:])
-
 	// Per GPaste, estrai ID e contenuto separatamente
-	var itemID, itemContent string
-	if clipboardImpl.GetName() == "GPaste" {
-		parts := strings.SplitN(string(content), ":", 2)
-		if len(parts) >= 2 {
-			itemID = strings.TrimSpace(parts[0])
-			itemContent = strings.TrimSpace(parts[1])
-		} else {
-			itemID = md5str
-			itemContent = string(content)
-		}
-	} else {
-		// Per Wayland, usa MD5 come ID
-		itemID = md5str
-		itemContent = string(content)
+	itemID, itemContent, mimetypes, err := clipboardImpl.GetContentParsed()
+	fmt.Println("=== itemID %s", string(itemID))
+
+	if err != nil {
+		slog.Error("clipboard", "error", err)
+		return
+	}
+
+	if len(mimetypes) == 0 || itemContent == "" {
+		return
 	}
 
 	if val, ok := clipboardhistory[itemID]; ok {
@@ -401,7 +396,7 @@ func Activate(identifier, action string, query string, args string) {
 	case ActionCopy:
 		item := clipboardhistory[identifier]
 		if item.Img != "" {
-			// Per le immagini, usa sempre wl-copy se disponibile
+			// For img use always wl-copy is avaiable
 			if checkToolAvailable("wl-copy") {
 				f, _ := os.ReadFile(item.Img)
 				cmd := exec.Command("wl-copy")
