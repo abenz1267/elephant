@@ -2,14 +2,10 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
-	"crypto/md5"
 	_ "embed"
 	"encoding/gob"
-	"encoding/hex"
 	"fmt"
-	"log"
 	"log/slog"
 	"net"
 	"os"
@@ -35,13 +31,7 @@ var (
 	clipboardhistory = make(map[string]*Item)
 	mu               sync.Mutex
 	imagesOnly       = false
-	clipboardTool    = determineClipboardTool()
-)
-
-// Aggiungi queste costanti
-const (
-	ClipboardToolWayland = "wl-paste"
-	ClipboardToolGPaste  = "gpaste-client"
+	clipboardImpl    Clipboard
 )
 
 //go:embed README.md
@@ -68,7 +58,6 @@ type Config struct {
 
 func Setup() {
 	start := time.Now()
-
 	config = &Config{
 		Config: common.Config{
 			Icon:     "user-bookmarks",
@@ -87,39 +76,21 @@ func Setup() {
 	imgTypes["image/jpeg"] = "jpeg"
 	imgTypes["image/webm"] = "webm"
 
-	// Determina quale tool usare
-	clipboardTool = determineClipboardTool()
+	// Crea l'implementazione corretta della clipboard
+	var err error
+	clipboardImpl, err = CreateClipboard()
+	if err != nil {
+		slog.Error(Name, "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info(Name, "using", clipboardImpl.GetName())
 
 	loadFromFile()
 
 	go handleChange()
 
 	slog.Info(Name, "history", len(clipboardhistory), "time", time.Since(start))
-}
-
-func determineClipboardTool() string {
-
-	// Thest first gpaste
-	if checkToolAvailable(ClipboardToolGPaste) {
-		slog.Info(Name, "using", ClipboardToolGPaste)
-		return ClipboardToolGPaste
-	}
-
-	// fallback to wl-paste
-	if checkToolAvailable(ClipboardToolWayland) {
-		slog.Info(Name, "using", ClipboardToolWayland)
-		return ClipboardToolWayland
-	}
-	// Nessun tool disponibile
-	slog.Error(Name, "error", "no clipboard tool available (wl-paste or gpaste)")
-	os.Exit(1)
-	return ""
-}
-
-func checkToolAvailable(tool string) bool {
-	cmd := exec.Command("which", tool)
-	err := cmd.Run()
-	return err == nil
 }
 
 func loadFromFile() {
@@ -161,52 +132,16 @@ func saveToFile() {
 }
 
 func handleChange() {
-	switch clipboardTool {
-	case ClipboardToolWayland:
-		handleChangeWayland()
-	case ClipboardToolGPaste:
-		handleChangeGPaste()
-	}
-}
+	changed := make(chan bool, 10)
+	err := clipboardImpl.StartMonitoring(changed)
 
-func handleChangeGPaste() {
-	// Per gpaste, dobbiamo polling poiché non ha --watch
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-	//fmt.Printf("🎯 handleChangeGPaste \n")
-	var lastContent string
-
-	for range ticker.C {
-		current := getGPasteContent()
-		if current != "" && current != lastContent {
-			lastContent = current
-			update()
-		}
-	}
-}
-
-func handleChangeWayland() {
-	cmd := exec.Command("wl-paste", "--watch", "echo", "")
-
-	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		slog.Error(Name, "load", err)
-		os.Exit(1)
+		slog.Error(Name, "monitoring", err)
+		fmt.Println("=== ERROR handleChange Clipboard Provider ===")
+		return
 	}
 
-	err = cmd.Start()
-	if err != nil {
-		slog.Error(Name, "load", err)
-		os.Exit(1)
-	} else {
-		go func() {
-			cmd.Wait()
-		}()
-	}
-
-	scanner := bufio.NewScanner(stdout)
-
-	for scanner.Scan() {
+	for range changed {
 		update()
 	}
 }
@@ -218,23 +153,13 @@ var (
 )
 
 func update() {
-	var content []byte
-	var mimetypes []string
-	var err error
-
-	switch clipboardTool {
-	case ClipboardToolWayland:
-		content, mimetypes, err = getWaylandContent()
-	case ClipboardToolGPaste:
-		content, mimetypes, err = getGPasteContentWithTypes()
-	}
-
+	content, mimetypes, err := clipboardImpl.GetContent()
 	if err != nil {
 		slog.Error("clipboard", "error", err)
 		return
 	}
 
-	if len(mimetypes) == 0 {
+	if len(mimetypes) == 0 || len(content) == 0 {
 		return
 	}
 
@@ -264,19 +189,19 @@ func update() {
 		return
 	}
 
-	md5 := md5.Sum(content)
-	//Check tool type
-	md5str := ""
-	parts := []string{}
-	switch clipboardTool {
-	case ClipboardToolWayland:
-		md5str = hex.EncodeToString(md5[:])
-	case ClipboardToolGPaste:
-		parts = strings.SplitN(string(content), ":", 2)
-		md5str = parts[0]
+	// Per GPaste, estrai ID e contenuto separatamente
+	itemID, itemContent, mimetypes, err := clipboardImpl.GetContentParsed()
+
+	if err != nil {
+		slog.Error("clipboard", "error", err)
+		return
 	}
 
-	if val, ok := clipboardhistory[md5str]; ok {
+	if len(mimetypes) == 0 || itemContent == "" {
+		return
+	}
+
+	if val, ok := clipboardhistory[itemID]; ok {
 		val.Time = time.Now()
 		return
 	}
@@ -286,27 +211,16 @@ func update() {
 	}
 
 	if !isImg {
-		//Check tool type
-		switch clipboardTool {
-		case ClipboardToolWayland:
-			clipboardhistory[md5str] = &Item{
-				ID:      md5str,
-				Content: string(content),
-				Time:    time.Now(),
-				State:   StateEditable,
-			}
-		case ClipboardToolGPaste:
-			clipboardhistory[md5str] = &Item{
-				ID:      md5str,
-				Content: string(parts[1]),
-				Time:    time.Now(),
-				State:   StateEditable,
-			}
+		clipboardhistory[itemID] = &Item{
+			ID:      itemID,
+			Content: itemContent,
+			Time:    time.Now(),
+			State:   StateEditable,
 		}
-
 	} else {
 		if file := saveImg(content, imgTypes[mimetypes[0]]); file != "" {
-			clipboardhistory[md5str] = &Item{
+			clipboardhistory[itemID] = &Item{
+				ID:       itemID,
 				Img:      file,
 				Mimetype: mimetypes[0],
 				Time:     time.Now(),
@@ -318,80 +232,10 @@ func update() {
 	if len(clipboardhistory) > config.MaxItems {
 		trim()
 		saveToFile()
-
 		return
 	}
 
 	saveToFile()
-}
-
-func getGPasteHistory() []string {
-	cmd := exec.Command("gpaste-client", "history")
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Printf("❌ Error gpaste history: %v\n", err)
-		return nil
-	}
-
-	output := string(out)
-	//fmt.Printf("📜 Cronologia RAW:\n--- INIZIO ---\n%s\n--- FINE ---\n", output)
-	//fmt.Printf("📏 Lunghezza totale: %d caratteri\n", len(output))
-
-	// Dividi per newline - considera diversi tipi di newline
-	var items []string
-
-	// Prova prima con \n (Linux/Unix)
-	if strings.Contains(output, "\n") {
-		items = strings.Split(output, "\n")
-	} else {
-		items = []string{output}
-	}
-
-	var cleanItems []string
-	for _, item := range items {
-		trimmed := strings.TrimSpace(item)
-		if trimmed != "" {
-			cleanItems = append(cleanItems, trimmed)
-		}
-	}
-	return cleanItems
-}
-
-func getLastGPasteItem() string {
-	items := getGPasteHistory()
-	if len(items) == 0 {
-		return ""
-	}
-	lastItem := items[0]
-
-	return lastItem
-}
-
-func getGPasteContent() string {
-	return getLastGPasteItem()
-}
-
-func getGPasteContentWithTypes() ([]byte, []string, error) {
-	content := getGPasteContent()
-	if content == "" {
-		return nil, nil, fmt.Errorf("no content")
-	}
-	return []byte(content), []string{"text/plain"}, nil
-}
-
-func getWaylandContent() ([]byte, []string, error) {
-	cmd := exec.Command("wl-paste", "-n")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		if strings.Contains(string(out), "Nothing is copied") {
-			return nil, nil, nil
-		}
-		return nil, nil, err
-	}
-
-	mimetypes := getMimetypes()
-	return out, mimetypes, nil
 }
 
 func trim() {
@@ -544,35 +388,28 @@ func Activate(identifier, action string, query string, args string) {
 		saveToFile()
 		mu.Unlock()
 	case ActionCopy:
-		var cmd *exec.Cmd
-
 		item := clipboardhistory[identifier]
 		if item.Img != "" {
+			// For img use always wl-copy is avaiable
 			if checkToolAvailable("wl-copy") {
 				f, _ := os.ReadFile(item.Img)
-				cmd = exec.Command("wl-copy")
+				cmd := exec.Command("wl-copy")
 				cmd.Stdin = bytes.NewReader(f)
+				err := cmd.Start()
+				if err != nil {
+					slog.Error("clipboard", "activate", err)
+				} else {
+					go cmd.Wait()
+				}
 			} else {
 				slog.Error(Name, "copy image", "wl-copy required for images")
-				return
 			}
 		} else {
-			if clipboardTool == ClipboardToolWayland {
-				cmd = exec.Command("wl-copy")
-				cmd.Stdin = strings.NewReader(item.Content)
-			} else {
-				cmd = exec.Command("gpaste-client", "select", item.ID)
+			// Usa l'implementazione clipboard per il testo
+			err := clipboardImpl.CopyToClipboard(item.ID, item.Content)
+			if err != nil {
+				slog.Error("clipboard", "activate", err)
 			}
-		}
-
-		err := cmd.Start()
-		if err != nil {
-			slog.Error("clipboard", "activate", err)
-			return
-		} else {
-			go func() {
-				cmd.Wait()
-			}()
 		}
 	default:
 		slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
@@ -630,23 +467,6 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 	}
 
 	return entries
-}
-
-func getMimetypes() []string {
-	if clipboardTool == ClipboardToolGPaste {
-		return []string{"text/plain"}
-	}
-
-	// Codice originale per wl-paste
-	cmd := exec.Command("wl-paste", "--list-types")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Println(err)
-		log.Println(string(out))
-		return []string{}
-	}
-
-	return strings.Fields(string(out))
 }
 
 func Icon() string {
