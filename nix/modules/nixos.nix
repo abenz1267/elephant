@@ -1,15 +1,28 @@
-flake:
-{
+flake: {
   config,
   lib,
   pkgs,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.services.elephant;
-in
-{
+
+  # Available providers
+  providerOptions = {
+    desktopapplications = "Desktop application launcher";
+    files = "File search and management";
+    clipboard = "Clipboard history management";
+    runner = "Command runner";
+    symbols = "Symbols and emojis";
+    calc = "Calculator and unit conversion";
+    menus = "Custom menu system";
+    providerlist = "Provider listing and management";
+    websearch = "Web search integration";
+    todo = "Todo list";
+    unicode = "Unicode symbol search";
+    bluetooth = "Basic Bluetooth management";
+  };
+in {
   options.services.elephant = {
     enable = mkEnableOption "Elephant launcher backend system service";
 
@@ -32,16 +45,18 @@ in
       description = "Group under which elephant runs.";
     };
 
-    debug = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Enable debug logging.";
-    };
-
-    config = mkOption {
-      type = types.attrs;
-      default = { };
-      description = "Elephant configuration as Nix attributes.";
+    providers = mkOption {
+      type = types.listOf (types.enum (attrNames providerOptions));
+      default = attrNames providerOptions;
+      example = [
+        "files"
+        "desktopapplications"
+        "calc"
+      ];
+      description = ''
+        List of providers to enable. Available providers:
+        ${concatStringsSep "\n" (mapAttrsToList (name: desc: "  - ${name}: ${desc}") providerOptions)}
+      '';
     };
 
     installService = mkOption {
@@ -49,33 +64,60 @@ in
       default = true;
       description = "Create a systemd service for elephant.";
     };
+
+    debug = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable debug logging for elephant service.";
+    };
+
+    config = mkOption {
+      type = types.attrs;
+      default = {};
+      example = literalExpression ''
+        {
+          providers = {
+            files = {
+              min_score = 50;
+            };
+            desktopapplications = {
+              launch_prefix = "uwsm app --";
+            };
+          };
+        }
+      '';
+      description = "Elephant configuration as Nix attributes.";
+    };
   };
 
   config = mkIf cfg.enable {
-    users.users.${cfg.user} = {
-      description = "Elephant launcher backend user";
-      group = cfg.group;
-      isSystemUser = true;
-      home = "/var/lib/elephant";
-      createHome = true;
-    };
+    environment.systemPackages = [cfg.package];
 
-    users.groups.${cfg.group} = { };
-
-    # Install providers system-wide
-    environment.etc."xdg/elephant/providers" = {
-      source = "${cfg.package}/lib/elephant/providers";
-    };
-
-    # System-wide config
-    environment.etc."xdg/elephant/elephant.toml" = mkIf (cfg.config != { }) {
-      source = (pkgs.formats.toml { }).generate "elephant.toml" cfg.config;
-    };
+    # Install providers to system config
+    environment.etc =
+      {
+        # Generate elephant config
+        "xdg/elephant/elephant.toml" = mkIf (cfg.config != {}) {
+          source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
+        };
+      }
+      # Generate provider files
+      // builtins.listToAttrs
+      (map
+        (
+          provider:
+            lib.nameValuePair
+            "xdg/elephant/providers/${provider}.so"
+            {
+              source = "${cfg.package}/lib/elephant/providers/${provider}.so";
+            }
+        )
+        cfg.providers);
 
     systemd.services.elephant = mkIf cfg.installService {
       description = "Elephant launcher backend";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
       serviceConfig = {
         Type = "simple";
@@ -103,7 +145,5 @@ in
         HOME = "/var/lib/elephant";
       };
     };
-
-    environment.systemPackages = [ cfg.package ];
   };
 }
