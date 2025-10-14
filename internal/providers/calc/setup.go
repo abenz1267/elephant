@@ -18,10 +18,10 @@ import (
 
 	_ "embed"
 
-	"github.com/abenz1267/elephant/internal/comm/handlers"
-	"github.com/abenz1267/elephant/internal/util"
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
+	"github.com/abenz1267/elephant/v2/internal/util"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
 var (
@@ -57,6 +57,17 @@ type HistoryItem struct {
 var history = []HistoryItem{}
 
 func Setup() {
+	p, err := exec.LookPath("qalc")
+	if err != nil {
+		slog.Error(Name, "setup", err)
+		return
+	}
+
+	if p == "" {
+		slog.Error(Name, "setup", "qalc not installed")
+		return
+	}
+
 	config = &Config{
 		Config: common.Config{
 			Icon: "accessories-calculator",
@@ -74,7 +85,7 @@ func Setup() {
 
 	// this is to update exchange rate data
 	cmd := exec.Command("qalc", "-e", "1+1")
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		slog.Error(Name, "init", err)
 	} else {
@@ -208,6 +219,7 @@ func Query(conn net.Conn, query string, single bool, _ bool) []*pb.QueryResponse
 			if err == nil {
 				e.Text = strings.TrimSpace(string(out))
 			} else {
+				slog.Error(Name, "qalc", err, "out", out)
 				e.Text = "%DELETE%"
 			}
 

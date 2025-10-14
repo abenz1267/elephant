@@ -12,11 +12,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/abenz1267/elephant/internal/comm/handlers"
-	"github.com/abenz1267/elephant/internal/util"
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/common/history"
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
+	"github.com/abenz1267/elephant/v2/internal/util"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common/history"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
 var (
@@ -32,15 +32,15 @@ var readme string
 
 type Config struct {
 	common.Config           `koanf:",squash"`
-	Entries                 []Entry `koanf:"entries" desc:"entries" default:""`
-	MaxGlobalItemsToDisplay int     `koanf:"max_global_items_to_display" desc:"will only show the global websearch entry if there are at most X results." default:"1"`
-	History                 bool    `koanf:"history" desc:"make use of history for sorting" default:"true"`
-	HistoryWhenEmpty        bool    `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
-	EnginesAsActions        bool    `koanf:"engines_as_actions" desc:"run engines as actions" default:"true"`
-	TextPrefix              string  `koanf:"text_prefix" desc:"prefix for the entry text" default:"Search: "`
+	Engines                 []Engine `koanf:"entries" desc:"entries" default:"google"`
+	MaxGlobalItemsToDisplay int      `koanf:"max_global_items_to_display" desc:"will only show the global websearch entry if there are at most X results." default:"1"`
+	History                 bool     `koanf:"history" desc:"make use of history for sorting" default:"true"`
+	HistoryWhenEmpty        bool     `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
+	EnginesAsActions        bool     `koanf:"engines_as_actions" desc:"run engines as actions" default:"true"`
+	TextPrefix              string   `koanf:"text_prefix" desc:"prefix for the entry text" default:"Search: "`
 }
 
-type Entry struct {
+type Engine struct {
 	Name    string `koanf:"name" desc:"name of the entry" default:""`
 	Default bool   `koanf:"default" desc:"entry to display when querying multiple providers" default:""`
 	Prefix  string `koanf:"prefix" desc:"prefix to actively trigger this entry" default:""`
@@ -62,16 +62,29 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
+
+	if len(config.Engines) == 0 {
+		config.Engines = append(config.Engines, Engine{
+			Name:    "Google",
+			Default: true,
+			URL:     "https://www.google.com/search?q=%TERM%",
+		})
+	}
+
+	if len(config.Engines) == 1 {
+		config.Engines[0].Default = true
+	}
+
 	handlers.MaxGlobalItemsToDisplayWebsearch = config.MaxGlobalItemsToDisplay
 
-	for k, v := range config.Entries {
+	for k, v := range config.Engines {
 		if v.Prefix != "" {
 			prefixes[v.Prefix] = k
 			handlers.WebsearchPrefixes[v.Prefix] = v.Name
 		}
 	}
 
-	slices.SortFunc(config.Entries, func(a, b Entry) int {
+	slices.SortFunc(config.Engines, func(a, b Engine) int {
 		if a.Default {
 			return -1
 		}
@@ -111,7 +124,7 @@ func Activate(identifier, action string, query string, args string) {
 			args = query
 		}
 
-		run(query, identifier, strings.ReplaceAll(config.Entries[i].URL, "%TERM%", url.QueryEscape(strings.TrimSpace(args))))
+		run(query, identifier, strings.ReplaceAll(config.Engines[i].URL, "%TERM%", url.QueryEscape(strings.TrimSpace(args))))
 	default:
 		q := ""
 
@@ -120,7 +133,7 @@ func Activate(identifier, action string, query string, args string) {
 			return
 		}
 
-		for _, v := range config.Entries {
+		for _, v := range config.Engines {
 			if v.Name == action {
 				q = v.URL
 				break
@@ -171,7 +184,7 @@ func Query(conn net.Conn, query string, single bool, exact bool) []*pb.QueryResp
 	if config.EnginesAsActions {
 		a := []string{}
 
-		for _, v := range config.Entries {
+		for _, v := range config.Engines {
 			a = append(a, v.Name)
 		}
 
@@ -188,7 +201,7 @@ func Query(conn net.Conn, query string, single bool, exact bool) []*pb.QueryResp
 		entries = append(entries, e)
 	} else {
 		if single {
-			for k, v := range config.Entries {
+			for k, v := range config.Engines {
 				icon := v.Icon
 				if icon == "" {
 					icon = config.Icon
@@ -237,7 +250,7 @@ func Query(conn net.Conn, query string, single bool, exact bool) []*pb.QueryResp
 		}
 
 		if len(entries) == 0 || !single {
-			for k, v := range config.Entries {
+			for k, v := range config.Engines {
 				if v.Default || v.Prefix == prefix {
 					icon := v.Icon
 					if icon == "" {

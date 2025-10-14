@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/abenz1267/elephant/internal/comm/handlers"
+	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
 )
 
 // connection id

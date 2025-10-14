@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/abenz1267/elephant/internal/comm/handlers"
-	"github.com/abenz1267/elephant/internal/util"
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/common/history"
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
+	"github.com/abenz1267/elephant/v2/internal/util"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common/history"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
 var (
@@ -136,7 +136,7 @@ func Activate(identifier, action string, query string, args string) {
 			cmd.Stdin = strings.NewReader(val)
 		}
 
-		err, out := cmd.CombinedOutput()
+		out, err := cmd.CombinedOutput()
 		if err != nil {
 			slog.Error(Name, "activate", err, "msg", out)
 		} else {
@@ -151,7 +151,7 @@ func Activate(identifier, action string, query string, args string) {
 	}
 }
 
-func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, single bool, exact bool) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 	menu := ""
@@ -159,7 +159,6 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 	initialQuery := query
 
 	split := strings.Split(query, ":")
-	single := len(split) > 1
 
 	if len(split) > 1 {
 		menu = split[0]
@@ -167,20 +166,20 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 	}
 
 	for _, v := range common.Menus {
-		if menu != "" && v.Name != menu || (!single && !v.GlobalSearch) {
+		if menu != "" && v.Name != menu {
 			continue
 		}
 
-		icon := v.Icon
-
 		for k, me := range v.Entries {
+			icon := v.Icon
+
 			if me.Icon != "" {
 				icon = me.Icon
 			}
 
 			sub := me.Subtext
 
-			if !single && v.GlobalSearch {
+			if !single {
 				if sub == "" {
 					sub = v.NamePretty
 				}

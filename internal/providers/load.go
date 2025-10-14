@@ -11,8 +11,8 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 	"github.com/charlievieth/fastwalk"
 )
 
@@ -36,8 +36,7 @@ func Load(setup bool) {
 
 	var mut sync.Mutex
 	have := []string{}
-
-	dirs := []string{filepath.Join(common.ConfigDir(), "providers"), "/etc/xdg/elephant/providers", os.Getenv("ELEPHANT_PROVIDER_DIR")}
+	dirs := append(common.ConfigDirs(), os.Getenv("ELEPHANT_PROVIDER_DIR"))
 
 	Providers = make(map[string]Provider)
 	QueryProviders = make(map[uint32][]string)

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/abenz1267/elephant/internal/util"
+	"github.com/abenz1267/elephant/v2/internal/util"
 )
 
 func PrintDoc() {

@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 	"google.golang.org/protobuf/proto"
 )
 

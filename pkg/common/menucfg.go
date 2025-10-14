@@ -25,7 +25,6 @@ type Menu struct {
 	Description          string   `toml:"description" desc:"used as a subtext"`
 	Icon                 string   `toml:"icon" desc:"default icon"`
 	Action               string   `toml:"action" desc:"default menu action to use"`
-	GlobalSearch         bool     `toml:"global_search" desc:"sets if entries in this menu should be searchable globally without being in the menu"`
 	Entries              []Entry  `toml:"entries" desc:"menu items"`
 	Terminal             bool     `toml:"terminal" desc:"execute action in terminal or not"`
 	Keywords             []string `toml:"keywords" desc:"searchable keywords"`
@@ -73,55 +72,57 @@ func LoadMenus() {
 
 	LoadConfig(menuname, MenuConfigLoaded)
 
-	path := filepath.Join(ConfigDir(), "menus")
+	for _, v := range ConfigDirs() {
+		path := filepath.Join(v, "menus")
 
-	MenuConfigLoaded.Paths = append(MenuConfigLoaded.Paths, path)
+		MenuConfigLoaded.Paths = append(MenuConfigLoaded.Paths, path)
 
-	conf := fastwalk.Config{
-		Follow: true,
-	}
-
-	for _, root := range MenuConfigLoaded.Paths {
-		if _, err := os.Stat(root); err != nil {
-			continue
+		conf := fastwalk.Config{
+			Follow: true,
 		}
 
-		if err := fastwalk.Walk(&conf, root, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
+		for _, root := range MenuConfigLoaded.Paths {
+			if _, err := os.Stat(root); err != nil {
+				continue
 			}
 
-			if d.IsDir() {
-				return nil
-			}
-
-			m := Menu{}
-
-			b, err := os.ReadFile(path)
-			if err != nil {
-				slog.Error(menuname, "setup", err)
-			}
-
-			err = toml.Unmarshal(b, &m)
-			if err != nil {
-				slog.Error(menuname, "setup", err)
-			}
-
-			for k, v := range m.Entries {
-				m.Entries[k].Menu = m.Name
-				m.Entries[k].Identifier = v.CreateIdentifier()
-
-				if v.SubMenu != "" {
-					m.Entries[k].Identifier = fmt.Sprintf("menus:%s", v.SubMenu)
+			if err := fastwalk.Walk(&conf, root, func(path string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
 				}
+
+				if d.IsDir() {
+					return nil
+				}
+
+				m := Menu{}
+
+				b, err := os.ReadFile(path)
+				if err != nil {
+					slog.Error(menuname, "setup", err)
+				}
+
+				err = toml.Unmarshal(b, &m)
+				if err != nil {
+					slog.Error(menuname, "setup", err)
+				}
+
+				for k, v := range m.Entries {
+					m.Entries[k].Menu = m.Name
+					m.Entries[k].Identifier = v.CreateIdentifier()
+
+					if v.SubMenu != "" {
+						m.Entries[k].Identifier = fmt.Sprintf("menus:%s", v.SubMenu)
+					}
+				}
+
+				Menus[m.Name] = m
+
+				return nil
+			}); err != nil {
+				slog.Error(menuname, "walk", err)
+				os.Exit(1)
 			}
-
-			Menus[m.Name] = m
-
-			return nil
-		}); err != nil {
-			slog.Error(menuname, "walk", err)
-			os.Exit(1)
 		}
 	}
 }

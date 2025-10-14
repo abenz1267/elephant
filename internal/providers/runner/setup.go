@@ -17,10 +17,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/abenz1267/elephant/internal/util"
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/common/history"
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/internal/util"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common/history"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 	"github.com/charlievieth/fastwalk"
 )
 
@@ -41,6 +41,7 @@ type Config struct {
 	common.Config    `koanf:",squash"`
 	History          bool           `koanf:"history" desc:"make use of history for sorting" default:"true"`
 	HistoryWhenEmpty bool           `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
+	GenericText      string         `koanf:"generic_text" desc:"text prefix for generic run-anything entry" default:"run: "`
 	Explicits        []ExplicitItem `koanf:"explicits" desc:"use this explicit list, instead of searching $PATH" default:""`
 }
 
@@ -66,6 +67,7 @@ func Setup() {
 		},
 		History:          true,
 		HistoryWhenEmpty: false,
+		GenericText:      "run: ",
 	}
 
 	common.LoadConfig(Name, config)
@@ -141,12 +143,22 @@ func Activate(identifier, action string, query string, args string) {
 		h.Remove(identifier)
 		return
 	case ActionRunInTerminal, ActionRun:
+
 		bin := ""
 
-		for _, v := range items {
-			if v.Identifier == identifier {
-				bin = v.Bin
-				break
+		if identifier == "generic" {
+			split := strings.SplitN(query, " ", 2)
+			bin = split[0]
+
+			if len(split) > 1 {
+				args = split[1]
+			}
+		} else {
+			for _, v := range items {
+				if v.Identifier == identifier {
+					bin = v.Bin
+					break
+				}
 			}
 		}
 
@@ -180,7 +192,7 @@ func Activate(identifier, action string, query string, args string) {
 	}
 }
 
-func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, single bool, exact bool) []*pb.QueryResponse_Item {
 	entries := []*pb.QueryResponse_Item{}
 
 	for _, v := range items {
@@ -226,6 +238,21 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 		if e.Score > config.MinScore || query == "" {
 			entries = append(entries, e)
 		}
+	}
+
+	if len(entries) == 0 && single {
+		e := &pb.QueryResponse_Item{
+			Identifier: "generic",
+			Text:       fmt.Sprintf("%s%s", config.GenericText, query),
+			Actions:    []string{ActionRun, ActionRunInTerminal},
+			Provider:   Name,
+			Icon:       config.Icon,
+			Score:      100000,
+			Fuzzyinfo:  &pb.QueryResponse_Item_FuzzyInfo{},
+			Type:       pb.QueryResponse_REGULAR,
+		}
+
+		entries = append(entries, e)
 	}
 
 	return entries

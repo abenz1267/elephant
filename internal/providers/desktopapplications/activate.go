@@ -12,8 +12,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/common/history"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common/history"
 )
 
 const (
@@ -58,6 +58,11 @@ func Activate(identifier, action string, query string, args string) {
 		}
 
 		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", prefix, toRun, args)))
+
+		if files[parts[0]].Path != "" {
+			cmd.Dir = files[parts[0]].Path
+		}
+
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Setsid: true,
 		}

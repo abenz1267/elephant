@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/abenz1267/elephant/internal/providers"
-	"github.com/abenz1267/elephant/pkg/common"
+	"github.com/abenz1267/elephant/v2/internal/providers"
+	"github.com/abenz1267/elephant/v2/pkg/common"
 )
 
 func GenerateDoc() {

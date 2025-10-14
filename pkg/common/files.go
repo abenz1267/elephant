@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -20,10 +21,8 @@ func TmpDir() string {
 	return filepath.Join(os.TempDir())
 }
 
-func ConfigDir() string {
-	if explicitDir != "" {
-		return explicitDir
-	}
+func ConfigDirs() []string {
+	res := []string{}
 
 	dir, err := os.UserConfigDir()
 	if err != nil {
@@ -34,16 +33,17 @@ func ConfigDir() string {
 	usrCfgDir := filepath.Join(dir, "elephant")
 
 	if FileExists(usrCfgDir) {
-		return usrCfgDir
+		res = append(res, usrCfgDir)
 	}
 
 	for _, v := range xdg.ConfigDirs {
-		if FileExists(v) {
-			return filepath.Join(v, "elephant")
+		path := filepath.Join(v, "elephant")
+		if FileExists(path) {
+			res = append(res, path)
 		}
 	}
 
-	return ""
+	return res
 }
 
 func CacheFile(file string) string {
@@ -52,22 +52,20 @@ func CacheFile(file string) string {
 	return filepath.Join(d, "elephant", file)
 }
 
-func ProviderConfig(provider string) string {
+var ErrConfigNotExists = errors.New("provider config doesn't exist")
+
+func ProviderConfig(provider string) (string, error) {
 	provider = fmt.Sprintf("%s.toml", provider)
 
-	file := filepath.Join(ConfigDir(), provider)
+	for _, v := range ConfigDirs() {
+		file := filepath.Join(v, provider)
 
-	if FileExists(file) {
-		return file
-	}
-
-	for _, v := range xdg.ConfigDirs {
-		if FileExists(v) {
-			return filepath.Join(v, "elephant", provider)
+		if FileExists(file) {
+			return file, nil
 		}
 	}
 
-	return ""
+	return "", ErrConfigNotExists
 }
 
 func FileExists(filename string) bool {

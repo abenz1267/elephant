@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/abenz1267/elephant/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common"
 )
 
 type HistoryData struct {
@@ -31,6 +31,9 @@ type History struct {
 }
 
 func (h *History) Remove(identifier string) {
+	mut.Lock()
+	defer mut.Unlock()
+
 	for _, v := range h.Data {
 		delete(v, identifier)
 	}
@@ -85,7 +88,10 @@ func (h *History) writeFile() {
 	}
 }
 
-func (h *History) FindUsage(query, identifier string) (int, time.Time) {
+func (h *History) FindUsage(query, identifier string) (int, time.Time, int) {
+	mut.Lock()
+	defer mut.Unlock()
+
 	var usage int
 	var lastUsed time.Time
 
@@ -98,11 +104,19 @@ func (h *History) FindUsage(query, identifier string) (int, time.Time) {
 				}
 			}
 		}
-		return usage, lastUsed
+		return usage, lastUsed, 0
 	}
 
+	delta := 0
+
 	for k, v := range h.Data {
-		if strings.HasPrefix(query, k) {
+		if strings.HasPrefix(query, k) || strings.HasPrefix(k, query) {
+			delta = len(k) - len(query)
+
+			if delta < 0 {
+				delta = delta * -1
+			}
+
 			if n, ok := v[identifier]; ok {
 				usage += n.Amount
 				if n.LastUsed.After(lastUsed) {
@@ -112,11 +126,11 @@ func (h *History) FindUsage(query, identifier string) (int, time.Time) {
 		}
 	}
 
-	return usage, lastUsed
+	return usage, lastUsed, delta
 }
 
 func (h *History) CalcUsageScore(query, identifier string) int32 {
-	amount, last := h.FindUsage(query, identifier)
+	amount, last, delta := h.FindUsage(query, identifier)
 
 	if amount == 0 {
 		return 0
@@ -134,6 +148,10 @@ func (h *History) CalcUsageScore(query, identifier string) int32 {
 		}
 
 		res := max(base*amount, 1)
+
+		if delta != 0 {
+			return int32(res / delta)
+		}
 
 		return int32(res)
 	}

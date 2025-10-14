@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/abenz1267/elephant/pkg/common"
-	"github.com/abenz1267/elephant/pkg/common/history"
-	"github.com/abenz1267/elephant/pkg/pb/pb"
+	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common/history"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
 func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_Item {
@@ -75,11 +75,10 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 			if i != -1 {
 				pinned = true
 				score = 1000000 - int32(i)
-				usageScore = score
 			}
 		}
 
-		if usageScore != 0 || config.ShowActions && config.ShowGeneric || !config.ShowActions || (config.ShowActions && len(v.Actions) == 0) || query == "" {
+		if score != 0 || usageScore != 0 || config.ShowActions && config.ShowGeneric || !config.ShowActions || (config.ShowActions && len(v.Actions) == 0) || query == "" {
 			if score >= config.MinScore || query == "" {
 				state := []string{}
 				a := []string{ActionStart}
@@ -159,18 +158,16 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 			subtext := v.Name
 
 			if query != "" {
-				if config.ActionMinScore > 0 {
-					score, positions, fs = common.FuzzyScore(query, a.Name, exact)
+				match, score, positions, fs, ok = calcScore(query, &a, exact)
 
+				if ok && match != a.Name {
+					subtext = match
+					field = "subtext"
+				}
+
+				if config.ActionMinScore > 0 {
 					if score < config.MinScore {
 						continue
-					}
-				} else {
-					match, score, positions, fs, ok = calcScore(query, &a, exact)
-
-					if ok && match != a.Name {
-						subtext = match
-						field = "subtext"
 					}
 				}
 			}
@@ -191,11 +188,10 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 				if i != -1 {
 					pinned = true
 					score = 1000000 - int32(i)
-					usageScore = score
 				}
 			}
 
-			if (query == "" && config.ShowActionsWithoutQuery) || (query != "" && config.ShowActions) || usageScore != 0 {
+			if (query == "" && config.ShowActionsWithoutQuery) || (query != "" && config.ShowActions) || usageScore != 0 || score != 0 {
 				if score >= config.MinScore || query == "" {
 					state := []string{}
 
@@ -257,7 +253,7 @@ func calcScore(q string, d *Data, exact bool) (string, int32, []int32, int32, bo
 
 	toSearch := []string{d.Name}
 	if !config.OnlySearchTitle {
-		toSearch = []string{d.Name, d.Parent, d.GenericName, strings.Join(d.Keywords, ","), d.Comment}
+		toSearch = []string{d.Name, d.Exec, d.Parent, d.GenericName, strings.Join(d.Keywords, ","), d.Comment}
 	}
 
 	for k, v := range toSearch {

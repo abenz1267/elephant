@@ -34,23 +34,25 @@ func LoadGlobalConfig() {
 
 	LoadConfig("elephant", elephantConfig)
 
-	envFile := filepath.Join(ConfigDir(), ".env")
+	for _, v := range ConfigDirs() {
+		envFile := filepath.Join(v, ".env")
 
-	if FileExists(envFile) {
-		var err error
+		if FileExists(envFile) {
+			var err error
 
-		if elephantConfig.OverloadLocalEnv {
-			err = godotenv.Overload(envFile)
-		} else {
-			err = godotenv.Load(envFile)
+			if elephantConfig.OverloadLocalEnv {
+				err = godotenv.Overload(envFile)
+			} else {
+				err = godotenv.Load(envFile)
+			}
+
+			if err != nil {
+				slog.Error("elephant", "localenv", err)
+				return
+			}
+
+			slog.Info("elephant", "localenv", "loaded")
 		}
-
-		if err != nil {
-			slog.Error("elephant", "localenv", err)
-			return
-		}
-
-		slog.Info("elephant", "localenv", "loaded")
 	}
 }
 
@@ -67,29 +69,29 @@ func LoadConfig(provider string, config any) {
 		os.Exit(1)
 	}
 
-	userConfig := ProviderConfig(provider)
+	userConfig, err := ProviderConfig(provider)
+	if err != nil {
+		slog.Info(provider, "config", "using default config")
+		return
+	}
 
-	if FileExists(userConfig) {
-		user := koanf.New("")
+	user := koanf.New("")
 
-		err := user.Load(file.Provider(userConfig), toml.Parser())
-		if err != nil {
-			slog.Error(provider, "config", err)
-			os.Exit(1)
-		}
+	err = user.Load(file.Provider(userConfig), toml.Parser())
+	if err != nil {
+		slog.Error(provider, "config", err)
+		os.Exit(1)
+	}
 
-		err = defaults.Merge(user)
-		if err != nil {
-			slog.Error(provider, "config", err)
-			os.Exit(1)
-		}
+	err = defaults.Merge(user)
+	if err != nil {
+		slog.Error(provider, "config", err)
+		os.Exit(1)
+	}
 
-		err = defaults.Unmarshal("", &config)
-		if err != nil {
-			slog.Error(provider, "config", err)
-			os.Exit(1)
-		}
-	} else {
-		slog.Info(provider, "config", "not found. using default config")
+	err = defaults.Unmarshal("", &config)
+	if err != nil {
+		slog.Error(provider, "config", err)
+		os.Exit(1)
 	}
 }
