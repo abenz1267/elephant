@@ -1,12 +1,10 @@
-flake:
-{
+flake: {
   config,
   lib,
   pkgs,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.programs.elephant;
 
   # Available providers
@@ -24,8 +22,7 @@ let
     unicode = "Unicode symbol search";
     bluetooth = "Basic Bluetooth management";
   };
-in
-{
+in {
   options.programs.elephant = {
     enable = mkEnableOption "Elephant launcher backend";
 
@@ -64,7 +61,7 @@ in
 
     config = mkOption {
       type = types.attrs;
-      default = { };
+      default = {};
       example = literalExpression ''
         {
           providers = {
@@ -82,34 +79,36 @@ in
   };
 
   config = mkIf cfg.enable {
-    home.packages = [ cfg.package ];
+    home.packages = [cfg.package];
 
     # Install providers to user config
-    home.activation.elephantProviders = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      $DRY_RUN_CMD mkdir -p $HOME/.config/elephant/providers
-      $DRY_RUN_CMD rm -f $HOME/.config/elephant/providers/*.so
-
-      # Copy enabled providers
-      ${concatStringsSep "\n" (
-        map (provider: ''
-          if [[ -f "${cfg.package}/lib/elephant/providers/${provider}.so" ]]; then
-            $DRY_RUN_CMD cp "${cfg.package}/lib/elephant/providers/${provider}.so" "$HOME/.config/elephant/providers/"
-            $VERBOSE_ECHO "Installed elephant provider: ${provider}"
-          fi
-        '') cfg.providers
-      )}
-    '';
-
-    # Generate elephant config file
-    xdg.configFile."elephant/elephant.toml" = mkIf (cfg.config != { }) {
-      source = (pkgs.formats.toml { }).generate "elephant.toml" cfg.config;
-    };
+    xdg.configFile =
+      {
+        # Generate elephant config
+        "elephant/elephant.toml" = mkIf (cfg.config != {}) {
+          source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
+        };
+      }
+      // 
+      # Generate provider files
+      builtins.listToAttrs
+      (map
+        (
+          provider:
+            lib.nameValuePair
+            "elephant/providers/${provider}.so"
+            {
+              source = "${cfg.package}/lib/elephant/providers/${provider}.so";
+              force = true; # Required since previous version used activation script
+            }
+        )
+        cfg.providers);
 
     systemd.user.services.elephant = mkIf cfg.installService {
       Unit = {
         Description = "Elephant launcher backend";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
+        After = ["graphical-session.target"];
+        PartOf = ["graphical-session.target"];
         ConditionEnvironment = "WAYLAND_DISPLAY";
       };
 
@@ -119,12 +118,18 @@ in
         Restart = "on-failure";
         RestartSec = 1;
 
+        X-Restart-Triggers = [
+          (builtins.hashString "sha256" (builtins.toJSON {
+            inherit (cfg) config providers debug;
+          }))
+        ];
+
         # Clean up socket on stop
         ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
       };
 
       Install = {
-        WantedBy = [ "graphical-session.target" ];
+        WantedBy = ["graphical-session.target"];
       };
     };
   };
