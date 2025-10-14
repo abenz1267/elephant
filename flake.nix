@@ -41,7 +41,7 @@
         # Main elephant binary
         elephant = pkgs.buildGo125Module {
           pname = "elephant";
-          version = "0.1.0";
+          version = builtins.readFile ./cmd/elephant/version.txt;
 
           src = ./.;
 
@@ -78,7 +78,7 @@
         # Providers package - builds all providers with same Go toolchain
         elephant-providers = pkgs.buildGo125Module rec {
           pname = "elephant-providers";
-          version = "0.1.0";
+          version = builtins.readFile ./cmd/elephant/version.txt;
 
           src = ./.;
 
@@ -165,7 +165,7 @@
         # Combined package with elephant + providers
         elephant-with-providers = pkgs.stdenv.mkDerivation {
           pname = "elephant-with-providers";
-          version = "0.1.0";
+          version = builtins.readFile ./cmd/elephant/version.txt;
 
           dontUnpack = true;
 
