@@ -218,13 +218,14 @@ func update() {
 			State:   StateEditable,
 		}
 	} else {
-		if file := saveImg(content, imgTypes[mimetypes[0]]); file != "" {
-			clipboardhistory[itemID] = &Item{
-				ID:       itemID,
-				Img:      file,
-				Mimetype: mimetypes[0],
-				Time:     time.Now(),
-				State:    StateEditable,
+		if val, ok := imgTypes[mimetypes[0]]; ok {
+			if file := saveImg(content, val); file != "" {
+				clipboardhistory[itemID] = &Item{
+					Img:      file,
+					Mimetype: mimetypes[0],
+					Time:     time.Now(),
+					State:    StateEditable,
+				}
 			}
 		}
 	}
