@@ -45,7 +45,7 @@
 
           src = ./.;
 
-          vendorHash = "sha256-shdrMMCdAntH/V1wWHG6kBYWf3Kn4DNimHyCtLrWIWE=";
+          vendorHash = "sha256-uwcGPmie44rfq9qCOXO3WjJXiLxQxNPmKQYbG9a22/c=";
 
           buildInputs = with pkgs; [
             protobuf
@@ -82,7 +82,7 @@
 
           src = ./.;
 
-          vendorHash = "sha256-shdrMMCdAntH/V1wWHG6kBYWf3Kn4DNimHyCtLrWIWE=";
+          vendorHash = "sha256-uwcGPmie44rfq9qCOXO3WjJXiLxQxNPmKQYbG9a22/c=";
 
           nativeBuildInputs = with pkgs; [
             protobuf
