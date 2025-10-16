@@ -103,28 +103,28 @@ func parseData(in []byte, l, ll string) Data {
 
 		switch {
 
-		case bytes.HasPrefix(line, []byte("Keywords=")):
+		case bytes.HasPrefix(line, []byte("Keywords=")) && res.Keywords == nil:
 			res.Keywords = strings.Split(string(bytes.TrimPrefix(line, []byte("Keywords="))), ";")
 		case bytes.HasPrefix(line, fmt.Appendf(nil, "Keywords[%s]=", l)):
 			res.Keywords = strings.Split(string(bytes.TrimPrefix(line, fmt.Appendf(nil, "Keywords[%s]=", l))), ";")
 		case bytes.HasPrefix(line, fmt.Appendf(nil, "Keywords[%s]=", ll)):
 			res.Keywords = strings.Split(string(bytes.TrimPrefix(line, fmt.Appendf(nil, "Keywords[%s]=", ll))), ";")
 
-		case bytes.HasPrefix(line, []byte("GenericName=")):
+		case bytes.HasPrefix(line, []byte("GenericName=")) && res.GenericName == "":
 			res.GenericName = string(bytes.TrimPrefix(line, []byte("GenericName=")))
 		case bytes.HasPrefix(line, fmt.Appendf(nil, "GenericName[%s]=", l)):
 			res.GenericName = string(bytes.TrimPrefix(line, fmt.Appendf(nil, "GenericName[%s]=", l)))
 		case bytes.HasPrefix(line, fmt.Appendf(nil, "GenericName[%s]=", ll)):
 			res.GenericName = string(bytes.TrimPrefix(line, fmt.Appendf(nil, "GenericName[%s]=", ll)))
 
-		case bytes.HasPrefix(line, []byte("Name=")):
+		case bytes.HasPrefix(line, []byte("Name=")) && res.Name == "":
 			res.Name = string(bytes.TrimPrefix(line, []byte("Name=")))
 		case bytes.HasPrefix(line, fmt.Appendf(nil, "Name[%s]=", l)):
 			res.Name = string(bytes.TrimPrefix(line, fmt.Appendf(nil, "Name[%s]=", l)))
 		case bytes.HasPrefix(line, fmt.Appendf(nil, "Name[%s]=", ll)):
 			res.Name = string(bytes.TrimPrefix(line, fmt.Appendf(nil, "Name[%s]=", ll)))
 
-		case bytes.HasPrefix(line, []byte("Comment=")):
+		case bytes.HasPrefix(line, []byte("Comment=")) && res.Comment == "":
 			res.Comment = string(bytes.TrimPrefix(line, []byte("Comment=")))
 		case bytes.HasPrefix(line, fmt.Appendf(nil, "Comment[%s]=", l)):
 			res.Comment = string(bytes.TrimPrefix(line, fmt.Appendf(nil, "Comment[%s]=", l)))
