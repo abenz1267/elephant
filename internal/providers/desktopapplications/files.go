@@ -85,7 +85,7 @@ func walkFunction(path string, d fs.DirEntry, err error) error {
 	}
 
 	if filepath.Ext(path) == ".desktop" {
-		check := strings.TrimSuffix(filepath.Base(path), ".desktop")
+		check := strings.TrimSuffix(path, ".desktop")
 
 		for _, v := range br {
 			if v.MatchString(check) {
