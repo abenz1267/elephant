@@ -39,7 +39,7 @@ var (
 	imgTypes         = make(map[string]string)
 	config           *Config
 	clipboardhistory = make(map[string]*Item)
-	mu               sync.Mutex
+	mu               sync.RWMutex
 	imagesOnly       = false
 )
 
@@ -109,7 +109,9 @@ func Setup() {
 		go cleanup()
 	}
 
+	mu.RLock()
 	slog.Info(Name, "history", len(clipboardhistory), "time", time.Since(start))
+	mu.RUnlock()
 }
 
 func cleanup() {
@@ -118,10 +120,12 @@ func cleanup() {
 
 		i := 0
 
+		mu.Lock()
 		for k := range clipboardhistory {
 			delete(clipboardhistory, k)
 			i++
 		}
+		mu.Unlock()
 
 		if i != 0 {
 			saveToFile()
@@ -167,6 +171,8 @@ type Symbol struct {
 }
 
 func setupUnicodeSymbols() {
+	mu.Lock()
+	defer mu.Unlock()
 	// unicode
 	for v := range strings.Lines(unicodedata) {
 		if v == "" {
@@ -208,10 +214,12 @@ func loadFromFile() {
 		} else {
 			decoder := gob.NewDecoder(bytes.NewReader(f))
 
+			mu.Lock()
 			err = decoder.Decode(&clipboardhistory)
 			if err != nil {
 				slog.Error("history", "decoding", err)
 			}
+			mu.Unlock()
 		}
 	}
 }
@@ -230,8 +238,9 @@ func cleanupImages() {
 }
 
 func saveToFile() {
+	mu.Lock()
 	if len(clipboardhistory) > config.MaxItems {
-		trim()
+		trimLocked()
 	}
 
 	var b bytes.Buffer
@@ -242,6 +251,7 @@ func saveToFile() {
 		slog.Error(Name, "encode", err)
 		return
 	}
+	mu.Unlock()
 
 	err = os.MkdirAll(filepath.Dir(file), 0o755)
 	if err != nil {
@@ -392,11 +402,11 @@ func updateText() {
 	}
 
 	if config.IgnoreSymbols {
-		mu.Lock()
+		mu.RLock()
 		if _, ok := symbols[string(out)]; ok {
 			return
 		}
-		mu.Unlock()
+		mu.RUnlock()
 	}
 
 	mt := getMimetypes()
@@ -410,6 +420,7 @@ func updateText() {
 	md5 := md5.Sum(out)
 	md5str := hex.EncodeToString(md5[:])
 
+	mu.Lock()
 	if val, ok := clipboardhistory[md5str]; ok {
 		val.Time = time.Now()
 		return
@@ -424,13 +435,14 @@ func updateText() {
 		Time:    time.Now(),
 		State:   StateEditable,
 	}
+	mu.Unlock()
 
 	recopy(out)
 
 	saveToFile()
 }
 
-func trim() {
+func trimLocked() {
 	oldest := ""
 	oldestTime := time.Now()
 
@@ -499,10 +511,12 @@ func Activate(identifier, action string, query string, args string) {
 		imagesOnly = !imagesOnly
 		return
 	case ActionEdit:
+		mu.RLock()
 		item := clipboardhistory[identifier]
 		if item.State != StateEditable {
 			return
 		}
+		mu.RUnlock()
 
 		if item.Img != "" {
 			if config.ImageEditorCmd == "" {
@@ -560,7 +574,7 @@ func Activate(identifier, action string, query string, args string) {
 			saveToFile()
 		}
 	case ActionRemove:
-		mu.Lock()
+		mu.RLock()
 
 		if _, ok := clipboardhistory[identifier]; ok {
 			if clipboardhistory[identifier].Img != "" {
@@ -572,7 +586,7 @@ func Activate(identifier, action string, query string, args string) {
 			saveToFile()
 		}
 
-		mu.Unlock()
+		mu.RUnlock()
 	case ActionRemoveAll:
 		mu.Lock()
 		clipboardhistory = make(map[string]*Item)
@@ -581,6 +595,7 @@ func Activate(identifier, action string, query string, args string) {
 		cleanupImages()
 		mu.Unlock()
 	case ActionCopy:
+		mu.RLock()
 		cmd := exec.Command("sh", "-c", config.Command)
 
 		item := clipboardhistory[identifier]
@@ -600,6 +615,7 @@ func Activate(identifier, action string, query string, args string) {
 				cmd.Wait()
 			}()
 		}
+		mu.RUnlock()
 	default:
 		slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
 		return
@@ -609,6 +625,7 @@ func Activate(identifier, action string, query string, args string) {
 func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_Item {
 	entries := []*pb.QueryResponse_Item{}
 
+	mu.RLock()
 	for k, v := range clipboardhistory {
 		if imagesOnly && v.Img == "" {
 			continue
@@ -641,6 +658,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool) []*pb.QueryResponse_
 			entries = append(entries, e)
 		}
 	}
+	mu.RUnlock()
 
 	if query == "" {
 		slices.SortStableFunc(entries, func(a, b *pb.QueryResponse_Item) int {
