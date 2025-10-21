@@ -21,6 +21,7 @@ with lib; let
     todo = "Todo list";
     unicode = "Unicode symbol search";
     bluetooth = "Basic Bluetooth management";
+    windows = "Find and focus windows";
   };
 in {
   options.programs.elephant = {
@@ -89,7 +90,7 @@ in {
           source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
         };
       }
-      // 
+      //
       # Generate provider files
       builtins.listToAttrs
       (map

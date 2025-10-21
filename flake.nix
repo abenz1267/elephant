@@ -41,7 +41,7 @@
         # Main elephant binary
         elephant = pkgs.buildGo125Module {
           pname = "elephant";
-          version = builtins.readFile ./cmd/elephant/version.txt;
+          version = lib.trim (builtins.readFile ./cmd/elephant/version.txt);
 
           src = ./.;
 
@@ -78,11 +78,15 @@
         # Providers package - builds all providers with same Go toolchain
         elephant-providers = pkgs.buildGo125Module rec {
           pname = "elephant-providers";
-          version = builtins.readFile ./cmd/elephant/version.txt;
+          version = lib.trim (builtins.readFile ./cmd/elephant/version.txt);
 
           src = ./.;
 
           vendorHash = "sha256-uwcGPmie44rfq9qCOXO3WjJXiLxQxNPmKQYbG9a22/c=";
+
+          buildInputs = with pkgs; [
+            wayland
+          ];
 
           nativeBuildInputs = with pkgs; [
             protobuf
@@ -165,7 +169,7 @@
         # Combined package with elephant + providers
         elephant-with-providers = pkgs.stdenv.mkDerivation {
           pname = "elephant-with-providers";
-          version = builtins.readFile ./cmd/elephant/version.txt;
+          version = lib.trim (builtins.readFile ./cmd/elephant/version.txt);
 
           dontUnpack = true;
 
@@ -185,16 +189,16 @@
           '';
 
           postFixup = ''
-             wrapProgram $out/bin/elephant \
-            	  --prefix PATH : ${
-                 lib.makeBinPath (
-                   with pkgs;
-                   [
-                     wl-clipboard
-                     libqalculate
-                   ]
-                 )
-               }
+            wrapProgram $out/bin/elephant \
+                  --prefix PATH : ${
+                    lib.makeBinPath (
+                      with pkgs;
+                      [
+                        wl-clipboard
+                        libqalculate
+                      ]
+                    )
+                  }
           '';
 
           meta = with lib; {
