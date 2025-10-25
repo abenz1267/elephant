@@ -38,7 +38,7 @@ type Menu struct {
 	Parent               string   `toml:"parent" desc:"defines the parent menu" default:""`
 }
 
-func (m Menu) GetLuaEntries() []Entry {
+func (m *Menu) CreateLuaEntries() {
 	res := []Entry{}
 
 	l := lua.NewState()
@@ -51,7 +51,7 @@ outer:
 			if err := l.DoFile(s); err != nil {
 				slog.Error(m.Name, "initLua", err)
 				l.Close()
-				return res
+				return
 			}
 
 			break outer
@@ -62,7 +62,7 @@ outer:
 
 	if l == nil {
 		slog.Error(m.Name, "GetLuaEntries", "lua state is nil")
-		return res
+		return
 	}
 
 	if err := l.CallByParam(lua.P{
@@ -71,7 +71,7 @@ outer:
 		Protect: true,
 	}); err != nil {
 		slog.Error(m.Name, "GetLuaEntries", err)
-		return res
+		return
 	}
 
 	ret := l.Get(-1)
@@ -122,7 +122,7 @@ outer:
 		res = append(res, e)
 	}
 
-	return res
+	m.Entries = res
 }
 
 type Entry struct {
@@ -224,6 +224,8 @@ func LoadMenus() {
 						m.Entries[k].Identifier = fmt.Sprintf("menus:%s", v.SubMenu)
 					}
 				}
+			} else {
+				m.CreateLuaEntries()
 			}
 
 			Menus[m.Name] = m
