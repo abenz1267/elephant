@@ -90,7 +90,7 @@ func Setup() {
 		}
 
 		if b.Default {
-			return -1
+			return 1
 		}
 
 		return 0
