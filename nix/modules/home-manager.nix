@@ -6,6 +6,7 @@ flake: {
 }:
 with lib; let
   cfg = config.programs.elephant;
+  settingsFormat = pkgs.formats.toml {};
 
   # Available providers
   providerOptions = {
@@ -43,7 +44,7 @@ in {
         "calc"
       ];
       description = ''
-        List of providers to enable. Available providers:
+        List of built-in providers to enable (install). Available providers:
         ${concatStringsSep "\n" (mapAttrsToList (name: desc: "  - ${name}: ${desc}") providerOptions)}
       '';
     };
@@ -63,75 +64,131 @@ in {
     config = mkOption {
       type = types.attrs;
       default = {};
-      example = literalExpression ''
+      description = ''
+        Deprecated: migrate to programs.elephant.settings
+        Elephant configuration as Nix attributes.
+      '';
+      visible = false;
+    };
+
+    settings = mkOption {
+      description = ''
+        elephant/elephant.toml configuration as Nix attributes.
+        `elephant generatedoc` to view your installed version's options.
+      '';
+      default = {};
+      type = types.submodule {
+        freeformType = settingsFormat.type;
+      };
+      example = ''
         {
-          providers = {
-            files = {
-              min_score = 50;
-            };
-            desktopapplications = {
-              launch_prefix = "uwsm app --";
-            };
-          };
+          auto_detect_launch_prefix = false;
         }
       '';
-      description = "Elephant configuration as Nix attributes.";
     };
-  };
 
-  config = mkIf cfg.enable {
-    home.packages = [cfg.package];
-
-    # Install providers to user config
-    xdg.configFile =
-      {
-        # Generate elephant config
-        "elephant/elephant.toml" = mkIf (cfg.config != {}) {
-          source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
+    providerSettings = mkOption {
+      type = types.listOf (types.submodule {
+        options = {
+          name = mkOption {
+            type = types.str;
+            description = ''
+              Filename (without extension) to write to, elephant/$(name).toml
+            '';
+            example = "websearch";
+          };
+          settings = mkOption {
+            description = ''
+              Provider specific toml configuration as Nix attributes.
+              `elephant generatedoc` to view your installed providers version options.
+            '';
+            type = types.submodule {
+              freeformType = settingsFormat.type;
+            };
+          };
         };
-      }
-      //
-      # Generate provider files
-      builtins.listToAttrs
-      (map
-        (
-          provider:
-            lib.nameValuePair
-            "elephant/providers/${provider}.so"
-            {
-              source = "${cfg.package}/lib/elephant/providers/${provider}.so";
-              force = true; # Required since previous version used activation script
-            }
-        )
-        cfg.providers);
-
-    systemd.user.services.elephant = mkIf cfg.installService {
-      Unit = {
-        Description = "Elephant launcher backend";
-        After = ["graphical-session.target"];
-        PartOf = ["graphical-session.target"];
-        ConditionEnvironment = "WAYLAND_DISPLAY";
-      };
-
-      Service = {
-        Type = "simple";
-        ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
-        Restart = "on-failure";
-        RestartSec = 1;
-
-        X-Restart-Triggers = [
-          (builtins.hashString "sha256" (builtins.toJSON {
-            inherit (cfg) config providers debug;
-          }))
-        ];
-
-        # Clean up socket on stop
-        ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
-      };
-
-      Install = {
-        WantedBy = ["graphical-session.target"];
-      };
+      });
     };
   };
+
+  config = let
+    elephantSettings = cfg.config // cfg.settings;
+  in
+    mkIf cfg.enable
+    {
+      warnings =
+        if cfg.config != {}
+        then ["`programs.elephant.config` has been migrated to `programs.elephant.settings`, and provider options are now supported in module."]
+        else [];
+
+      home.packages = [cfg.package];
+
+      # Install providers to user config
+      xdg.configFile =
+        {
+          # Generate elephant config
+          "elephant/elephant.toml" = mkIf (elephantSettings != {}) {
+            source = settingsFormat.generate "elephant.toml" elephantSettings;
+          };
+        }
+        //
+        # Generate provider files
+        builtins.listToAttrs
+        (map
+          (
+            provider:
+              lib.nameValuePair
+              "elephant/providers/${provider}.so"
+              {
+                source = "${cfg.package}/lib/elephant/providers/${provider}.so";
+                force = true; # Required since previous version used activation script
+              }
+          )
+          cfg.providers)
+        # Generate provider configs
+        // builtins.listToAttrs
+        (map
+          (
+            {
+              name,
+              settings,
+              ...
+            }:
+              lib.nameValuePair
+              "elephant/${name}.toml"
+              {
+                source = settingsFormat.generate "${name}.toml" settings;
+              }
+          )
+          cfg.providerSettings);
+
+      systemd.user.services.elephant = mkIf cfg.installService {
+        Unit = {
+          Description = "Elephant launcher backend";
+          After = ["graphical-session.target"];
+          PartOf = ["graphical-session.target"];
+          ConditionEnvironment = "WAYLAND_DISPLAY";
+        };
+
+        Service = {
+          Type = "simple";
+          ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
+          Restart = "on-failure";
+          RestartSec = 1;
+
+          X-Restart-Triggers = [
+            (builtins.hashString "sha256" (builtins.toJSON {
+              inherit (cfg) config providers debug;
+            }))
+          ];
+
+          # Clean up socket on stop
+          ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
+        };
+
+        Install = {
+          WantedBy = ["graphical-session.target"];
+        };
+      };
+    };
 }
