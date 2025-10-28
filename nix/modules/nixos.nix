@@ -6,6 +6,7 @@ flake: {
 }:
 with lib; let
   cfg = config.services.elephant;
+  settingsFormat = pkgs.formats.toml {};
 
   # Available providers
   providerOptions = {
@@ -54,7 +55,7 @@ in {
         "calc"
       ];
       description = ''
-        List of providers to enable. Available providers:
+        List of built-in providers to enable (install). Available providers:
         ${concatStringsSep "\n" (mapAttrsToList (name: desc: "  - ${name}: ${desc}") providerOptions)}
       '';
     };
@@ -74,76 +75,131 @@ in {
     config = mkOption {
       type = types.attrs;
       default = {};
-      example = literalExpression ''
+      description = ''
+        Deprecated: migrate to programs.elephant.settings
+        Elephant configuration as Nix attributes.
+      '';
+      visible = false;
+    };
+
+    settings = mkOption {
+      description = ''
+        elephant/elephant.toml configuration as Nix attributes.
+        `elephant generatedoc` to view your installed version's options.
+      '';
+      default = {};
+      type = types.submodule {
+        freeformType = settingsFormat.type;
+      };
+      example = ''
         {
-          providers = {
-            files = {
-              min_score = 50;
-            };
-            desktopapplications = {
-              launch_prefix = "uwsm app --";
-            };
-          };
+          auto_detect_launch_prefix = false;
         }
       '';
-      description = "Elephant configuration as Nix attributes.";
     };
-  };
 
-  config = mkIf cfg.enable {
-    environment.systemPackages = [cfg.package];
-
-    # Install providers to system config
-    environment.etc =
-      {
-        # Generate elephant config
-        "xdg/elephant/elephant.toml" = mkIf (cfg.config != {}) {
-          source = (pkgs.formats.toml {}).generate "elephant.toml" cfg.config;
+    providerSettings = mkOption {
+      type = types.listOf (types.submodule {
+        options = {
+          name = mkOption {
+            type = types.str;
+            description = ''
+              Filename (without extension) to write to, elephant/$(name).toml
+            '';
+            example = "websearch";
+          };
+          settings = mkOption {
+            description = ''
+              Provider specific toml configuration as Nix attributes.
+              `elephant generatedoc` to view your installed providers version options.
+            '';
+            type = types.submodule {
+              freeformType = settingsFormat.type;
+            };
+          };
         };
-      }
-      # Generate provider files
-      // builtins.listToAttrs
-      (map
-        (
-          provider:
-            lib.nameValuePair
-            "xdg/elephant/providers/${provider}.so"
-            {
-              source = "${cfg.package}/lib/elephant/providers/${provider}.so";
-            }
-        )
-        cfg.providers);
-
-    systemd.services.elephant = mkIf cfg.installService {
-      description = "Elephant launcher backend";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target"];
-
-      serviceConfig = {
-        Type = "simple";
-        User = cfg.user;
-        Group = cfg.group;
-        ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
-        Restart = "on-failure";
-        RestartSec = 1;
-
-        # Security settings
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadWritePaths = [
-          "/var/lib/elephant"
-          "/tmp"
-        ];
-
-        # Clean up socket on stop
-        ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
-      };
-
-      environment = {
-        HOME = "/var/lib/elephant";
-      };
+      });
     };
   };
+
+  config = let
+    elephantSettings = cfg.config // cfg.settings;
+  in
+    mkIf cfg.enable {
+      warnings =
+        if cfg.config != {}
+        then ["`programs.elephant.config` has been migrated to `programs.elephant.settings`, and provider options are now supported in module."]
+        else [];
+
+      environment.systemPackages = [cfg.package];
+
+      # Install providers to system config
+      environment.etc =
+        {
+          # Generate elephant config
+          "xdg/elephant/elephant.toml" = mkIf (elephantSettings != {}) {
+            source = settingsFormat.generate "elephant.toml" elephantSettings;
+          };
+        }
+        # Generate provider files
+        // builtins.listToAttrs
+        (map
+          (
+            provider:
+              lib.nameValuePair
+              "xdg/elephant/providers/${provider}.so"
+              {
+                source = "${cfg.package}/lib/elephant/providers/${provider}.so";
+              }
+          )
+          cfg.providers)
+        # Generate provider configs
+        // builtins.listToAttrs
+        (map
+          (
+            {
+              name,
+              settings,
+              ...
+            }:
+              lib.nameValuePair
+              "xdg/elephant/${name}.toml"
+              {
+                source = settingsFormat.generate "${name}.toml" settings;
+              }
+          )
+          cfg.providerSettings);
+
+      systemd.services.elephant = mkIf cfg.installService {
+        description = "Elephant launcher backend";
+        wantedBy = ["multi-user.target"];
+        after = ["network.target"];
+
+        serviceConfig = {
+          Type = "simple";
+          User = cfg.user;
+          Group = cfg.group;
+          ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
+          Restart = "on-failure";
+          RestartSec = 1;
+
+          # Security settings
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          ReadWritePaths = [
+            "/var/lib/elephant"
+            "/tmp"
+          ];
+
+          # Clean up socket on stop
+          ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
+        };
+
+        environment = {
+          HOME = "/var/lib/elephant";
+        };
+      };
+    };
 }
