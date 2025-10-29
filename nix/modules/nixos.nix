@@ -26,7 +26,7 @@ with lib; let
 in {
   imports = [
     # Deprecated: delete with v3.0.0 release
-    (lib.mkRenamedOptionModule ["programs" "elephant" "config"] ["programs" "elephant" "settings"])
+    (lib.mkRenamedOptionModule ["services" "elephant" "config"] ["services" "elephant" "settings"])
   ];
 
   options.services.elephant = {
