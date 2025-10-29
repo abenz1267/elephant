@@ -165,7 +165,7 @@ in {
 
         X-Restart-Triggers = [
           (builtins.hashString "sha256" (builtins.toJSON {
-            inherit (cfg) config providers debug;
+            inherit (cfg) settings providers provider debug;
           }))
         ];
 
