@@ -82,16 +82,9 @@ in {
       '';
     };
 
-    providerSettings = mkOption {
-      type = types.listOf (types.submodule {
+    provider = mkOption {
+      type = types.attrsOf (types.submodule {
         options = {
-          name = mkOption {
-            type = types.str;
-            description = ''
-              Filename (without extension) to write to, elephant/$(name).toml
-            '';
-            example = "websearch";
-          };
           settings = mkOption {
             description = ''
               Provider specific toml configuration as Nix attributes.
@@ -100,10 +93,11 @@ in {
             type = types.submodule {
               freeformType = settingsFormat.type;
             };
+            default = {};
           };
         };
       });
-      default = [];
+      default = {};
     };
   };
 
@@ -133,21 +127,16 @@ in {
         )
         cfg.providers)
       # Generate provider configs
-      // builtins.listToAttrs
-      (map
+      // (mapAttrs'
         (
-          {
-            name,
-            settings,
-            ...
-          }:
+          name: {settings, ...}:
             lib.nameValuePair
             "elephant/${name}.toml"
             {
               source = settingsFormat.generate "${name}.toml" settings;
             }
         )
-        cfg.providerSettings);
+        cfg.provider);
 
     systemd.user.services.elephant = mkIf cfg.installService {
       Unit = {
