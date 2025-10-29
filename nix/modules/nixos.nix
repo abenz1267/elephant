@@ -94,6 +94,7 @@ in {
     };
 
     provider = mkOption {
+      description = "Provider specific settings";
       type = types.attrsOf (types.submodule {
         options = {
           settings = mkOption {
@@ -109,6 +110,16 @@ in {
         };
       });
       default = {};
+      example = ''
+        websearch.settings = {
+          entries = [
+            {
+              name = "NixOS Options";
+              url = "https://search.nixos.org/options?query=%TERM%";
+            }
+          ];
+        };
+      '';
     };
   };
 
