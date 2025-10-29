@@ -24,6 +24,11 @@ with lib; let
     bluetooth = "Basic Bluetooth management";
   };
 in {
+  imports = [
+    # Deprecated: delete with v3.0.0 release
+    (lib.mkRenamedOptionModule ["programs" "elephant" "config"] ["programs" "elephant" "settings"])
+  ];
+
   options.services.elephant = {
     enable = mkEnableOption "Elephant launcher backend system service";
 
@@ -72,16 +77,6 @@ in {
       description = "Enable debug logging for elephant service.";
     };
 
-    config = mkOption {
-      type = types.attrs;
-      default = {};
-      description = ''
-        Deprecated: migrate to programs.elephant.settings
-        Elephant configuration as Nix attributes.
-      '';
-      visible = false;
-    };
-
     settings = mkOption {
       description = ''
         elephant/elephant.toml configuration as Nix attributes.
@@ -123,84 +118,76 @@ in {
     };
   };
 
-  config = let
-    elephantSettings = cfg.config // cfg.settings;
-  in
-    mkIf cfg.enable {
-      warnings =
-        if cfg.config != {}
-        then ["`programs.elephant.config` has been migrated to `programs.elephant.settings`, and provider options are now supported in module."]
-        else [];
+  config = mkIf cfg.enable {
+    environment.systemPackages = [cfg.package];
 
-      environment.systemPackages = [cfg.package];
-
-      # Install providers to system config
-      environment.etc =
-        {
-          # Generate elephant config
-          "xdg/elephant/elephant.toml" = mkIf (elephantSettings != {}) {
-            source = settingsFormat.generate "elephant.toml" elephantSettings;
-          };
-        }
-        # Generate provider files
-        // builtins.listToAttrs
-        (map
-          (
-            provider:
-              lib.nameValuePair
-              "xdg/elephant/providers/${provider}.so"
-              {
-                source = "${cfg.package}/lib/elephant/providers/${provider}.so";
-              }
-          )
-          cfg.providers)
-        # Generate provider configs
-        // builtins.listToAttrs
-        (map
-          (
+    # Install providers to system config
+    environment.etc =
+      {
+        # Generate elephant config
+        "xdg/elephant/elephant.toml" = mkIf (cfg.settings != {}) {
+          source = settingsFormat.generate "elephant.toml" cfg.settings;
+        };
+      }
+      # Generate provider files
+      // builtins.listToAttrs
+      (map
+        (
+          provider:
+            lib.nameValuePair
+            "xdg/elephant/providers/${provider}.so"
             {
-              name,
-              settings,
-              ...
-            }:
-              lib.nameValuePair
-              "xdg/elephant/${name}.toml"
-              {
-                source = settingsFormat.generate "${name}.toml" settings;
-              }
-          )
-          cfg.providerSettings);
+              source = "${cfg.package}/lib/elephant/providers/${provider}.so";
+            }
+        )
+        cfg.providers)
+      # Generate provider configs
+      // builtins.listToAttrs
+      (map
+        (
+          {
+            name,
+            settings,
+            ...
+          }:
+            lib.nameValuePair
+            "xdg/elephant/${name}.toml"
+            {
+              source = settingsFormat.generate "${name}.toml" settings;
+            }
+        )
+        cfg.providerSettings);
 
-      systemd.services.elephant = mkIf cfg.installService {
-        description = "Elephant launcher backend";
-        wantedBy = ["multi-user.target"];
-        after = ["network.target"];
+    systemd.services.elephant = mkIf cfg.installService {
+      description = "Elephant launcher backend";
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
-        serviceConfig = {
-          Type = "simple";
-          User = cfg.user;
-          Group = cfg.group;
-          ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
-          Restart = "on-failure";
-          RestartSec = 1;
+      serviceConfig = {
+        Type = "simple";
+        User = cfg.user;
+        Group = cfg.group;
+        ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
+        Restart = "on-failure";
+        RestartSec = 1;
 
-          # Security settings
-          NoNewPrivileges = true;
-          PrivateTmp = true;
-          ProtectSystem = "strict";
-          ProtectHome = true;
-          ReadWritePaths = [
-            "/var/lib/elephant"
-            "/tmp"
-          ];
+        # Security settings
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        ReadWritePaths = [
+          "/var/lib/elephant"
+          "/tmp"
+        ];
 
-          # Clean up socket on stop
-          ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
-        };
+        # Clean up socket on stop
+        ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
+      };
 
-        environment = {
-          HOME = "/var/lib/elephant";
-        };
+      environment = {
+        HOME = "/var/lib/elephant";
       };
     };
+  };
 }

@@ -25,6 +25,11 @@ with lib; let
     windows = "Find and focus windows";
   };
 in {
+  imports = [
+    # Deprecated: delete with v3.0.0 release
+    (lib.mkRenamedOptionModule ["programs" "elephant" "config"] ["programs" "elephant" "settings"])
+  ];
+
   options.programs.elephant = {
     enable = mkEnableOption "Elephant launcher backend";
 
@@ -59,16 +64,6 @@ in {
       type = types.bool;
       default = false;
       description = "Enable debug logging for elephant service.";
-    };
-
-    config = mkOption {
-      type = types.attrs;
-      default = {};
-      description = ''
-        Deprecated: migrate to programs.elephant.settings
-        Elephant configuration as Nix attributes.
-      '';
-      visible = false;
     };
 
     settings = mkOption {
@@ -112,84 +107,75 @@ in {
     };
   };
 
-  config = let
-    elephantSettings = cfg.config // cfg.settings;
-  in
-    mkIf cfg.enable
-    {
-      warnings =
-        if cfg.config != {}
-        then ["`programs.elephant.config` has been migrated to `programs.elephant.settings`, and provider options are now supported in module."]
-        else [];
+  config = mkIf cfg.enable {
+    home.packages = [cfg.package];
 
-      home.packages = [cfg.package];
-
-      # Install providers to user config
-      xdg.configFile =
-        {
-          # Generate elephant config
-          "elephant/elephant.toml" = mkIf (elephantSettings != {}) {
-            source = settingsFormat.generate "elephant.toml" elephantSettings;
-          };
-        }
-        //
-        # Generate provider files
-        builtins.listToAttrs
-        (map
-          (
-            provider:
-              lib.nameValuePair
-              "elephant/providers/${provider}.so"
-              {
-                source = "${cfg.package}/lib/elephant/providers/${provider}.so";
-                force = true; # Required since previous version used activation script
-              }
-          )
-          cfg.providers)
-        # Generate provider configs
-        // builtins.listToAttrs
-        (map
-          (
+    # Install providers to user config
+    xdg.configFile =
+      {
+        # Generate elephant config
+        "elephant/elephant.toml" = mkIf (cfg.settings != {}) {
+          source = settingsFormat.generate "elephant.toml" cfg.settings;
+        };
+      }
+      //
+      # Generate provider files
+      builtins.listToAttrs
+      (map
+        (
+          provider:
+            lib.nameValuePair
+            "elephant/providers/${provider}.so"
             {
-              name,
-              settings,
-              ...
-            }:
-              lib.nameValuePair
-              "elephant/${name}.toml"
-              {
-                source = settingsFormat.generate "${name}.toml" settings;
-              }
-          )
-          cfg.providerSettings);
+              source = "${cfg.package}/lib/elephant/providers/${provider}.so";
+              force = true; # Required since previous version used activation script
+            }
+        )
+        cfg.providers)
+      # Generate provider configs
+      // builtins.listToAttrs
+      (map
+        (
+          {
+            name,
+            settings,
+            ...
+          }:
+            lib.nameValuePair
+            "elephant/${name}.toml"
+            {
+              source = settingsFormat.generate "${name}.toml" settings;
+            }
+        )
+        cfg.providerSettings);
 
-      systemd.user.services.elephant = mkIf cfg.installService {
-        Unit = {
-          Description = "Elephant launcher backend";
-          After = ["graphical-session.target"];
-          PartOf = ["graphical-session.target"];
-          ConditionEnvironment = "WAYLAND_DISPLAY";
-        };
+    systemd.user.services.elephant = mkIf cfg.installService {
+      Unit = {
+        Description = "Elephant launcher backend";
+        After = ["graphical-session.target"];
+        PartOf = ["graphical-session.target"];
+        ConditionEnvironment = "WAYLAND_DISPLAY";
+      };
 
-        Service = {
-          Type = "simple";
-          ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
-          Restart = "on-failure";
-          RestartSec = 1;
+      Service = {
+        Type = "simple";
+        ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
+        Restart = "on-failure";
+        RestartSec = 1;
 
-          X-Restart-Triggers = [
-            (builtins.hashString "sha256" (builtins.toJSON {
-              inherit (cfg) config providers debug;
-            }))
-          ];
+        X-Restart-Triggers = [
+          (builtins.hashString "sha256" (builtins.toJSON {
+            inherit (cfg) config providers debug;
+          }))
+        ];
 
-          # Clean up socket on stop
-          ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
-        };
+        # Clean up socket on stop
+        ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
+      };
 
-        Install = {
-          WantedBy = ["graphical-session.target"];
-        };
+      Install = {
+        WantedBy = ["graphical-session.target"];
       };
     };
+  };
 }
