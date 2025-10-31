@@ -34,6 +34,7 @@ type Config struct {
 	common.Config `koanf:",squash"`
 	LaunchPrefix  string   `koanf:"launch_prefix" desc:"overrides the default app2unit or uwsm prefix, if set." default:""`
 	IgnoredDirs   []string `koanf:"ignored_dirs" desc:"ignore these directories" default:""`
+	SearchDirs    []string `koanf:"search_dirs" desc:"directories to search for files" default:"$HOME"`
 	FdFlags       string   `koanf:"fd_flags" desc:"flags for fd" default:"--ignore-vcs --type file --type directory"`
 }
 
@@ -52,13 +53,20 @@ func Setup() {
 			MinScore: 20,
 		},
 		LaunchPrefix: "",
+		SearchDirs:   []string{},
 		FdFlags:      "--ignore-vcs --type file --type directory",
 	}
 
 	common.LoadConfig(Name, config)
 
-	home, _ := os.UserHomeDir()
-	cmd := exec.Command("fd", ".", home)
+	searchDirs := config.SearchDirs
+	if len(searchDirs) == 0 {
+		home, _ := os.UserHomeDir()
+		searchDirs = []string{home}
+	}
+
+	cmd := exec.Command("fd", ".")
+	cmd.Args = append(cmd.Args, searchDirs...)
 	cmd.Args = append(cmd.Args, strings.Fields(config.FdFlags)...)
 
 	stdout, err := cmd.StdoutPipe()
