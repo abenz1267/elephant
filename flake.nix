@@ -45,7 +45,7 @@
 
           src = ./.;
 
-          vendorHash = "sha256-FWbmpA/044N19vzmI7YO7mrYGpVNx2vJuuO0P9QiwBQ=";
+          vendorHash = "sha256-zKKkPfmW2b70loESRxAIi+5TZNBmNV/mpM/8zOTfpdo=";
 
           buildInputs = with pkgs; [
             protobuf
@@ -82,7 +82,7 @@
 
           src = ./.;
 
-          vendorHash = "sha256-FWbmpA/044N19vzmI7YO7mrYGpVNx2vJuuO0P9QiwBQ=";
+          vendorHash = "sha256-zKKkPfmW2b70loESRxAIi+5TZNBmNV/mpM/8zOTfpdo=";
 
           buildInputs = with pkgs; [
             wayland
@@ -185,7 +185,9 @@
           installPhase = ''
             mkdir -p $out/bin $out/lib/elephant
             cp ${self.packages.${pkgs.stdenv.system}.elephant}/bin/elephant $out/bin/
-            cp -r ${self.packages.${pkgs.stdenv.system}.elephant-providers}/lib/elephant/providers $out/lib/elephant/
+            cp -r ${
+              self.packages.${pkgs.stdenv.system}.elephant-providers
+            }/lib/elephant/providers $out/lib/elephant/
           '';
 
           postFixup = ''
