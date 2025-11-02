@@ -40,6 +40,11 @@ type Category struct {
 }
 
 const (
+	StateCreating = "creating"
+	StateNormal   = "normal"
+)
+
+const (
 	ActionSave           = "save"
 	ActionOpen           = "open"
 	ActionDelete         = "delete"
@@ -305,6 +310,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		e.Subtext = b.URL
 		e.Actions = []string{ActionOpen, ActionDelete}
 		e.Actions = append(e.Actions, ActionChangeCategory)
+		e.State = []string{StateNormal}
 		e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{}
 
 		if query != "" {
@@ -339,6 +345,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			e.Text = b.Description
 			e.Subtext = b.URL
 			e.Actions = []string{ActionSave}
+			e.State = []string{StateCreating}
 
 			entries = append(entries, e)
 		}
@@ -349,4 +356,8 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 func Icon() string {
 	return config.Icon
+}
+
+func State(provider string) *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{}
 }
