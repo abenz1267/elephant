@@ -750,6 +750,10 @@ func State(provider string) *pb.ProviderStateResponse {
 		actions = append(actions, ActionPause)
 	}
 
+	if len(clipboardhistory) > 0 {
+		actions = append(actions, ActionRemoveAll)
+	}
+
 	return &pb.ProviderStateResponse{
 		States:  states,
 		Actions: actions,
