@@ -313,6 +313,10 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		e.State = []string{StateNormal}
 		e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{}
 
+		if e.Text == e.Subtext {
+			e.Subtext = ""
+		}
+
 		if query != "" {
 			e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, searchText, exact)
 		}
