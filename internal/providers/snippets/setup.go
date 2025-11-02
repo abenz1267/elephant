@@ -153,3 +153,7 @@ func calcScore(q string, d Snippet, exact bool) (int32, []int32, int32, bool) {
 func Icon() string {
 	return config.Icon
 }
+
+func State() *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{}
+}

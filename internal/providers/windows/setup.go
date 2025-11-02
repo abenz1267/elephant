@@ -150,6 +150,10 @@ func Icon() string {
 	return config.Icon
 }
 
+func State() *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{}
+}
+
 func calcScore(q string, d *windows.Window, exact bool) (string, int32, []int32, int32, bool) {
 	var scoreRes int32
 	var posRes []int32

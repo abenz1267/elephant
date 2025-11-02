@@ -188,6 +188,10 @@ func Icon() string {
 	return config.Icon
 }
 
+func State() *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{}
+}
+
 func queryPacman() {
 	cmd := exec.Command("pacman", "-Si")
 

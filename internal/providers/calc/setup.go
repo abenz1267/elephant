@@ -312,3 +312,7 @@ func saveHist() {
 func Icon() string {
 	return config.Icon
 }
+
+func State() *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{}
+}

@@ -16,6 +16,7 @@ import (
 
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 	"github.com/djherbis/times"
 	"github.com/fsnotify/fsnotify"
 )
@@ -271,4 +272,8 @@ func PrintDoc() {
 
 func Icon() string {
 	return config.Icon
+}
+
+func State() *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{}
 }

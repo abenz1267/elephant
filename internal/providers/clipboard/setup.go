@@ -10,12 +10,10 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"io/fs"
 	"log"
 	"log/slog"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,7 +27,6 @@ import (
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
-	"golang.org/x/net/html"
 )
 
 var (
@@ -40,7 +37,8 @@ var (
 	config           *Config
 	clipboardhistory = make(map[string]*Item)
 	mu               sync.Mutex
-	imagesOnly       = false
+	currentMode      = Combined
+	nextMode         = ActionImagesOnly
 )
 
 //go:embed README.md
@@ -517,14 +515,19 @@ func PrintDoc() {
 }
 
 const (
-	ActionPause             = "pause"
-	ActionUnpause           = "unpause"
-	ActionCopy              = "copy"
-	ActionEdit              = "edit"
-	ActionRemove            = "remove"
-	ActionRemoveAll         = "remove_all"
-	ActionToggleImages      = "toggle_images"
-	ActionDisableImagesOnly = "disable_images_only"
+	ActionPause      = "pause"
+	ActionUnpause    = "unpause"
+	ActionCopy       = "copy"
+	ActionEdit       = "edit"
+	ActionRemove     = "remove"
+	ActionRemoveAll  = "remove_all"
+	ActionImagesOnly = "show_images_only"
+	ActionTextOnly   = "show_text_only"
+	ActionCombined   = "show_combined"
+
+	ImagesOnly = "images_only"
+	TextOnly   = "text_only"
+	Combined   = "combined"
 )
 
 func Activate(identifier, action string, query string, args string) {
@@ -537,12 +540,15 @@ func Activate(identifier, action string, query string, args string) {
 		paused = true
 	case ActionUnpause:
 		paused = false
-	case ActionDisableImagesOnly:
-		imagesOnly = false
-		return
-	case ActionToggleImages:
-		imagesOnly = !imagesOnly
-		return
+	case ActionImagesOnly:
+		currentMode = ImagesOnly
+		nextMode = ActionTextOnly
+	case ActionTextOnly:
+		currentMode = TextOnly
+		nextMode = ActionCombined
+	case ActionCombined:
+		currentMode = Combined
+		nextMode = ActionImagesOnly
 	case ActionEdit:
 		item := clipboardhistory[identifier]
 		if item.State != StateEditable {
@@ -655,8 +661,15 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 	entries := []*pb.QueryResponse_Item{}
 
 	for k, v := range clipboardhistory {
-		if imagesOnly && v.Img == "" {
-			continue
+		switch currentMode {
+		case ImagesOnly:
+			if v.Img == "" {
+				continue
+			}
+		case TextOnly:
+			if v.Img != "" {
+				continue
+			}
 		}
 
 		e := &pb.QueryResponse_Item{
@@ -727,45 +740,9 @@ func Icon() string {
 	return config.Icon
 }
 
-func getImgSrc(n *html.Node) string {
-	if n.Type == html.ElementNode && n.Data == "img" {
-		for _, attr := range n.Attr {
-			if attr.Key == "src" {
-				return attr.Val
-			}
-		}
+func State() *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{
+		States:  []string{currentMode},
+		Actions: []string{nextMode},
 	}
-
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if src := getImgSrc(c); src != "" {
-			return src
-		}
-	}
-
-	return ""
-}
-
-func downloadImage(url string) ([]byte, string) {
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Println(url)
-		slog.Error(Name, "download", err)
-		return nil, ""
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		slog.Error(Name, "download status", err)
-		return nil, ""
-	}
-
-	contentType := resp.Header.Get("Content-Type")
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		slog.Error(Name, "download read", err)
-		return nil, ""
-	}
-
-	return data, contentType
 }
