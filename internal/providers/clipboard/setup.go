@@ -741,8 +741,17 @@ func Icon() string {
 }
 
 func State() *pb.ProviderStateResponse {
+	states := []string{currentMode}
+	actions := []string{nextMode}
+
+	if paused {
+		actions = append(actions, ActionUnpause)
+	} else {
+		actions = append(actions, ActionPause)
+	}
+
 	return &pb.ProviderStateResponse{
-		States:  []string{currentMode},
-		Actions: []string{nextMode},
+		States:  states,
+		Actions: actions,
 	}
 }
