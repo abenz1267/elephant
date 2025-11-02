@@ -18,6 +18,7 @@ pre_cmd = [
   "cd internal/providers/websearch && go build -buildmode=plugin && cp websearch.so /tmp/elephant/providers/",
   "cd internal/providers/archlinuxpkgs && go build -buildmode=plugin && cp archlinuxpkgs.so /tmp/elephant/providers/",
   "cd internal/providers/todo && go build -buildmode=plugin && cp todo.so /tmp/elephant/providers/",
+  "cd internal/providers/bookmarks && go build -buildmode=plugin && cp bookmarks.so /tmp/elephant/providers/",
   "cd internal/providers/unicode && go build -buildmode=plugin && cp unicode.so /tmp/elephant/providers/",
   "cd internal/providers/bluetooth && go build -buildmode=plugin && cp bluetooth.so /tmp/elephant/providers/",
   "cd internal/providers/windows && go build -buildmode=plugin && cp windows.so /tmp/elephant/providers/",
