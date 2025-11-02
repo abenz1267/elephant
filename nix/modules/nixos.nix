@@ -20,6 +20,7 @@ with lib; let
     providerlist = "Provider listing and management";
     websearch = "Web search integration";
     todo = "Todo list";
+    bookmarks = "Bookmarks management";
     unicode = "Unicode symbol search";
     bluetooth = "Basic Bluetooth management";
   };
