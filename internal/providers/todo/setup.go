@@ -18,6 +18,7 @@ import (
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
+	"github.com/go-git/go-git/v6"
 	"github.com/sho0pi/naturaltime"
 )
 
@@ -27,6 +28,8 @@ var (
 	config     *Config
 	items      = []Item{}
 	parser     *naturaltime.Parser
+	r          *git.Repository
+	w          *git.Worktree
 )
 
 //go:embed README.md
@@ -127,6 +130,28 @@ func saveItems() {
 	if err != nil {
 		slog.Error(Name, "writefile", err)
 	}
+
+	if r != nil {
+		go func() {
+			_, err := w.Add("todo.csv")
+			if err != nil {
+				slog.Error(Name, "gitadd", err)
+				return
+			}
+
+			_, err = w.Commit("elephant", &git.CommitOptions{})
+			if err != nil {
+				slog.Error(Name, "commit", err)
+				return
+			}
+
+			err = r.Push(&git.PushOptions{})
+			if err != nil {
+				slog.Error(Name, "push", err)
+				return
+			}
+		}()
+	}
 }
 
 func (i *Item) fromQuery(query string) {
@@ -190,11 +215,65 @@ func Setup() {
 
 	common.LoadConfig(Name, config)
 
+	if strings.HasPrefix(config.Location, "https://") {
+		setupGit()
+
+		if r == nil || w == nil {
+			config.Location = ""
+			slog.Error(Name, "error", "couldn't setup git, falling back to default")
+		}
+	}
+
 	if !migrateGOBtoCSV() {
 		loadItems()
 	}
 
 	go notify()
+}
+
+func setupGit() {
+	base := filepath.Base(config.Location)
+	folder := common.CacheFile(base)
+
+	// clone
+	if !common.FileExists(folder) {
+		var err error
+
+		url := config.Location
+		if strings.HasPrefix(url, "https://github.com/") {
+			url = strings.Replace(url, "https://github.com/", "git@github.com:", 1)
+		}
+
+		r, err = git.PlainClone(folder, &git.CloneOptions{
+			URL:               url,
+			RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
+		})
+		if err != nil {
+			slog.Error(Name, "gitclone", err)
+			return
+		}
+	} else {
+		var err error
+		r, err = git.PlainOpen(folder)
+		if err != nil {
+			slog.Error(Name, "gitclone", err)
+			return
+		}
+	}
+
+	var err error
+	w, err = r.Worktree()
+	if err != nil {
+		slog.Error(Name, "gitpull", err)
+		return
+	}
+
+	err = w.Pull(&git.PullOptions{RemoteName: "origin"})
+	if err != nil {
+		slog.Info(Name, "gitpull", err)
+	}
+
+	config.Location = folder
 }
 
 func Available() bool {

@@ -10,10 +10,21 @@ Basic Todolist
 - mark items as: done, active
 - urgent items
 - clear all done items
+- git integration (requires ssh access)
 
 #### Requirements
 
 - `notify-send` for notifications
+
+#### Git Integration
+
+You can set
+
+```toml
+location = "https://github.com/abenz1267/elephanttodo"
+```
+
+This will automatically try to clone/pull the repo. It will also automatically comimt and push on changes.
 
 #### Usage
 
