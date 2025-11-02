@@ -266,6 +266,18 @@ func Icon() string {
 	return config.Icon
 }
 
+func State() *pb.ProviderStateResponse {
+	if !find {
+		return &pb.ProviderStateResponse{
+			States:   []string{},
+			Actions:  []string{ActionFind},
+			Provider: "",
+		}
+	}
+
+	return &pb.ProviderStateResponse{}
+}
+
 func getDevices() {
 	devices = []Device{}
 

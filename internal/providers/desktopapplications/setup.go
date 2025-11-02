@@ -14,6 +14,7 @@ import (
 	"github.com/abenz1267/elephant/v2/internal/util/windows"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/common/history"
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
 type DesktopFile struct {
@@ -143,4 +144,8 @@ func parseRegexp() {
 
 func Icon() string {
 	return config.Icon
+}
+
+func State() *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{}
 }

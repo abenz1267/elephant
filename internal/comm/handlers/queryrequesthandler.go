@@ -25,6 +25,7 @@ const (
 	QueryItem          = 0
 	QueryAsyncItem     = 1
 	ActivationFinished = 2
+	ProviderState      = 3
 )
 
 var (

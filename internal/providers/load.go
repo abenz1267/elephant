@@ -16,11 +16,17 @@ import (
 	"github.com/charlievieth/fastwalk"
 )
 
+type ProviderStateResponse struct {
+	Actions []string
+	States  []string
+}
+
 type Provider struct {
 	Name       *string
 	Available  func() bool
 	PrintDoc   func()
 	NamePretty *string
+	State      func() *pb.ProviderStateResponse
 	Setup      func()
 	Icon       func() string
 	Activate   func(identifier, action, query, args string)
@@ -120,6 +126,11 @@ func Load(setup bool) {
 					slog.Error("providers", "load", err, "provider", path)
 				}
 
+				stateFunc, err := p.Lookup("State")
+				if err != nil {
+					slog.Error("providers", "load", err, "provider", path)
+				}
+
 				provider := Provider{
 					Icon:       iconFunc.(func() string),
 					Setup:      setupFunc.(func()),
@@ -129,6 +140,7 @@ func Load(setup bool) {
 					NamePretty: namePretty.(*string),
 					PrintDoc:   printDocFunc.(func()),
 					Available:  availableFunc.(func() bool),
+					State:      stateFunc.(func() *pb.ProviderStateResponse),
 				}
 
 				available := provider.Available()

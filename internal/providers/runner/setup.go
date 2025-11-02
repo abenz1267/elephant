@@ -260,3 +260,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 func Icon() string {
 	return config.Icon
 }
+
+func State() *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{}
+}

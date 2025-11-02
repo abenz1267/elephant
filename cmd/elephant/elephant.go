@@ -187,6 +187,19 @@ WantedBy=graphical-session.target
 				},
 			},
 			{
+				Name: "state",
+				Arguments: []cli.Argument{
+					&cli.StringArg{
+						Name: "content",
+					},
+				},
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					client.ProviderState(cmd.StringArg("content"))
+
+					return nil
+				},
+			},
+			{
 				Name:  "community",
 				Usage: "elephant-community based actions",
 				Commands: []*cli.Command{

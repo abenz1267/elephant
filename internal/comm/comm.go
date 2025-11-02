@@ -29,6 +29,7 @@ const (
 	ActivateRequestHandlerPos  = 1
 	SubscribeRequestHandlerPos = 2
 	MenuRequestHandlerPos      = 3
+	StateRequestHandlerPos     = 4
 	Protobuf                   = 0
 	JSON                       = 1
 )
@@ -51,6 +52,7 @@ func init() {
 	registry[ActivateRequestHandlerPos] = &handlers.ActivateRequest{}
 	registry[SubscribeRequestHandlerPos] = &handlers.SubscribeRequest{}
 	registry[MenuRequestHandlerPos] = &handlers.MenuRequest{}
+	registry[StateRequestHandlerPos] = &handlers.StateRequest{}
 }
 
 func StartListen() {

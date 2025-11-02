@@ -355,6 +355,10 @@ func Icon() string {
 	return ""
 }
 
+func State() *pb.ProviderStateResponse {
+	return &pb.ProviderStateResponse{}
+}
+
 func calcScore(q string, d common.Entry, exact bool) (string, int32, []int32, int32, bool) {
 	var scoreRes int32
 	var posRes []int32

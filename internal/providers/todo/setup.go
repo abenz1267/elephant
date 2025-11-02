@@ -442,6 +442,8 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		switch v.State {
 		case StateActive:
 			actions = []string{ActionDelete, ActionMarkDone, ActionMarkInactive}
+		case StateDone:
+			actions = []string{ActionDelete, ActionMarkInactive}
 		case StatePending, StateUrgent:
 			actions = []string{ActionDelete, ActionMarkDone, ActionMarkActive}
 		case StateCreating:
@@ -538,4 +540,16 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 func Icon() string {
 	return config.Icon
+}
+
+func State() *pb.ProviderStateResponse {
+	for _, v := range items {
+		if v.State == StateDone {
+			return &pb.ProviderStateResponse{
+				States:  []string{"hasfinished"},
+				Actions: []string{ActionClear},
+			}
+		}
+	}
+	return &pb.ProviderStateResponse{}
 }
