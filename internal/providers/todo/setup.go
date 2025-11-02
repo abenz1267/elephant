@@ -542,7 +542,7 @@ func Icon() string {
 	return config.Icon
 }
 
-func State() *pb.ProviderStateResponse {
+func State(provider string) *pb.ProviderStateResponse {
 	for _, v := range items {
 		if v.State == StateDone {
 			return &pb.ProviderStateResponse{

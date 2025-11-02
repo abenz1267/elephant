@@ -152,6 +152,6 @@ func Icon() string {
 	return ""
 }
 
-func State() *pb.ProviderStateResponse {
+func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
 }

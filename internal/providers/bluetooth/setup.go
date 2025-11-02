@@ -266,7 +266,7 @@ func Icon() string {
 	return config.Icon
 }
 
-func State() *pb.ProviderStateResponse {
+func State(provider string) *pb.ProviderStateResponse {
 	if !find {
 		return &pb.ProviderStateResponse{
 			States:   []string{},

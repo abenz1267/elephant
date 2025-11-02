@@ -257,10 +257,6 @@ func Query(conn net.Conn, query string, single bool, exact bool, format uint8) [
 
 			var actions []string
 
-			if v.Parent != "" && single {
-				actions = append(actions, ActionGoParent)
-			}
-
 			for k := range me.Actions {
 				actions = append(actions, k)
 			}
@@ -275,7 +271,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, format uint8) [
 				actions = append(actions, ActionOpen)
 			}
 
-			if len(actions) == 0 || (len(actions) == 1 && actions[0] == ActionGoParent) {
+			if len(actions) == 0 {
 				actions = append(actions, ActionDefault)
 			}
 
@@ -355,7 +351,17 @@ func Icon() string {
 	return ""
 }
 
-func State() *pb.ProviderStateResponse {
+func State(provider string) *pb.ProviderStateResponse {
+	menu := strings.Split(provider, ":")[1]
+
+	if val, ok := common.Menus[menu]; ok {
+		if val.Parent != "" {
+			return &pb.ProviderStateResponse{
+				Actions: []string{ActionGoParent},
+			}
+		}
+	}
+
 	return &pb.ProviderStateResponse{}
 }
 
