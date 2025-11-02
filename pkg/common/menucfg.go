@@ -400,7 +400,7 @@ func createTomlMenu(path string) {
 		} else if m.SubMenu != "" {
 			m.Entries[k].Identifier = fmt.Sprintf("menus:%s:%s:%s", m.SubMenu, v.Menu, identifier)
 		} else {
-			m.Entries[k].Identifier = fmt.Sprintf("%s:%s", v.Menu, identifier)
+			m.Entries[k].Identifier = fmt.Sprintf("%s:%s", m.Name, identifier)
 		}
 	}
 
