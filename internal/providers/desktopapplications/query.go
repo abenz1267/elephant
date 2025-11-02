@@ -146,7 +146,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 
 				actions := []string{ActionStart}
 
-				if config.WindowIntegration {
+				if config.WindowIntegration && !config.WindowIntegrationIgnoreActions {
 					actions = append(actions, ActionNewInstance)
 				}
 
