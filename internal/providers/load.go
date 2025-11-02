@@ -145,19 +145,17 @@ func Load(setup bool) {
 
 				available := provider.Available()
 
-				go func() {
-					if setup && available {
-						provider.Setup()
-					}
+				if setup && available {
+					go provider.Setup()
+				}
 
-					if available {
-						mut.Lock()
-						Providers[*provider.Name] = provider
-						mut.Unlock()
-					}
+				if available {
+					mut.Lock()
+					Providers[*provider.Name] = provider
+					mut.Unlock()
+				}
 
-					slog.Info("providers", "loaded", *provider.Name)
-				}()
+				slog.Info("providers", "loaded", *provider.Name)
 
 				if available {
 					mut.Lock()
