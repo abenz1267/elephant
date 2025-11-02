@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net"
+	"strings"
 
 	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
@@ -32,7 +33,13 @@ func (a *StateRequest) Handle(format uint8, cid uint32, conn net.Conn, data []by
 		}
 	}
 
-	res := providers.Providers[req.Provider].State()
+	p := req.Provider
+
+	if strings.HasPrefix(req.Provider, "menus:") {
+		p = "menus"
+	}
+
+	res := providers.Providers[p].State(req.Provider)
 	res.Provider = req.Provider
 
 	var b []byte

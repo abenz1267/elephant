@@ -189,7 +189,7 @@ func Icon() string {
 	return config.Icon
 }
 
-func State() *pb.ProviderStateResponse {
+func State(provider string) *pb.ProviderStateResponse {
 	if installedOnly {
 		return &pb.ProviderStateResponse{
 			Actions: []string{ActionShowAll},

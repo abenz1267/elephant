@@ -26,7 +26,7 @@ type Provider struct {
 	Available  func() bool
 	PrintDoc   func()
 	NamePretty *string
-	State      func() *pb.ProviderStateResponse
+	State      func(string) *pb.ProviderStateResponse
 	Setup      func()
 	Icon       func() string
 	Activate   func(identifier, action, query, args string)
@@ -140,7 +140,7 @@ func Load(setup bool) {
 					NamePretty: namePretty.(*string),
 					PrintDoc:   printDocFunc.(func()),
 					Available:  availableFunc.(func() bool),
-					State:      stateFunc.(func() *pb.ProviderStateResponse),
+					State:      stateFunc.(func(string) *pb.ProviderStateResponse),
 				}
 
 				available := provider.Available()
