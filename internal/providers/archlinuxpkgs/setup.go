@@ -21,28 +21,32 @@ import (
 )
 
 var (
-	Name       = "archlinuxpkgs"
-	NamePretty = "Arch Linux Packages"
-	config     *Config
-	isSetup    = false
-	mut        sync.Mutex
-	entryMap   = map[string]Entry{}
-	installed  = []string{}
-	command    = "yay -S"
+	Name          = "archlinuxpkgs"
+	NamePretty    = "Arch Linux Packages"
+	config        *Config
+	isSetup       = false
+	mut           sync.Mutex
+	entryMap      = map[string]Entry{}
+	installed     = []string{}
+	installedOnly = false
 )
 
 //go:embed README.md
 var readme string
 
 const (
-	ActionInstall = "install"
-	ActionRemove  = "remove"
+	ActionInstall       = "install"
+	ActionRemove        = "remove"
+	ActionShowInstalled = "show_installed"
+	ActionShowAll       = "show_all"
 )
 
 type Config struct {
-	common.Config   `koanf:",squash"`
-	RefreshInterval int    `koanf:"refresh_interval" desc:"refresh database every X minutes. 0 disables the automatic refresh and refreshing requires an elephant restart." default:"60"`
-	InstalledPrefix string `koanf:"installed_prefix" desc:"prefix to use to show only explicitly installed packages" default:"i:"`
+	common.Config        `koanf:",squash"`
+	RefreshInterval      int    `koanf:"refresh_interval" desc:"refresh database every X minutes. 0 disables the automatic refresh and refreshing requires an elephant restart." default:"60"`
+	CommandInstall       string `koanf:"command_install" desc:"default command for AUR packages to install. supports %VALUE%." default:"yay -S %VALUE%"`
+	CommandRemove        string `koanf:"command_remove" desc:"default command to remove packages. supports %VALUE%." default:"sudo pacman -R %VALUE%"`
+	AutoWrapWithTerminal bool   `koanf:"auto_wrap_with_terminal" desc:"automatically wraps the command with terminal" default:"true"`
 }
 
 type Entry struct {
@@ -59,16 +63,13 @@ func Setup() {
 			Icon:     "applications-internet",
 			MinScore: 20,
 		},
-		RefreshInterval: 60,
-		InstalledPrefix: "i:",
+		RefreshInterval:      60,
+		CommandInstall:       "yay -S %VALUE%",
+		CommandRemove:        "sudo pacman -R %VALUE%",
+		AutoWrapWithTerminal: true,
 	}
 
 	common.LoadConfig(Name, config)
-
-	path, _ := exec.LookPath("paru")
-	if path != "" {
-		command = "paru -S"
-	}
 
 	go refresh()
 }
@@ -88,20 +89,27 @@ func Activate(identifier, action string, query string, args string) {
 	var pkgcmd string
 
 	switch action {
+	case ActionShowAll:
+		installedOnly = false
+		return
+	case ActionShowInstalled:
+		installedOnly = true
+		return
 	case ActionInstall:
-		pkgcmd = "sudo pacman -S"
-
-		if entryMap[identifier].Repository == "AUR" {
-			pkgcmd = command
-		}
+		pkgcmd = config.CommandInstall
 	case ActionRemove:
-		pkgcmd = "sudo pacman -R"
+		pkgcmd = config.CommandRemove
 	default:
 		slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
 		return
 	}
 
-	toRun := common.WrapWithTerminal(fmt.Sprintf("%s %s", pkgcmd, name))
+	pkgcmd = strings.ReplaceAll(pkgcmd, "%VALUE%", name)
+	toRun := common.WrapWithTerminal(pkgcmd)
+
+	if !config.AutoWrapWithTerminal {
+		toRun = pkgcmd
+	}
 
 	cmd := exec.Command("sh", "-c", toRun)
 	err := cmd.Start()
@@ -121,13 +129,6 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		return entries
 	}
 
-	oi := false
-
-	if strings.HasPrefix(query, config.InstalledPrefix) {
-		oi = true
-		query = strings.TrimPrefix(query, config.InstalledPrefix)
-	}
-
 	for k, v := range entryMap {
 		score, positions, s := common.FuzzyScore(query, v.Name, exact)
 
@@ -139,7 +140,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			s = s2
 		}
 
-		if (score > config.MinScore || query == "") && (!oi || (oi && v.Installed)) {
+		if (score > config.MinScore || query == "") && (!installedOnly || (installedOnly && v.Installed)) {
 			state := []string{}
 			a := []string{}
 
@@ -153,7 +154,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 			name := v.Name
 
-			if !oi && v.Installed {
+			if !installedOnly && v.Installed {
 				name = fmt.Sprintf("%s (installed)", name)
 			}
 
@@ -189,7 +190,15 @@ func Icon() string {
 }
 
 func State() *pb.ProviderStateResponse {
-	return &pb.ProviderStateResponse{}
+	if installedOnly {
+		return &pb.ProviderStateResponse{
+			Actions: []string{ActionShowAll},
+		}
+	}
+
+	return &pb.ProviderStateResponse{
+		Actions: []string{ActionShowInstalled},
+	}
 }
 
 func queryPacman() {
