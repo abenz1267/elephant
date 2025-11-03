@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -25,16 +26,17 @@ import (
 var readme string
 
 var (
-	Name       = "files"
-	NamePretty = "Files"
-	config     *Config
-	watcher    *fsnotify.Watcher
+	Name         = "files"
+	NamePretty   = "Files"
+	config       *Config
+	watcher      *fsnotify.Watcher
+	ignoreRegexp []*regexp.Regexp
 )
 
 type Config struct {
 	common.Config `koanf:",squash"`
 	LaunchPrefix  string   `koanf:"launch_prefix" desc:"overrides the default app2unit or uwsm prefix, if set." default:""`
-	IgnoredDirs   []string `koanf:"ignored_dirs" desc:"ignore these directories" default:""`
+	IgnoredDirs   []string `koanf:"ignored_dirs" desc:"ignore these directories. regexp based." default:""`
 	SearchDirs    []string `koanf:"search_dirs" desc:"directories to search for files" default:"$HOME"`
 	FdFlags       string   `koanf:"fd_flags" desc:"flags for fd" default:"--ignore-vcs --type file --type directory"`
 }
@@ -64,6 +66,16 @@ func Setup() {
 	if len(searchDirs) == 0 {
 		home, _ := os.UserHomeDir()
 		searchDirs = []string{home}
+	}
+
+	for _, v := range config.IgnoredDirs {
+		r, err := regexp.Compile(v)
+		if err != nil {
+			slog.Error(Name, "ignoredirs regexp", err)
+			continue
+		}
+
+		ignoreRegexp = append(ignoreRegexp, r)
 	}
 
 	cmd := exec.Command("fd", ".")
@@ -148,8 +160,8 @@ func Setup() {
 			path := strings.TrimSpace(scanner.Text())
 
 			if len(path) > 0 {
-				for _, v := range config.IgnoredDirs {
-					if strings.HasPrefix(path, v) {
+				for _, v := range ignoreRegexp {
+					if v.Match([]byte(path)) {
 						continue outer
 					}
 				}
