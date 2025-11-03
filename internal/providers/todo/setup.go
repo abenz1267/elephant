@@ -301,15 +301,25 @@ func Activate(identifier, action string, query string, args string) {
 
 	switch action {
 	case ActionChangeCategory:
-		var category Category
+		currentCategory := items[i].Category
+		nextCategory := ""
 
-		for _, v := range config.Categories {
-			if args == v.Prefix {
-				category = v
+		if len(config.Categories) > 0 {
+			if currentCategory == "" {
+				nextCategory = config.Categories[0].Name
+			} else {
+				for idx, cat := range config.Categories {
+					if cat.Name == currentCategory {
+						if idx+1 < len(config.Categories) {
+							nextCategory = config.Categories[idx+1].Name
+						}
+						break
+					}
+				}
 			}
 		}
 
-		items[i].Category = category.Name
+		items[i].Category = nextCategory
 	case ActionDelete:
 		items = append(items[:i], items[i+1:]...)
 	case ActionMarkActive:
