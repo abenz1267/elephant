@@ -205,7 +205,8 @@ func Setup() {
 
 		if wt == nil || re == nil {
 			config.Location = ""
-			slog.Error(Name, "error", "couldn't setup git, falling back to default")
+			slog.Error(Name, "error", "couldn't setup git.")
+			return
 		}
 
 		w = wt

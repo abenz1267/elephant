@@ -4,52 +4,70 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/abenz1267/elephant/pkg/common"
 	"github.com/go-git/go-git/v6"
 )
 
 func SetupGit(provider, url string) (string, *git.Worktree, *git.Repository) {
+	x := 0
 	base := filepath.Base(url)
 	folder := common.CacheFile(base)
-
+	var w *git.Worktree
 	var r *git.Repository
 
-	// clone
-	if !common.FileExists(folder) {
+	for x < 15 {
+		x++
+
+		time.Sleep(1 * time.Second)
+
+		slog.Info(provider, "gitsetup", "trying to setup git...")
+
+		// clone
+		if !common.FileExists(folder) {
+			var err error
+
+			url := url
+			if strings.HasPrefix(url, "https://github.com/") {
+				url = strings.Replace(url, "https://github.com/", "git@github.com:", 1)
+			}
+
+			r, err = git.PlainClone(folder, &git.CloneOptions{
+				URL:               url,
+				RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
+			})
+			if err != nil {
+				slog.Debug(provider, "gitclone", err)
+				continue
+			}
+		} else {
+			var err error
+			r, err = git.PlainOpen(folder)
+			if err != nil {
+				slog.Debug(provider, "gitclone", err)
+				continue
+			}
+		}
+
 		var err error
 
-		url := url
-		if strings.HasPrefix(url, "https://github.com/") {
-			url = strings.Replace(url, "https://github.com/", "git@github.com:", 1)
-		}
-
-		r, err = git.PlainClone(folder, &git.CloneOptions{
-			URL:               url,
-			RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-		})
+		w, err = r.Worktree()
 		if err != nil {
-			slog.Error(provider, "gitclone", err)
-			return "", nil, nil
+			slog.Debug(provider, "gitpull", err)
+			continue
 		}
-	} else {
-		var err error
-		r, err = git.PlainOpen(folder)
+
+		err = w.Pull(&git.PullOptions{RemoteName: "origin"})
 		if err != nil {
-			slog.Error(provider, "gitclone", err)
-			return "", nil, nil
+			slog.Info(provider, "gitpull", err)
+
+			if err.Error() != "already up-to-date" {
+				continue
+			}
 		}
-	}
 
-	w, err := r.Worktree()
-	if err != nil {
-		slog.Error(provider, "gitpull", err)
-		return "", nil, nil
-	}
-
-	err = w.Pull(&git.PullOptions{RemoteName: "origin"})
-	if err != nil {
-		slog.Info(provider, "gitpull", err)
+		break
 	}
 
 	return folder, w, r
