@@ -86,6 +86,30 @@ func Setup() {
 		log.Fatal(err)
 	}
 
+	for _, path := range config.SearchDirs {
+		watcher.Add(path)
+
+		if info, err := times.Stat(path); err == nil {
+			diff := start.Sub(info.ChangeTime())
+
+			md5 := md5.Sum([]byte(path))
+			md5str := hex.EncodeToString(md5[:])
+
+			f := File{
+				Identifier: md5str,
+				Path:       path,
+				Changed:    time.Time{},
+			}
+
+			res := 3600 - diff.Seconds()
+			if res > 0 {
+				f.Changed = info.ChangeTime()
+			}
+
+			putFile(f)
+		}
+	}
+
 	deleteChan := make(chan string)
 	regularChan := make(chan string)
 
