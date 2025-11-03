@@ -19,12 +19,14 @@ import (
 )
 
 var (
-	Name       = "bookmarks"
-	NamePretty = "Bookmarks"
-	config     *Config
-	bookmarks  = []Bookmark{}
-	r          *git.Repository
-	w          *git.Worktree
+	Name              = "bookmarks"
+	NamePretty        = "Bookmarks"
+	config            *Config
+	bookmarks         = []Bookmark{}
+	r                 *git.Repository
+	w                 *git.Worktree
+	availableBrowsers = make(map[string]struct{})
+	availableCats     = make(map[string]struct{})
 )
 
 //go:embed README.md
@@ -247,6 +249,14 @@ func Setup() {
 
 		w = wt
 		r = re
+	}
+
+	for _, v := range config.Browsers {
+		availableBrowsers[v.Name] = struct{}{}
+	}
+
+	for _, v := range config.Categories {
+		availableCats[v.Name] = struct{}{}
 	}
 
 	loadBookmarks()
@@ -619,18 +629,22 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		}
 
 		if b.Browser != "" {
-			if e.Subtext != "" {
-				e.Subtext = fmt.Sprintf("%s, %s", e.Subtext, b.Browser)
-			} else {
-				e.Subtext = b.Browser
+			if _, ok := availableBrowsers[b.Browser]; ok {
+				if e.Subtext != "" {
+					e.Subtext = fmt.Sprintf("%s, %s", e.Subtext, b.Browser)
+				} else {
+					e.Subtext = b.Browser
+				}
 			}
 		}
 
 		if b.Category != "" {
-			if e.Subtext != "" {
-				e.Subtext = fmt.Sprintf("%s, %s", e.Subtext, b.Category)
-			} else {
-				e.Subtext = b.Category
+			if _, ok := availableCats[b.Category]; ok {
+				if e.Subtext != "" {
+					e.Subtext = fmt.Sprintf("%s, %s", e.Subtext, b.Category)
+				} else {
+					e.Subtext = b.Category
+				}
 			}
 		}
 
