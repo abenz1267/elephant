@@ -4,13 +4,19 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/abenz1267/elephant/pkg/common"
 	"github.com/go-git/go-git/v6"
 )
 
+var gitMu sync.Mutex
+
 func SetupGit(provider, url string) (string, *git.Worktree, *git.Repository) {
+	gitMu.Lock()
+	defer gitMu.Unlock()
+
 	x := 0
 	base := filepath.Base(url)
 	folder := common.CacheFile(base)
@@ -75,6 +81,9 @@ func SetupGit(provider, url string) (string, *git.Worktree, *git.Repository) {
 
 // TODO: this needs better commit messages somehow...
 func GitPush(provider, file string, w *git.Worktree, r *git.Repository) {
+	gitMu.Lock()
+	defer gitMu.Unlock()
+
 	_, err := w.Add(file)
 	if err != nil {
 		slog.Error(provider, "gitadd", err)
