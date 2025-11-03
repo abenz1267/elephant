@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/abenz1267/elephant/v2/internal/util"
@@ -19,11 +20,22 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 	results := getFilesByQuery(query, exact)
 
 	for k, v := range results {
+		p := v.Path
+		pt := util.PreviewTypeFile
+
+		for _, i := range config.IgnorePreviews {
+			if strings.HasPrefix(v.Path, i.Path) {
+				p = i.Placeholder
+				pt = util.PreviewTypeText
+				break
+			}
+		}
+
 		entry := &pb.QueryResponse_Item{
 			Identifier:  v.Identifier,
 			Text:        v.Path,
-			Preview:     v.Path,
-			PreviewType: util.PreviewTypeFile,
+			Preview:     p,
+			PreviewType: pt,
 			Type:        pb.QueryResponse_REGULAR,
 			Subtext:     "",
 			Score:       int32(1000000000 - k),

@@ -33,12 +33,19 @@ var (
 	ignoreRegexp []*regexp.Regexp
 )
 
+type IgnoredPreview struct {
+	Path        string `koanf:"path" desc:"path to ignore preview for" default:""`
+	Placeholder string `koanf:"placeholder" desc:"text to display instead" default:""`
+}
+
 type Config struct {
-	common.Config `koanf:",squash"`
-	LaunchPrefix  string   `koanf:"launch_prefix" desc:"overrides the default app2unit or uwsm prefix, if set." default:""`
-	IgnoredDirs   []string `koanf:"ignored_dirs" desc:"ignore these directories. regexp based." default:""`
-	SearchDirs    []string `koanf:"search_dirs" desc:"directories to search for files" default:"$HOME"`
-	FdFlags       string   `koanf:"fd_flags" desc:"flags for fd" default:"--ignore-vcs --type file --type directory"`
+	common.Config  `koanf:",squash"`
+	LaunchPrefix   string           `koanf:"launch_prefix" desc:"overrides the default app2unit or uwsm prefix, if set." default:""`
+	IgnoredDirs    []string         `koanf:"ignored_dirs" desc:"ignore these directories. regexp based." default:""`
+	IgnorePreviews []IgnoredPreview `koanf:"ignore_previews" desc:"paths will not have a preview" default:""`
+	IgnoreWatching []string         `koanf:"ignore_watching" desc:"paths will not be watched" default:""`
+	SearchDirs     []string         `koanf:"search_dirs" desc:"directories to search for files" default:"$HOME"`
+	FdFlags        string           `koanf:"fd_flags" desc:"flags for fd" default:"--ignore-vcs --type file --type directory"`
 }
 
 func Setup() {
@@ -99,7 +106,10 @@ func Setup() {
 	}
 
 	for _, path := range config.SearchDirs {
-		watcher.Add(path)
+
+		if !slices.Contains(config.IgnoreWatching, path) {
+			watcher.Add(path)
+		}
 
 		if info, err := times.Stat(path); err == nil {
 			diff := start.Sub(info.ChangeTime())
@@ -167,7 +177,9 @@ func Setup() {
 				}
 
 				if strings.HasSuffix(path, "/") {
-					watcher.Add(path)
+					if !slices.Contains(config.IgnoreWatching, path) {
+						watcher.Add(path)
+					}
 				}
 
 				if info, err := times.Stat(path); err == nil {
