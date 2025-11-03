@@ -330,7 +330,7 @@ func Activate(identifier, action string, _ string, args string) {
 	case ActionDelete:
 		bookmarks = append(bookmarks[:i], bookmarks[i+1:]...)
 	case ActionOpen, "":
-		command := "xdg-open"
+		command := "xdg-open %VALUE%"
 
 		if bookmarks[i].Browser != "" {
 			for _, browser := range config.Browsers {
@@ -341,7 +341,13 @@ func Activate(identifier, action string, _ string, args string) {
 			}
 		}
 
-		cmd := exec.Command("sh", "-c", fmt.Sprintf("%s '%s'", command, bookmarks[i].URL))
+		if strings.Contains(command, "%VALUE%") {
+			command = strings.ReplaceAll(command, "%VALUE%", bookmarks[i].URL)
+		} else {
+			command = fmt.Sprintf("%s %s", command, bookmarks[i].URL)
+		}
+
+		cmd := exec.Command("sh", "-c", command)
 		err := cmd.Start()
 		if err != nil {
 			slog.Error(Name, "open", err)
