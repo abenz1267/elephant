@@ -595,11 +595,11 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		e.Subtext = b.URL
 		e.Actions = []string{ActionOpen, ActionDelete}
 
-		if len(config.Browsers) > 1 {
+		if len(config.Browsers) > 0 {
 			e.Actions = append(e.Actions, ActionChangeBrowser)
 		}
 
-		if len(config.Categories) > 1 {
+		if len(config.Categories) > 0 {
 			e.Actions = append(e.Actions, ActionChangeCategory)
 		}
 

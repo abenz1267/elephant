@@ -68,4 +68,8 @@ command = "zen-browser"
 [[browsers]]
 name = "Chromium"
 command = "chromium"
+
+[[browsers]]
+name = "Chromium App"
+command = "chromium --app %VALUE%"
 ```
