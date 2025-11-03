@@ -198,6 +198,7 @@
                       [
                         wl-clipboard
                         libqalculate
+                        imagemagick
                       ]
                     )
                   }
