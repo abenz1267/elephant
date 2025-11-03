@@ -588,10 +588,15 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		e.Text = b.Description
 		e.Subtext = b.URL
 		e.Actions = []string{ActionOpen, ActionDelete}
-		if len(config.Browsers) > 0 {
+
+		if len(config.Browsers) > 1 {
 			e.Actions = append(e.Actions, ActionChangeBrowser)
 		}
-		e.Actions = append(e.Actions, ActionChangeCategory)
+
+		if len(config.Categories) > 1 {
+			e.Actions = append(e.Actions, ActionChangeCategory)
+		}
+
 		e.State = []string{StateNormal}
 		e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{}
 
