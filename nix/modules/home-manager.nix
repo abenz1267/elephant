@@ -24,6 +24,8 @@ with lib; let
     unicode = "Unicode symbol search";
     bluetooth = "Basic Bluetooth management";
     windows = "Find and focus windows";
+    snippets = "Find and paste text snippets";
+    nirisessions = "Define sets of apps to open and run them";
   };
 in {
   imports = [
@@ -68,87 +70,210 @@ in {
     };
 
     settings = mkOption {
-      description = ''
-        elephant/elephant.toml configuration as Nix attributes.
-        `elephant generatedoc` to view your installed version's options.
-      '';
-      default = {};
       type = types.submodule {
         freeformType = settingsFormat.type;
       };
-      example = ''
+      default = {};
+      example = literalExpression ''
         {
           auto_detect_launch_prefix = false;
         }
       '';
+      description = ''
+        elephant/elephant.toml run `elephant generatedoc` to view available options.
+      '';
     };
 
     provider = mkOption {
-      description = "Provider specific settings";
       type = types.attrsOf (types.submodule {
         options = {
+          # Generic Options
           settings = mkOption {
-            description = ''
-              Provider specific toml configuration as Nix attributes.
-              `elephant generatedoc` to view your installed providers version options.
-            '';
             type = types.submodule {
               freeformType = settingsFormat.type;
             };
             default = {};
+            description = ''
+              Provider specific toml configuration as Nix attributes. Run `elephant generatedoc` to view available options.
+            '';
+          };
+
+          # Menus Provider Settings
+          # provider.menus.toml
+          toml = mkOption {
+            type = types.attrsOf (types.submodule {
+              freeformType = settingsFormat.type;
+            });
+            example =
+              literalExpression
+              ''
+                {
+                  "bookmarks" = {
+                    name = "bookmarks";
+                    name_pretty = "Bookmarks";
+                    icon = "bookmark";
+                    global_search = true;
+                    action = "xdg-open %VALUE%";
+
+                    entries = [
+                      {
+                        text = "Walker";
+                        value = "https://github.com/abenz1267/walker";
+                      }
+                      {
+                        text = "Elephant";
+                        value = "https://github.com/abenz1267/elephant";
+                      }
+                      {
+                        text = "Drive";
+                        value = "https://drive.google.com";
+                      }
+                      {
+                        text = "Prime";
+                        value = "https://www.amazon.de/gp/video/storefront/";
+                      }
+                    ];
+                  };
+                }
+              '';
+            default = {};
+            description = "Define menus using nix TOML.";
+          };
+
+          # provider.menus.lua
+          lua = mkOption {
+            type = types.attrsOf types.lines;
+            default = {};
+            example = literalExpression ''
+              {
+                "luatest" = \'\'
+                  Name = "luatest"
+                  NamePretty = "Lua Test"
+                  Icon = "applications-other"
+                  Cache = true
+                  Action = "notify-send %VALUE%"
+                  HideFromProviderlist = false
+                  Description = "lua test menu"
+                  SearchName = true
+
+                  function GetEntries()
+                      local entries = {}
+                      local wallpaper_dir = "/home/andrej/Documents/ArchInstall/wallpapers"
+
+                      local handle = io.popen("find '" ..
+                          wallpaper_dir ..
+                          "' -maxdepth 1 -type f -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.gif' -o -name '*.bmp' -o -name '*.webp' 2>/dev/null")
+                      if handle then
+                          for line in handle:lines() do
+                              local filename = line:match("([^/]+)$")
+                              if filename then
+                                  table.insert(entries, {
+                                      Text = filename,
+                                      Subtext = "wallpaper",
+                                      Value = line,
+                                      Actions = {
+                                          up = "notify-send up",
+                                          down = "notify-send down",
+                                      },
+                                      -- Preview = line,
+                                      -- PreviewType = "file",
+                                      -- Icon = line
+                                  })
+                              end
+                          end
+                          handle:close()
+                      end
+
+                      return entries
+                  end
+                \'\'
+            '';
+            description = "Define menus using Lua.";
           };
         };
       });
       default = {};
-      example = ''
-        websearch.settings = {
-          entries = [
-            {
-              name = "NixOS Options";
-              url = "https://search.nixos.org/options?query=%TERM%";
-            }
-          ];
-        };
+      example = literalExpression ''
+        {
+          websearch.settings = {
+            entries = [
+              {
+                name = "NixOS Options";
+                url = "https://search.nixos.org/options?query=%TERM%";
+              }
+            ];
+          };
+        }
       '';
+      description = "Provider specific settings";
     };
   };
 
   config = mkIf cfg.enable {
     home.packages = [cfg.package];
 
-    # Install providers to user config
     xdg.configFile =
-      {
+      mkMerge
+      [
         # Generate elephant config
-        "elephant/elephant.toml" = mkIf (cfg.settings != {}) {
-          source = settingsFormat.generate "elephant.toml" cfg.settings;
-        };
-      }
-      //
-      # Generate provider files
-      builtins.listToAttrs
-      (map
-        (
-          provider:
-            lib.nameValuePair
-            "elephant/providers/${provider}.so"
-            {
-              source = "${cfg.package}/lib/elephant/providers/${provider}.so";
-              force = true; # Required since previous version used activation script
-            }
-        )
-        cfg.providers)
-      # Generate provider configs
-      // (mapAttrs'
-        (
-          name: {settings, ...}:
-            lib.nameValuePair
-            "elephant/${name}.toml"
-            {
-              source = settingsFormat.generate "${name}.toml" settings;
-            }
-        )
-        cfg.provider);
+        {
+          "elephant/elephant.toml" = mkIf (cfg.settings != {}) {
+            source = settingsFormat.generate "elephant.toml" cfg.settings;
+          };
+        }
+
+        # Generate provider files
+        (builtins.listToAttrs
+          (map
+            (
+              provider:
+                lib.nameValuePair
+                "elephant/providers/${provider}.so"
+                {
+                  source = "${cfg.package}/lib/elephant/providers/${provider}.so";
+                  force = true; # Required since previous version used activation script
+                }
+            )
+            cfg.providers))
+
+        # Generate provider configs
+        (mapAttrs'
+          (
+            name: {settings, ...}:
+              lib.nameValuePair
+              "elephant/${name}.toml"
+              {
+                source = settingsFormat.generate "${name}.toml" settings;
+              }
+          )
+          (lib.filterAttrs (n: v: v.settings != {}) cfg.provider))
+
+        (lib.mkIf (cfg.provider ? "menus")
+          # Generate TOML menu files
+          (mapAttrs'
+            (
+              name: value:
+                lib.nameValuePair
+                "elephant/menus/${name}.toml"
+                {
+                  source = settingsFormat.generate "${name}.toml" value;
+                }
+            )
+            cfg.provider.menus.toml))
+
+        # Generate Lua menu files
+        (lib.mkIf (cfg.provider ? "menus")
+          (mapAttrs'
+            (
+              name: value:
+                lib.nameValuePair
+                "elephant/menus/${name}.lua"
+                {
+                  text = value;
+                }
+            )
+            cfg.provider.menus.lua))
+      ];
 
     systemd.user.services.elephant = mkIf cfg.installService {
       Unit = {
