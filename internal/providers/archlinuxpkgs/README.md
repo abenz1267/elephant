@@ -14,7 +14,3 @@ Find, install and delete packages. Including AUR.
 #### Requirements
 
 - `yay` or `paru` for AUR
-
-#### Usage
-
-In order to only display installed packages, prefix your query with `i:` (default).
