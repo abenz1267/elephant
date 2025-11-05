@@ -6,11 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html"
 	"log/slog"
 	"net"
 	"net/http"
 	"os/exec"
-	"runtime"
 	"runtime/debug"
 	"slices"
 	"strings"
@@ -74,7 +74,7 @@ type AURPackage struct {
 }
 
 func formatSingle(label, value string) string {
-	return fmt.Sprintf("%-15s : %s\n\n", label, value)
+	return fmt.Sprintf("%-15s : %s\n\n", label, html.EscapeString(value))
 }
 
 func writeField(b *strings.Builder, label, value string) {
@@ -107,8 +107,8 @@ func Setup() {
 			Icon:     "applications-internet",
 			MinScore: 20,
 		},
-		CommandInstall:       helper + " -S %VALUE%",
-		CommandRemove:        helper + " -R %VALUE%",
+		CommandInstall:       fmt.Sprintf("%s -S %%VALUE%%", helper),
+		CommandRemove:        fmt.Sprintf("%s -R %%VALUE%%", helper),
 		AutoWrapWithTerminal: true,
 	}
 
@@ -128,14 +128,11 @@ func PrintDoc() {
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
 	case ActionClearCache:
-		var m runtime.MemStats
-		runtime.ReadMemStats(&m)
 		entryMap = make(map[string]Entry)
 		installed = []string{}
 		installedOnly = false
 		isSetup = false
 		debug.FreeOSMemory()
-		runtime.ReadMemStats(&m)
 		return
 	case ActionShowAll:
 		installedOnly = false
@@ -276,7 +273,7 @@ func queryPacman() {
 
 	for line := range strings.Lines(string(out)) {
 		if strings.TrimSpace(line) == "" {
-			e.FullInfo = fullInfo.String()
+			e.FullInfo = html.EscapeString(fullInfo.String())
 
 			md5 := md5.Sum(fmt.Appendf(nil, "%s:%s", e.Name, e.Description))
 			md5str := hex.EncodeToString(md5[:])
