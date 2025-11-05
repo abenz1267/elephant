@@ -320,44 +320,46 @@ func getDevices() {
 	}
 
 	for v := range strings.Lines(string(out)) {
-		fields := strings.SplitN(v, " ", 3)
-		d := Device{
-			Name: strings.TrimSpace(fields[2]),
-			Mac:  fields[1],
-		}
-
-		cmd := exec.Command("bluetoothctl", "info", d.Mac)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			slog.Error(Name, "get info", err)
-		}
-
-		for l := range strings.Lines(string(out)) {
-			if strings.HasPrefix(strings.TrimSpace(l), "Icon") {
-				d.Icon = strings.TrimPrefix(strings.TrimSpace(l), "Icon: ")
+		if strings.Contains(v, "Device") {
+			fields := strings.SplitN(v, " ", 3)
+			d := Device{
+				Name: strings.TrimSpace(fields[2]),
+				Mac:  fields[1],
 			}
 
-			if strings.HasPrefix(strings.TrimSpace(l), "Paired") {
-				if strings.Contains(l, "yes") {
-					d.Paired = true
+			cmd := exec.Command("bluetoothctl", "info", d.Mac)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				slog.Error(Name, "get info", err)
+			}
+
+			for l := range strings.Lines(string(out)) {
+				if strings.HasPrefix(strings.TrimSpace(l), "Icon") {
+					d.Icon = strings.TrimPrefix(strings.TrimSpace(l), "Icon: ")
+				}
+
+				if strings.HasPrefix(strings.TrimSpace(l), "Paired") {
+					if strings.Contains(l, "yes") {
+						d.Paired = true
+					}
+				}
+
+				if strings.HasPrefix(strings.TrimSpace(l), "Connected") {
+					if strings.Contains(l, "yes") {
+						d.Connected = true
+					}
+				}
+
+				if strings.HasPrefix(strings.TrimSpace(l), "Trusted") {
+					if strings.Contains(l, "yes") {
+						d.Trusted = true
+					}
 				}
 			}
 
-			if strings.HasPrefix(strings.TrimSpace(l), "Connected") {
-				if strings.Contains(l, "yes") {
-					d.Connected = true
-				}
+			if d.Paired {
+				devices = append(devices, d)
 			}
-
-			if strings.HasPrefix(strings.TrimSpace(l), "Trusted") {
-				if strings.Contains(l, "yes") {
-					d.Trusted = true
-				}
-			}
-		}
-
-		if d.Paired {
-			devices = append(devices, d)
 		}
 	}
 }

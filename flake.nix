@@ -199,6 +199,7 @@
                         wl-clipboard
                         libqalculate
                         imagemagick
+                        bluez
                       ]
                     )
                   }
