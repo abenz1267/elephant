@@ -153,6 +153,11 @@ WantedBy=graphical-session.target
 				Name:    "generatedoc",
 				Aliases: []string{"d"},
 				Usage:   "generates a markdown documentation",
+				Arguments: []cli.Argument{
+					&cli.StringArg{
+						Name: "provider",
+					},
+				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					common.LoadGlobalConfig()
 
@@ -161,7 +166,7 @@ WantedBy=graphical-session.target
 
 					providers.Load(false)
 
-					util.GenerateDoc()
+					util.GenerateDoc(cmd.StringArg("provider"))
 					return nil
 				},
 			},
