@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"html"
 	"log/slog"
 	"net"
 	"net/http"
@@ -74,7 +73,7 @@ type AURPackage struct {
 }
 
 func formatSingle(label, value string) string {
-	return fmt.Sprintf("%-15s : %s\n\n", label, html.EscapeString(value))
+	return fmt.Sprintf("%-15s : %s\n\n", label, value)
 }
 
 func writeField(b *strings.Builder, label, value string) {
@@ -107,8 +106,8 @@ func Setup() {
 			Icon:     "applications-internet",
 			MinScore: 20,
 		},
-		CommandInstall:       fmt.Sprintf("%s -S %%VALUE%%", helper),
-		CommandRemove:        fmt.Sprintf("%s -R %%VALUE%%", helper),
+		CommandInstall:       fmt.Sprintf("%s -S %s", helper, "%VALUE%"),
+		CommandRemove:        fmt.Sprintf("%s -R %s", helper, "%VALUE%"),
 		AutoWrapWithTerminal: true,
 	}
 
@@ -273,7 +272,7 @@ func queryPacman() {
 
 	for line := range strings.Lines(string(out)) {
 		if strings.TrimSpace(line) == "" {
-			e.FullInfo = html.EscapeString(fullInfo.String())
+			e.FullInfo = fullInfo.String()
 
 			md5 := md5.Sum(fmt.Appendf(nil, "%s:%s", e.Name, e.Description))
 			md5str := hex.EncodeToString(md5[:])
