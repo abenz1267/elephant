@@ -11,19 +11,25 @@ import (
 	"github.com/abenz1267/elephant/v2/pkg/common"
 )
 
-func GenerateDoc() {
-	fmt.Println("# Elephant")
+func GenerateDoc(provider string) {
+	provider = strings.ToLower(provider)
+	
+	if provider == "" || provider == "elephant" {
+		fmt.Println("# Elephant")
 
-	fmt.Println("A service providing various datasources which can be triggered to perform actions.")
-	fmt.Println()
-	fmt.Println("Run `elephant -h` to get an overview of the available commandline flags and actions.")
+		fmt.Println("A service providing various datasources which can be triggered to perform actions.")
+		fmt.Println()
+		fmt.Println("Run `elephant -h` to get an overview of the available commandline flags and actions.")
 
-	fmt.Println("## Elephant Configuration")
+		fmt.Println("## Elephant Configuration")
 
-	PrintConfig(common.ElephantConfig{}, "elephant")
+		PrintConfig(common.ElephantConfig{}, "elephant")
+	}
 
-	fmt.Println("## Provider Configuration")
-
+	if provider == "" {
+		fmt.Println("## Provider Configuration")
+	}
+	
 	p := []providers.Provider{}
 
 	for _, v := range providers.Providers {
@@ -35,7 +41,9 @@ func GenerateDoc() {
 	})
 
 	for _, v := range p {
-		v.PrintDoc()
+		if provider == "" || provider == strings.ToLower(*v.Name) || provider == strings.ToLower(*v.NamePretty) {
+			v.PrintDoc()	
+		}
 	}
 }
 
