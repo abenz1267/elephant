@@ -59,11 +59,13 @@ func Activate(single bool, identifier, action string, query string, args string,
 			toRun = files[parts[0]].Exec
 		}
 
-		if files[parts[0]].StartupWMClass != "" && config.WindowIntegration && wlr.IsSetup && action != ActionNewInstance {
+		if config.WindowIntegration && wlr.IsSetup && action != ActionNewInstance {
 			if !isAction || !config.WindowIntegrationIgnoreActions {
 				w := wlr.Windows()
 				for k, v := range w {
-					if v.AppID == files[parts[0]].StartupWMClass {
+					f := files[parts[0]]
+
+					if v.AppID == f.StartupWMClass || v.AppID == f.Icon || v.AppID == strings.Fields(f.Exec)[0] {
 						if err := wlr.Activate(k); err == nil {
 							return
 						} else {
