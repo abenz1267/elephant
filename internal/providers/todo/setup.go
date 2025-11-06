@@ -106,6 +106,7 @@ type Item struct {
 	Scheduled time.Time
 	Started   time.Time
 	Finished  time.Time
+	Created   time.Time
 	Category  string
 	State     string
 	Urgency   string
@@ -114,10 +115,11 @@ type Item struct {
 
 func (i Item) toCSVRow() string {
 	sched := i.Scheduled.Format(time.RFC1123Z)
-	star := i.Scheduled.Format(time.RFC1123Z)
-	fin := i.Scheduled.Format(time.RFC1123Z)
+	star := i.Started.Format(time.RFC1123Z)
+	fin := i.Finished.Format(time.RFC1123Z)
+	created := i.Created.Format(time.RFC1123Z)
 
-	return fmt.Sprintf("%s;%s;%s;%s;%t;%s;%s;%s", i.Category, i.Text, i.State, i.Urgency, i.Notified, sched, star, fin)
+	return fmt.Sprintf("%s;%s;%s;%s;%t;%s;%s;%s;%s", i.Category, i.Text, i.State, i.Urgency, i.Notified, sched, star, fin, created)
 }
 
 func saveItems() {
@@ -141,7 +143,7 @@ func saveItems() {
 	}
 	defer file.Close()
 
-	c := []string{"category;text;state;urgency;notified;scheduled;start;finish"}
+	c := []string{"category;text;state;urgency;notified;scheduled;start;finish;created"}
 
 	for _, v := range items {
 		c = append(c, v.toCSVRow())
@@ -398,6 +400,7 @@ func store(query string) {
 	i := Item{}
 	i.fromQuery(query)
 	i.State = StatePending
+	i.Created = time.Now()
 
 	items = append(items, i)
 
@@ -491,6 +494,15 @@ func loadItems() {
 					i.Finished = t
 				}
 
+				if len(d) == 9 {
+					t, _ = time.Parse(time.RFC1123Z, d[8])
+					if err != nil {
+						slog.Error(Name, "timeparse", err, "field", "created")
+					} else {
+						i.Created = t
+					}
+				}
+
 				items = append(items, i)
 			}
 		}
@@ -530,6 +542,40 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 	}
 
 	if !creating {
+		slices.SortFunc(items, func(a, b Item) int {
+			if date != nil {
+				if isSameDay(date, &a.Scheduled) && !isSameDay(date, &b.Scheduled) {
+					return -1
+				}
+
+				if isSameDay(date, &b.Scheduled) && !isSameDay(date, &a.Scheduled) {
+					return 1
+				}
+			}
+
+			if !a.Scheduled.IsZero() && b.Scheduled.IsZero() {
+				return -1
+			}
+
+			if a.Scheduled.IsZero() && !b.Scheduled.IsZero() {
+				return 1
+			}
+
+			if !a.Created.IsZero() && b.Created.IsZero() {
+				return -1
+			}
+
+			if a.Created.IsZero() && !b.Created.IsZero() {
+				return 1
+			}
+
+			if !a.Created.IsZero() && !b.Created.IsZero() {
+				return a.Created.Compare(b.Created)
+			}
+
+			return 0
+		})
+
 		for i, v := range items {
 			if category.Name != "" && v.Category != category.Name {
 				continue
