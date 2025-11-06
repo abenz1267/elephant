@@ -322,7 +322,7 @@ func getClipboardImage() ([]byte, error) {
 	cmd := exec.Command("wl-paste", "-t", "image", "-n")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		slog.Debug(Name, "updateimg", string(out))
+		slog.Debug(Name, "get clipboard img", string(out))
 	}
 
 	return out, err
@@ -332,7 +332,7 @@ func getClipboardText() (string, error) {
 	cmd := exec.Command("wl-paste", "-t", "text", "-n")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		slog.Debug(Name, "updateimg", string(out))
+		slog.Debug(Name, "get clipboard text", string(out))
 	}
 
 	return string(out), err
