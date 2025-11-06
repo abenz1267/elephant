@@ -183,7 +183,12 @@ func (i *Item) fromQuery(query string) {
 	for k := range splits {
 		date, err := parser.ParseDate(strings.Join(splits[:k], " "), time.Now())
 		if date != nil && err == nil {
-			i.Scheduled = *date
+			if date.Minute() == time.Now().Minute() {
+				i.Scheduled = endOfDay(*date)
+			} else {
+				i.Scheduled = *date
+			}
+
 			i.Text = strings.Join(splits[k:], " ")
 			break
 		}
@@ -743,4 +748,9 @@ func isSameDay(t1, t2 *time.Time) bool {
 	y1, m1, d1 := t1.Date()
 	y2, m2, d2 := t2.Date()
 	return y1 == y2 && m1 == m2 && d1 == d2
+}
+
+func endOfDay(t time.Time) time.Time {
+	year, month, day := t.Date()
+	return time.Date(year, month, day, 23, 59, 59, 999999999, t.Location())
 }
