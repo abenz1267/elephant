@@ -30,7 +30,7 @@ type Data struct {
 	Keywords       []string
 }
 
-func parseFile(path, l, ll string) *DesktopFile {
+func parseFile(path, l, ll string) (*DesktopFile, error) {
 	slog.Debug(Name, "parse", path)
 
 	data, err := os.ReadFile(path)
@@ -88,7 +88,15 @@ func parseFile(path, l, ll string) *DesktopFile {
 		}
 	}
 
-	return f
+	shouldShow := (len(f.NotShowIn) == 0 || !slices.Contains(f.NotShowIn, desktop)) &&
+		(len(f.OnlyShowIn) == 0 || slices.Contains(f.OnlyShowIn, desktop)) &&
+		!f.Hidden && !f.NoDisplay
+
+	if shouldShow && f.Name == "" {
+		return f, fmt.Errorf("invalid desktop file: %s", path)
+	}
+
+	return f, nil
 }
 
 func parseData(in []byte, l, ll string) Data {

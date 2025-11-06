@@ -14,9 +14,10 @@ import (
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
+var desktop = os.Getenv("XDG_CURRENT_DESKTOP")
+
 func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
-	desktop := os.Getenv("XDG_CURRENT_DESKTOP")
 	entries := make([]*pb.QueryResponse_Item, 0, len(files)*2) // Estimate for entries + action
 
 	alias := ""

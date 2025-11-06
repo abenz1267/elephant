@@ -284,7 +284,11 @@ func addNewEntry(path string) {
 	}
 
 	filesMu.Lock()
-	files[filepath.Base(path)] = parseFile(path, langLocale, regionLocale)
+	if f, err := parseFile(path, langLocale, regionLocale); err == nil {
+		files[filepath.Base(path)] = f
+	} else {
+		slog.Error(Name, "parsing", err)
+	}
 	filesMu.Unlock()
 }
 
