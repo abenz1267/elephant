@@ -13,9 +13,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/abenz1267/elephant/v2/internal/util/windows"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/common/history"
+	"github.com/abenz1267/elephant/v2/pkg/common/wlr"
 )
 
 const (
@@ -59,20 +59,15 @@ func Activate(single bool, identifier, action string, query string, args string,
 			toRun = files[parts[0]].Exec
 		}
 
-		if files[parts[0]].StartupWMClass != "" && config.WindowIntegration && windows.IsSetup && action != ActionNewInstance {
+		if files[parts[0]].StartupWMClass != "" && config.WindowIntegration && wlr.IsSetup && action != ActionNewInstance {
 			if !isAction || !config.WindowIntegrationIgnoreActions {
-				w, err := windows.GetWindowList()
-				if err != nil {
-					slog.Error(Name, "windows", err)
-				} else {
-					for _, v := range w {
-						if v.AppID == files[parts[0]].StartupWMClass {
-							err := windows.FocusWindow(v.ID)
-							if err != nil {
-								slog.Error(Name, "windows", err)
-							} else {
-								return
-							}
+				w := wlr.Windows()
+				for k, v := range w {
+					if v.AppID == files[parts[0]].StartupWMClass {
+						if err := wlr.Activate(k); err == nil {
+							return
+						} else {
+							slog.Error(Name, "focus window", err)
 						}
 					}
 				}

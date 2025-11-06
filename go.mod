@@ -44,6 +44,7 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/src-d/gcfg v1.4.0 // indirect
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
+	github.com/yalue/native_endian v1.0.2 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.2 // indirect
@@ -60,6 +61,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.0
 	github.com/knadh/koanf/providers/structs v1.0.0
 	github.com/knadh/koanf/v2 v2.2.2
+	github.com/neurlang/wayland v0.2.2
 	github.com/sho0pi/naturaltime v0.0.2
 	github.com/urfave/cli/v3 v3.4.1
 	github.com/yuin/gopher-lua v1.1.1

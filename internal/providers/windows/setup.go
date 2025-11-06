@@ -16,11 +16,12 @@ import (
 	_ "embed"
 
 	"github.com/abenz1267/elephant/v2/internal/util"
-	"github.com/abenz1267/elephant/v2/internal/util/windows"
 	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common/wlr"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 	"github.com/adrg/xdg"
 	"github.com/charlievieth/fastwalk"
+	"github.com/neurlang/wayland/wl"
 )
 
 var (
@@ -46,8 +47,8 @@ var config *Config
 func Setup() {
 	start := time.Now()
 
-	if !windows.IsSetup {
-		windows.Init()
+	if !wlr.IsSetup {
+		go wlr.Init()
 	}
 
 	config = &Config{
@@ -84,10 +85,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 
 	i, _ := strconv.Atoi(identifier)
 
-	err := windows.FocusWindow(i)
-	if err != nil {
-		slog.Error(Name, "activate", err)
-	}
+	wlr.Activate(wl.ProxyId(i))
 }
 
 func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
@@ -95,15 +93,11 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 
 	entries := []*pb.QueryResponse_Item{}
 
-	windows, err := windows.GetWindowList()
-	if err != nil {
-		slog.Error(Name, "query", err)
-		return entries
-	}
+	windows := wlr.Windows()
 
-	for _, window := range windows {
+	for k, window := range windows {
 		e := &pb.QueryResponse_Item{
-			Identifier: fmt.Sprintf("%d", window.ID),
+			Identifier: fmt.Sprintf("%d", k),
 			Text:       window.Title,
 			Subtext:    window.AppID,
 			Actions:    []string{ActionFocus},
@@ -118,7 +112,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 		mu.RUnlock()
 
 		if query != "" {
-			matched, score, pos, start, ok := calcScore(query, &window, exact)
+			matched, score, pos, start, ok := calcScore(query, window, exact)
 
 			if ok {
 				field := "text"
@@ -154,7 +148,7 @@ func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
 }
 
-func calcScore(q string, d *windows.Window, exact bool) (string, int32, []int32, int32, bool) {
+func calcScore(q string, d *wlr.Window, exact bool) (string, int32, []int32, int32, bool) {
 	var scoreRes int32
 	var posRes []int32
 	var startRes int32

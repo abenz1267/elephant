@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/abenz1267/elephant/v2/internal/util/windows"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/common/history"
+	"github.com/abenz1267/elephant/v2/pkg/common/wlr"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
@@ -112,8 +112,8 @@ func Setup() {
 	loadFiles()
 
 	if config.WindowIntegration {
-		if !windows.IsSetup {
-			windows.Init()
+		if !wlr.IsSetup {
+			go wlr.Init()
 		}
 	}
 
