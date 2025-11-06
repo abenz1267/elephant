@@ -209,6 +209,7 @@ func walkFunction(path string, d fs.DirEntry, err error) error {
 
 	class := ""
 	icon := ""
+	exec := ""
 
 	for l := range strings.Lines(string(b)) {
 		if after, ok := strings.CutPrefix(l, "StartupWMClass="); ok {
@@ -218,24 +219,24 @@ func walkFunction(path string, d fs.DirEntry, err error) error {
 		if after, ok := strings.CutPrefix(l, "Icon="); ok {
 			icon = strings.TrimSpace(after)
 		}
+
+		if after, ok := strings.CutPrefix(l, "Exec="); ok {
+			exec = strings.TrimSpace(after)
+		}
 	}
 
 	if class != "" && icon != "" {
+		mu.Lock()
 		icons[class] = icon
+		icons[icon] = icon
+		mu.Unlock()
 	}
 
-	//
-	// if exists {
-	// 	return nil
-	// }
-	//
-	// if !d.IsDir() && filepath.Ext(path) == ".desktop" {
-	// 	addNewEntry(path)
-	// }
-	//
-	// if d.IsDir() {
-	// 	addDirToWatcher(path, watchedDirs)
-	// }
+	if exec != "" && icon != "" {
+		mu.Lock()
+		icons[strings.Fields(exec)[0]] = icon
+		mu.Unlock()
+	}
 
 	return err
 }
