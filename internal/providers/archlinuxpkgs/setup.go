@@ -189,6 +189,10 @@ func Icon() string {
 	return config.Icon
 }
 
+func HideFromProviderlist() bool {
+	return config.HideFromProviderlist
+}
+
 func State(provider string) *pb.ProviderStateResponse {
 	if installedOnly {
 		return &pb.ProviderStateResponse{

@@ -59,7 +59,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 	entries := []*pb.QueryResponse_Item{}
 
 	for _, v := range providers.Providers {
-		if *v.Name == Name {
+		if *v.Name == Name || v.HideFromProviderlist() {
 			continue
 		}
 
@@ -150,6 +150,10 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 func Icon() string {
 	return ""
+}
+
+func HideFromProviderlist() bool {
+	return config.HideFromProviderlist
 }
 
 func State(provider string) *pb.ProviderStateResponse {

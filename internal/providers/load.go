@@ -23,15 +23,16 @@ type ProviderStateResponse struct {
 }
 
 type Provider struct {
-	Name       *string
-	Available  func() bool
-	PrintDoc   func()
-	NamePretty *string
-	State      func(string) *pb.ProviderStateResponse
-	Setup      func()
-	Icon       func() string
-	Activate   func(single bool, identifier, action, query, args string, format uint8, conn net.Conn)
-	Query      func(conn net.Conn, query string, single bool, exact bool, format uint8) []*pb.QueryResponse_Item
+	Name                 *string
+	Available            func() bool
+	PrintDoc             func()
+	NamePretty           *string
+	State                func(string) *pb.ProviderStateResponse
+	Setup                func()
+	HideFromProviderlist func() bool
+	Icon                 func() string
+	Activate             func(single bool, identifier, action, query, args string, format uint8, conn net.Conn)
+	Query                func(conn net.Conn, query string, single bool, exact bool, format uint8) []*pb.QueryResponse_Item
 }
 
 var (
@@ -105,6 +106,11 @@ func Load(setup bool) {
 					slog.Error("providers", "load", err, "provider", path)
 				}
 
+				hideFromProviderlistFunc, err := p.Lookup("HideFromProviderlist")
+				if err != nil {
+					slog.Error("providers", "load", err, "provider", path)
+				}
+
 				availableFunc, err := p.Lookup("Available")
 				if err != nil {
 					slog.Error("providers", "load", err, "provider", path)
@@ -136,15 +142,16 @@ func Load(setup bool) {
 				}
 
 				provider := Provider{
-					Icon:       iconFunc.(func() string),
-					Setup:      setupFunc.(func()),
-					Name:       name.(*string),
-					Activate:   activateFunc.(func(bool, string, string, string, string, uint8, net.Conn)),
-					Query:      queryFunc.(func(net.Conn, string, bool, bool, uint8) []*pb.QueryResponse_Item),
-					NamePretty: namePretty.(*string),
-					PrintDoc:   printDocFunc.(func()),
-					Available:  availableFunc.(func() bool),
-					State:      stateFunc.(func(string) *pb.ProviderStateResponse),
+					Icon:                 iconFunc.(func() string),
+					Setup:                setupFunc.(func()),
+					Name:                 name.(*string),
+					Activate:             activateFunc.(func(bool, string, string, string, string, uint8, net.Conn)),
+					Query:                queryFunc.(func(net.Conn, string, bool, bool, uint8) []*pb.QueryResponse_Item),
+					NamePretty:           namePretty.(*string),
+					HideFromProviderlist: hideFromProviderlistFunc.(func() bool),
+					PrintDoc:             printDocFunc.(func()),
+					Available:            availableFunc.(func() bool),
+					State:                stateFunc.(func(string) *pb.ProviderStateResponse),
 				}
 
 				available := provider.Available()

@@ -292,6 +292,10 @@ func Icon() string {
 	return ""
 }
 
+func HideFromProviderlist() bool {
+	return common.MenuConfigLoaded.HideFromProviderlist
+}
+
 func State(provider string) *pb.ProviderStateResponse {
 	menu := strings.Split(provider, ":")[1]
 
