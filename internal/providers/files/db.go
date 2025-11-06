@@ -14,8 +14,8 @@ var db *sql.DB
 
 func openDB() error {
 	path := common.CacheFile("files.db")
-
 	os.Remove(path)
+	os.Create(path)
 
 	var err error
 

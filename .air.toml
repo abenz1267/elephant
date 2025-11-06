@@ -24,6 +24,7 @@ pre_cmd = [
   "cd internal/providers/windows && go build -buildmode=plugin && cp windows.so /tmp/elephant/providers/",
   "cd internal/providers/snippets && go build -buildmode=plugin && cp snippets.so /tmp/elephant/providers/",
   "cd internal/providers/nirisessions && go build -buildmode=plugin && cp nirisessions.so /tmp/elephant/providers/",
+  "cd internal/providers/1password && go build -buildmode=plugin && cp 1password.so /tmp/elephant/providers/",
 ]
 # Binary file yields from `cmd`.
 bin = "/tmp/elephant-air"
