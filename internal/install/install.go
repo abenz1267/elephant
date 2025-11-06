@@ -103,13 +103,22 @@ func List() {
 		return
 	}
 
+	dest := filepath.Join(xdg.DataHome, "elephant", "install")
+
 	filepath.WalkDir(repo, func(path string, d fs.DirEntry, err error) error {
 		if strings.Contains(path, ".git") || path == repo {
 			return nil
 		}
 
 		if d.IsDir() {
-			fmt.Println(filepath.Base(path))
+			menuName := filepath.Base(path)
+			installedPath := filepath.Join(dest, menuName)
+
+			if common.FileExists(installedPath) {
+				fmt.Printf("%s (installed)\n", menuName)
+			} else {
+				fmt.Println(menuName)
+			}
 			return filepath.SkipDir
 		}
 
@@ -144,6 +153,8 @@ func Install(menus []string) {
 			cmd := exec.Command("cp", "-r", path, dest)
 			if err := cmd.Run(); err != nil {
 				slog.Error("install", "copy", err)
+			} else {
+				fmt.Printf("[%s] Done! Restart Elephant to see changes\n", v)
 			}
 		} else {
 			slog.Error("install", "not found", v)
