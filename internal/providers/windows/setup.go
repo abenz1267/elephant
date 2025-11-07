@@ -135,7 +135,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 		}
 	}
 
-	slog.Info(Name, "queryresult", len(entries), "time", time.Since(start))
+	slog.Debug(Name, "query", time.Since(start))
 
 	return entries
 }

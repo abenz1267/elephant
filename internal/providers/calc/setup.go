@@ -260,7 +260,7 @@ func Query(conn net.Conn, query string, single bool, _ bool, format uint8) []*pb
 		}
 	}
 
-	slog.Info(Name, "queryresult", len(entries), "time", time.Since(start))
+	slog.Debug(Name, "query", time.Since(start))
 
 	return entries
 }

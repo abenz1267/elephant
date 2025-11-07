@@ -143,7 +143,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		return strings.Compare(a.Text, b.Text)
 	})
 
-	slog.Info(Name, "queryresult", len(entries), "time", time.Since(start))
+	slog.Debug(Name, "query", time.Since(start))
 
 	return entries
 }

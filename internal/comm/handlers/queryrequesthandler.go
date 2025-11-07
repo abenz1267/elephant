@@ -171,7 +171,7 @@ func (h *QueryRequest) Handle(format uint8, cid uint32, conn net.Conn, data []by
 	if len(entries) == 0 {
 		writeStatus(QueryNoResults, conn)
 		writeStatus(QueryDone, conn)
-		slog.Info("providers", "results", len(entries), "time", time.Since(start))
+		slog.Info("providers", "p", strings.Join(req.Providers, ","), "results", len(entries), "time", time.Since(start))
 		return
 	}
 
@@ -228,7 +228,7 @@ func (h *QueryRequest) Handle(format uint8, cid uint32, conn net.Conn, data []by
 
 	writeStatus(QueryDone, conn)
 
-	slog.Info("providers", "results", len(entries), "time", time.Since(start), "query", req.Query)
+	slog.Info("providers", "p", strings.Join(req.Providers, ","), "results", len(entries), "time", time.Since(start))
 }
 
 func sortEntries(a *pb.QueryResponse_Item, b *pb.QueryResponse_Item) int {
