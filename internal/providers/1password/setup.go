@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"os/exec"
+	"strings"
 	"time"
 
 	_ "embed"
@@ -26,9 +28,10 @@ var readme string
 
 type Config struct {
 	common.Config `koanf:",squash"`
-	Vaults        []string `koanf:"vaults" desc:"vaults to index" default:"[\"personal\"]"`
-	Notify        bool     `koanf:"notify" desc:"notify after copying" default:"true"`
-	ClearAfter    int      `koanf:"clear_after" desc:"clearboard will be cleared after X seconds. 0 to disable." default:"5"`
+	Vaults        []string          `koanf:"vaults" desc:"vaults to index" default:"[\"personal\"]"`
+	Notify        bool              `koanf:"notify" desc:"notify after copying" default:"true"`
+	ClearAfter    int               `koanf:"clear_after" desc:"clearboard will be cleared after X seconds. 0 to disable." default:"5"`
+	CategoryIcons map[string]string `koanf:"category_icons" desc:"icon mapping by category"`
 }
 
 func Setup() {
@@ -70,6 +73,7 @@ func PrintDoc() {
 const (
 	ActionCopyPassword = "copy_password"
 	ActionCopyUsername = "copy_username"
+	ActionCopy2FA      = "copy_2fa"
 )
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
@@ -77,25 +81,30 @@ func Activate(single bool, identifier, action string, query string, args string,
 	case ActionCopyPassword:
 		toRun := "wl-copy $(op item get %VALUE% --fields password --reveal)"
 
-		if config.Notify {
-			toRun = fmt.Sprintf("%s && %s", toRun, "notify-send copied")
-		}
-
 		if config.ClearAfter > 0 {
 			toRun = fmt.Sprintf("%s && sleep %d && wl-copy --clear", toRun, config.ClearAfter)
 		}
 
 		cmd := common.ReplaceResultOrStdinCmd(toRun, identifier)
+		stderr, _ := cmd.StderrPipe()
 
 		err := cmd.Start()
 		if err != nil {
 			slog.Error(Name, "copy password", err)
 			return
-		} else {
-			go func() {
-				cmd.Wait()
-			}()
 		}
+
+		go func() {
+			output, _ := io.ReadAll(stderr)
+			cmd.Wait()
+			if config.Notify {
+				if strings.Contains(string(output), "[ERROR]") {
+					exec.Command("notify-send", "No password field for this item").Run()
+				} else {
+					exec.Command("notify-send", "copied").Run()
+				}
+			}
+		}()
 	case ActionCopyUsername:
 		res := ""
 
@@ -115,6 +124,33 @@ func Activate(single bool, identifier, action string, query string, args string,
 				cmd.Wait()
 			}()
 		}
+	case ActionCopy2FA:
+		toRun := "wl-copy $(op item get %VALUE% --otp)"
+
+		if config.ClearAfter > 0 {
+			toRun = fmt.Sprintf("%s && sleep %d && wl-copy --clear", toRun, config.ClearAfter)
+		}
+
+		cmd := common.ReplaceResultOrStdinCmd(toRun, identifier)
+		stderr, _ := cmd.StderrPipe()
+
+		err := cmd.Start()
+		if err != nil {
+			slog.Error(Name, "copy 2fa", err)
+			return
+		}
+
+		go func() {
+			output, _ := io.ReadAll(stderr)
+			cmd.Wait()
+			if config.Notify {
+				if strings.Contains(string(output), "[ERROR]") {
+					exec.Command("notify-send", "No OTP field for this item").Run()
+				} else {
+					exec.Command("notify-send", "copied").Run()
+				}
+			}
+		}()
 	}
 }
 
@@ -124,13 +160,18 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 	entries := []*pb.QueryResponse_Item{}
 
 	for k, v := range cachedItems {
+		icon := config.Icon
+		if customIcon, ok := config.CategoryIcons[strings.ToLower(v.Category)]; ok {
+			icon = customIcon
+		}
+
 		e := &pb.QueryResponse_Item{
 			Identifier: v.ID,
 			Text:       v.Title,
 			Subtext:    v.AdditionalInformation,
-			Icon:       config.Icon,
+			Icon:       icon,
 			Provider:   Name,
-			Actions:    []string{ActionCopyUsername, ActionCopyPassword},
+			Actions:    []string{ActionCopyUsername, ActionCopyPassword, ActionCopy2FA},
 			Score:      int32(100_000 - k),
 		}
 
