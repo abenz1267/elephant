@@ -1,0 +1,36 @@
+name: Update Vendor Hash
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "go.mod"
+      - "go.sum"
+
+jobs:
+  update-vendor-hash:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Update vendor hash
+        run: |
+          nix run nixpkgs#nix-update -- --flake --version=skip elephant 
+          nix run nixpkgs#nix-update -- --flake --version=skip elephant-providers
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(nix): update vendor hash"
+          title: "Update vendor hash"
+          body: "Automated vendor hash update"
+          branch: update-vendor-hash
+          delete-branch: true
