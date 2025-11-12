@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	ActionOpen     = "open"
-	ActionOpenDir  = "opendir"
-	ActionCopyPath = "copypath"
-	ActionCopyFile = "copyfile"
+	ActionOpen      = "open"
+	ActionOpenDir   = "opendir"
+	ActionCopyPath  = "copypath"
+	ActionCopyFile  = "copyfile"
+	ActionLocalsend = "localsend"
 )
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
@@ -34,6 +35,21 @@ func Activate(single bool, identifier, action string, query string, args string,
 	}
 
 	switch action {
+	case ActionLocalsend:
+		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(""), "localsend", path)))
+
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Setsid: true,
+		}
+
+		err := cmd.Start()
+		if err != nil {
+			slog.Error(Name, "actionlocalsend", err)
+		} else {
+			go func() {
+				cmd.Wait()
+			}()
+		}
 	case ActionOpen, ActionOpenDir:
 		if action == ActionOpenDir {
 			path = filepath.Dir(path)
