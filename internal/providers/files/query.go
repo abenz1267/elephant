@@ -43,6 +43,10 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			Actions:     actions,
 		}
 
+		if hasLocalsend && !strings.HasSuffix(p, "/") {
+			entry.Actions = append(entry.Actions, ActionLocalsend)
+		}
+
 		if query != "" {
 			score, pos, start := common.FuzzyScore(query, v.Path, exact)
 			entry.Score = score

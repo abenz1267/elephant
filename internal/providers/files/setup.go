@@ -31,6 +31,7 @@ var (
 	config       *Config
 	watcher      *fsnotify.Watcher
 	ignoreRegexp []*regexp.Regexp
+	hasLocalsend bool
 )
 
 type IgnoredPreview struct {
@@ -55,6 +56,11 @@ func Setup() {
 	if err != nil {
 		slog.Error(Name, "setup", err)
 		return
+	}
+
+	ls, err := exec.LookPath("localsend")
+	if ls != "" && err == nil {
+		hasLocalsend = true
 	}
 
 	config = &Config{
