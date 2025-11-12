@@ -7,6 +7,7 @@ Store clipboard history.
 - saves images and text history
 - filter to show images only
 - edit saved content
+- localsend support
 
 #### Requirements
 

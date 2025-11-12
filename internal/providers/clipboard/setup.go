@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"unicode/utf8"
 
@@ -39,6 +40,7 @@ var (
 	mu               sync.Mutex
 	currentMode      = Combined
 	nextMode         = ActionImagesOnly
+	hasLocalsend     bool
 )
 
 //go:embed README.md
@@ -100,6 +102,11 @@ func Setup() {
 	imgTypes["image/jpg"] = "jpg"
 	imgTypes["image/jpeg"] = "jpeg"
 	imgTypes["image/webm"] = "webm"
+
+	ls, err := exec.LookPath("localsend")
+	if ls != "" && err == nil {
+		hasLocalsend = true
+	}
 
 	loadFromFile()
 
@@ -500,6 +507,7 @@ func PrintDoc() {
 
 const (
 	ActionPause      = "pause"
+	ActionLocalsend  = "localsend"
 	ActionUnpause    = "unpause"
 	ActionCopy       = "copy"
 	ActionEdit       = "edit"
@@ -520,6 +528,41 @@ func Activate(single bool, identifier, action string, query string, args string,
 	}
 
 	switch action {
+	case ActionLocalsend:
+		item := clipboardhistory[identifier]
+
+		var path string
+
+		if item.Img != "" {
+			path = item.Img
+		} else {
+			f, err := os.CreateTemp(os.TempDir(), "clipboard_*.txt")
+			if err != nil {
+				slog.Error(Name, "actionlocalsend", err)
+			}
+
+			_, err = f.WriteString(item.Content)
+			if err != nil {
+				slog.Error(Name, "actionlocalsend", err)
+			}
+
+			path = f.Name()
+		}
+
+		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(""), "localsend", path)))
+
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Setsid: true,
+		}
+
+		err := cmd.Start()
+		if err != nil {
+			slog.Error(Name, "actionlocalsend", err)
+		} else {
+			go func() {
+				cmd.Wait()
+			}()
+		}
 	case ActionPause:
 		paused = true
 	case ActionUnpause:
@@ -656,12 +699,18 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			}
 		}
 
+		actions := []string{ActionCopy, ActionEdit, ActionRemove}
+
+		if hasLocalsend {
+			actions = append(actions, ActionLocalsend)
+		}
+
 		e := &pb.QueryResponse_Item{
 			Identifier: k,
 			Text:       v.Content,
 			Subtext:    v.Time.Format(time.RFC1123Z),
 			Type:       pb.QueryResponse_REGULAR,
-			Actions:    []string{ActionCopy, ActionEdit, ActionRemove},
+			Actions:    actions,
 			Provider:   Name,
 		}
 
