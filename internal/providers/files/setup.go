@@ -47,6 +47,7 @@ type Config struct {
 	IgnoreWatching []string         `koanf:"ignore_watching" desc:"paths will not be watched" default:""`
 	SearchDirs     []string         `koanf:"search_dirs" desc:"directories to search for files" default:"$HOME"`
 	FdFlags        string           `koanf:"fd_flags" desc:"flags for fd" default:"--ignore-vcs --type file --type directory"`
+	WatchBuffer    int              `koanf:"watch_buffer" desc:"time in millisecnds elephant will gather changed paths before processing them" default:"2000"`
 }
 
 func Setup() {
@@ -70,6 +71,7 @@ func Setup() {
 		},
 		LaunchPrefix: "",
 		SearchDirs:   []string{},
+		WatchBuffer:  2000,
 		FdFlags:      "--ignore-vcs --type file --type directory",
 	}
 
@@ -247,14 +249,14 @@ func Available() bool {
 }
 
 func handleDelete(deleteChan chan string) {
-	timer := time.NewTimer(time.Second * 2)
+	timer := time.NewTimer(time.Millisecond * time.Duration(config.WatchBuffer))
 	do := false
 	toDelete := []string{}
 
 	for {
 		select {
 		case path := <-deleteChan:
-			timer.Reset(time.Second * 2)
+			timer.Reset(time.Millisecond * time.Duration(config.WatchBuffer))
 			toDelete = append(toDelete, path)
 			do = true
 		case <-timer.C:
@@ -274,14 +276,14 @@ func handleDelete(deleteChan chan string) {
 }
 
 func handleRegular(regularChan chan string) {
-	timer := time.NewTimer(time.Second * 2)
+	timer := time.NewTimer(time.Millisecond * time.Duration(config.WatchBuffer))
 	do := false
 	data := []string{}
 
 	for {
 		select {
 		case path := <-regularChan:
-			timer.Reset(time.Second * 2)
+			timer.Reset(time.Millisecond * time.Duration(config.WatchBuffer))
 			data = append(data, path)
 			do = true
 		case <-timer.C:
