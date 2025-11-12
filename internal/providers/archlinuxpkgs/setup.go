@@ -242,61 +242,63 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 	}
 
 	for k, v := range cachedData.Packages {
-		score, positions, s := common.FuzzyScore(query, v.Name, exact)
-
-		score2, positions2, s2 := common.FuzzyScore(query, v.Description, exact)
-
-		if score2 > score {
-			score = score2 / 2
-			positions = positions2
-			s = s2
+		if installedOnly && !v.Installed {
+			continue
 		}
 
-		if (score > config.MinScore || query == "") && (!installedOnly || (installedOnly && v.Installed)) {
-			state := []string{}
-			a := []string{}
+		state := []string{}
+		a := []string{}
 
-			if v.Installed {
-				state = append(state, "installed")
-				a = append(a, ActionRemove)
-			} else {
-				state = append(state, "available")
-				a = append(a, ActionInstall)
-			}
-
-			if v.URL != "" {
-				a = append(a, "visit_url")
-			}
-
-			subtext := fmt.Sprintf("[%s]", strings.ToLower(v.Repository))
-			if v.Installed {
-				subtext = fmt.Sprintf("[%s] [installed]", strings.ToLower(v.Repository))
-			}
-
-			entries = append(entries, &pb.QueryResponse_Item{
-				Identifier:  k,
-				Text:        v.Name,
-				Type:        pb.QueryResponse_REGULAR,
-				Subtext:     subtext,
-				Provider:    Name,
-				State:       state,
-				Actions:     a,
-				Score:       score,
-				Preview:     v.FullInfo,
-				PreviewType: util.PreviewTypeText,
-				Fuzzyinfo: &pb.QueryResponse_Item_FuzzyInfo{
-					Start:     s,
-					Field:     "text",
-					Positions: positions,
-				},
-			})
+		if v.Installed {
+			state = append(state, "installed")
+			a = append(a, ActionRemove)
+		} else {
+			state = append(state, "available")
+			a = append(a, ActionInstall)
 		}
-	}
 
-	if query == "" {
-		slices.SortFunc(entries, func(a, b *pb.QueryResponse_Item) int {
-			return strings.Compare(a.Text, b.Text)
-		})
+		if v.URL != "" {
+			a = append(a, "visit_url")
+		}
+
+		subtext := fmt.Sprintf("[%s]", strings.ToLower(v.Repository))
+		if v.Installed {
+			subtext = fmt.Sprintf("[%s] [installed]", strings.ToLower(v.Repository))
+		}
+
+		e := &pb.QueryResponse_Item{
+			Identifier:  k,
+			Text:        v.Name,
+			Type:        pb.QueryResponse_REGULAR,
+			Subtext:     subtext,
+			Provider:    Name,
+			State:       state,
+			Actions:     a,
+			Preview:     v.FullInfo,
+			PreviewType: util.PreviewTypeText,
+		}
+
+		if query != "" {
+			score, positions, s := common.FuzzyScore(query, v.Name, exact)
+			score2, positions2, s2 := common.FuzzyScore(query, v.Description, exact)
+
+			if score2 > score {
+				score = score2 / 2
+				positions = positions2
+				s = s2
+			}
+
+			e.Score = score
+			e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
+				Start:     s,
+				Field:     "text",
+				Positions: positions,
+			}
+		}
+
+		if query == "" || e.Score > config.MinScore {
+			entries = append(entries, e)
+		}
 	}
 
 	return entries
