@@ -178,22 +178,24 @@ func (i *Item) fromQuery(query string) {
 		i.Urgency = UrgencyCritical
 	}
 
-	splits := strings.Fields(query)
+	splits := strings.SplitN(query, ":", 2)
 
-	for k := range splits {
-		date, err := parser.ParseDate(strings.Join(splits[:k], " "), time.Now())
+	if len(splits) == 2 {
+		date, err := parser.ParseDate(splits[0], time.Now())
+
 		if date != nil && err == nil {
-			if date.Minute() == time.Now().Minute() {
+			now := time.Now()
+
+			if date.Minute() == now.Minute() && date.Day() == now.Day() {
 				i.Scheduled = endOfDay(*date)
 			} else {
 				i.Scheduled = *date
 			}
-
-			i.Text = strings.Join(splits[k:], " ")
-			break
 		}
 
-		i.Text = strings.Join(splits, " ")
+		i.Text = splits[1]
+	} else {
+		i.Text = splits[0]
 	}
 
 	i.Text = strings.TrimSpace(i.Text)
