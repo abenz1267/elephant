@@ -16,6 +16,7 @@ import (
 	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/abenz1267/elephant/v2/pkg/common/history"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 	"github.com/go-git/go-git/v6"
 )
@@ -28,6 +29,7 @@ var (
 	availableBrowsers = make(map[string]string)
 	availableCats     = make(map[string]struct{})
 	isGit             bool
+	h                 = history.Load(Name)
 	creating          bool
 )
 
@@ -40,6 +42,8 @@ type Config struct {
 	Categories         []Category `koanf:"categories" desc:"categories" default:""`
 	Browsers           []Browser  `koanf:"browsers" desc:"browsers for opening bookmarks" default:""`
 	SetBrowserOnImport bool       `koanf:"set_browser_on_import" desc:"set browser name on imported bookmarks" default:"false"`
+	History            bool       `koanf:"history" desc:"make use of history for sorting" default:"true"`
+	HistoryWhenEmpty   bool       `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
 	w                  *git.Worktree
 	r                  *git.Repository
 }
@@ -312,6 +316,9 @@ func Activate(single bool, identifier, action string, query string, args string,
 	i, _ := strconv.Atoi(identifier)
 
 	switch action {
+	case history.ActionDelete:
+		h.Remove(identifier)
+		return
 	case ActionImport:
 		if action == ActionImport {
 			importBrowserBookmarks()
@@ -407,6 +414,11 @@ func Activate(single bool, identifier, action string, query string, args string,
 				cmd.Wait()
 			}()
 		}
+
+		if config.History {
+			h.Save(query, identifier)
+		}
+
 		return
 	default:
 		slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
@@ -653,6 +665,16 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 			if query != "" {
 				_, e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start, _ = calcScore(query, b, exact)
+			}
+
+			if config.History && e.Score > config.MinScore || query == "" && config.HistoryWhenEmpty {
+				usageScore := h.CalcUsageScore(query, e.Identifier)
+
+				if usageScore != 0 {
+					e.Score = e.Score + usageScore
+					e.State = append(e.State, "history")
+					e.Actions = append(e.Actions, history.ActionDelete)
+				}
 			}
 
 			if e.Score > highestScore {
