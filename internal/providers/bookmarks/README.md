@@ -71,5 +71,5 @@ command = "chromium"
 
 [[browsers]]
 name = "Chromium App"
-command = "chromium --app %VALUE%"
+command = "chromium --app=%VALUE%"
 ```
