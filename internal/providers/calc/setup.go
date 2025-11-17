@@ -47,6 +47,7 @@ type Config struct {
 	MinChars      int    `koanf:"min_chars" desc:"don't perform if query is shorter than min_chars" default:"3"`
 	Command       string `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"wl-copy -n %VALUE%"`
 	Async         bool   `koanf:"async" desc:"calculation will be send async" default:"true"`
+	Autosave      bool   `koanf:"autosave" desc:"automatically save results" default:"false"`
 }
 
 type HistoryItem struct {
@@ -68,6 +69,7 @@ func Setup() {
 		MinChars:      3,
 		Command:       "wl-copy -n %VALUE%",
 		Async:         false,
+		Autosave:      false,
 	}
 
 	common.LoadConfig(Name, config)
@@ -205,6 +207,11 @@ func Query(conn net.Conn, query string, single bool, _ bool, format uint8) []*pb
 	if query != "" && len(query) >= config.MinChars && hasNumber {
 		md5 := md5.Sum([]byte(query))
 		md5str := hex.EncodeToString(md5[:])
+		actions := []string{ActionCopy}
+
+		if !config.Autosave {
+			actions = append(actions, ActionSave)
+		}
 
 		e := &pb.QueryResponse_Item{
 			Identifier: md5str,
@@ -215,7 +222,7 @@ func Query(conn net.Conn, query string, single bool, _ bool, format uint8) []*pb
 			Score:      int32(config.MaxItems) + 1,
 			Type:       pb.QueryResponse_REGULAR,
 			State:      []string{"current"},
-			Actions:    []string{ActionSave, ActionCopy},
+			Actions:    actions,
 		}
 
 		if config.Async {
@@ -231,6 +238,10 @@ func Query(conn net.Conn, query string, single bool, _ bool, format uint8) []*pb
 				}
 
 				handlers.UpdateItem(format, query, conn, e)
+
+				if config.Autosave {
+					saveToHistory(query, e.Text)
+				}
 			}()
 
 			entries = append(entries, e)
@@ -241,6 +252,10 @@ func Query(conn net.Conn, query string, single bool, _ bool, format uint8) []*pb
 			if err == nil {
 				e.Text = strings.TrimSpace(string(out))
 				entries = append(entries, e)
+
+				if config.Autosave {
+					saveToHistory(query, e.Text)
+				}
 			}
 		}
 
