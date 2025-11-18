@@ -48,7 +48,7 @@ func Setup() {
 			Icon:     "insert-text",
 			MinScore: 50,
 		},
-		Command: "wtype %CONTENT%",
+		Command: "wtype '%CONTENT%'",
 		Delay:   100,
 	}
 

@@ -46,7 +46,7 @@ type Config struct {
 	IgnorePreviews []IgnoredPreview `koanf:"ignore_previews" desc:"paths will not have a preview" default:""`
 	IgnoreWatching []string         `koanf:"ignore_watching" desc:"paths will not be watched" default:""`
 	SearchDirs     []string         `koanf:"search_dirs" desc:"directories to search for files" default:"$HOME"`
-	FdFlags        string           `koanf:"fd_flags" desc:"flags for fd" default:"--ignore-vcs --type file --type directory"`
+	FdFlags        []string         `koanf:"fd_flags" desc:"flags for fd" default:"['--ignore-vcs', '--type,' ,'file', '--type,' 'directory']"`
 	WatchBuffer    int              `koanf:"watch_buffer" desc:"time in millisecnds elephant will gather changed paths before processing them" default:"2000"`
 }
 
@@ -72,7 +72,7 @@ func Setup() {
 		LaunchPrefix: "",
 		SearchDirs:   []string{},
 		WatchBuffer:  2000,
-		FdFlags:      "--ignore-vcs --type file --type directory",
+		FdFlags:      []string{"--ignore-vcs", "--type", "file", "--type", "directory"},
 	}
 
 	common.LoadConfig(Name, config)
@@ -99,7 +99,7 @@ func Setup() {
 
 	cmd := exec.Command("fd", ".")
 	cmd.Args = append(cmd.Args, searchDirs...)
-	cmd.Args = append(cmd.Args, strings.Fields(config.FdFlags)...)
+	cmd.Args = append(cmd.Args, config.FdFlags...)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
