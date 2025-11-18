@@ -112,7 +112,7 @@ go install elephant.go
 mkdir -p ~/.config/elephant/providers
 
 # Build and install a provider (example: desktop applications)
-cd internal/providers/desktopapplications
+cd ../../internal/providers/desktopapplications
 go build -buildmode=plugin
 cp desktopapplications.so ~/.config/elephant/providers/
 ```
