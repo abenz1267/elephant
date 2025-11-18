@@ -125,7 +125,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 				}
 				pinsMu.RUnlock()
 
-				if config.WindowIntegration && config.ScoreOpenWindows {
+				if query != "" && config.WindowIntegration && config.ScoreOpenWindows {
 					if _, ok := appHasWindow(v); ok {
 						score = int32(score / 2)
 					}
