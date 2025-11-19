@@ -91,12 +91,8 @@ func Activate(single bool, identifier, action string, query string, args string,
 		err := cmd.Start()
 		if err != nil {
 			slog.Error(Name, "copy password", err)
-			return
-		}
-
-		go func() {
 			output, _ := io.ReadAll(stderr)
-			cmd.Wait()
+
 			if config.Notify {
 				if strings.Contains(string(output), "[ERROR]") {
 					exec.Command("notify-send", "No password field for this item").Run()
@@ -109,7 +105,20 @@ func Activate(single bool, identifier, action string, query string, args string,
 					}
 				}
 			}
-		}()
+		} else {
+			if config.Notify {
+				exec.Command("notify-send", "copied").Run()
+
+				if config.ClearAfter > 0 {
+					time.Sleep(time.Duration(config.ClearAfter))
+					exec.Command("wl-copy", "--clear")
+				}
+			}
+
+			go func() {
+				cmd.Wait()
+			}()
+		}
 	case ActionCopyUsername:
 		res := ""
 
