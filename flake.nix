@@ -45,7 +45,7 @@
 
           src = ./.;
 
-          vendorHash = "sha256-M8RnB7Tsk+E2Nan8GvvkEqJeZ9EPKosNKhXZn6GXs+Q=";
+          vendorHash = "sha256-VELqsTwwYAo+Izk8DN4+SaUPaLAu4h3vadSgx4+L7rY=";
 
           buildInputs = with pkgs; [
             protobuf
@@ -82,7 +82,7 @@
 
           src = ./.;
 
-          vendorHash = "sha256-M8RnB7Tsk+E2Nan8GvvkEqJeZ9EPKosNKhXZn6GXs+Q=";
+          vendorHash = "sha256-VELqsTwwYAo+Izk8DN4+SaUPaLAu4h3vadSgx4+L7rY=";
 
           buildInputs = with pkgs; [
             wayland
