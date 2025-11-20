@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"al.essio.dev/pkg/shellescape"
 	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
@@ -168,6 +169,9 @@ func (b *Bookmark) fromQuery(query string) {
 	} else {
 		b.Description = b.URL
 	}
+
+	// b.URL = strings.ReplaceAll(b.URL, "'", "%27")
+
 	b.CreatedAt = time.Now()
 }
 
@@ -388,7 +392,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 	case ActionDelete:
 		bookmarks = append(bookmarks[:i], bookmarks[i+1:]...)
 	case ActionOpen, "":
-		command := "xdg-open '%VALUE%'"
+		command := "xdg-open %VALUE%"
 
 		if bookmarks[i].Browser != "" {
 			for _, browser := range config.Browsers {
@@ -400,9 +404,9 @@ func Activate(single bool, identifier, action string, query string, args string,
 		}
 
 		if strings.Contains(command, "%VALUE%") {
-			command = strings.ReplaceAll(command, "%VALUE%", bookmarks[i].URL)
+			command = strings.ReplaceAll(command, "%VALUE%", shellescape.Quote(bookmarks[i].URL))
 		} else {
-			command = fmt.Sprintf("%s '%s'", command, bookmarks[i].URL)
+			command = fmt.Sprintf("%s %s", command, shellescape.Quote(bookmarks[i].URL))
 		}
 
 		cmd := exec.Command("sh", "-c", command)
