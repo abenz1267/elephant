@@ -178,7 +178,7 @@ func (i *Item) fromQuery(query string) {
 		i.Urgency = UrgencyCritical
 	}
 
-	splits := strings.SplitN(query, ":", 2)
+	splits := strings.SplitN(query, ">", 2)
 
 	if len(splits) == 2 {
 		date, err := parser.ParseDate(splits[0], time.Now())
