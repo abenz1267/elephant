@@ -11,6 +11,7 @@ import (
 
 	_ "embed"
 
+	"al.essio.dev/pkg/shellescape"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
@@ -48,7 +49,7 @@ func Setup() {
 			Icon:     "insert-text",
 			MinScore: 50,
 		},
-		Command: "wtype '%CONTENT%'",
+		Command: "wtype %CONTENT%",
 		Delay:   100,
 	}
 
@@ -75,7 +76,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 	i, _ := strconv.Atoi(identifier)
 	s := config.Snippets[i]
 
-	toRun := strings.ReplaceAll(config.Command, "%CONTENT%", s.Content)
+	toRun := strings.ReplaceAll(config.Command, "%CONTENT%", shellescape.Quote(s.Content))
 	cmd := exec.Command("sh", "-c", toRun)
 
 	err := cmd.Start()

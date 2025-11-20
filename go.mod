@@ -3,6 +3,7 @@ module github.com/abenz1267/elephant/v2
 go 1.25.0
 
 require (
+	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/abenz1267/elephant v1.3.3
 	github.com/adrg/xdg v0.5.3
 	github.com/djherbis/times v1.6.0
