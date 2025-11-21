@@ -31,6 +31,9 @@ func main() {
 		Name:                   "Elephant",
 		Usage:                  "Data provider and executor",
 		UseShortOptionHandling: true,
+		CommandNotFound: func(ctx context.Context, cmd *cli.Command, s string) {
+			fmt.Println(s)
+		},
 		Commands: []*cli.Command{
 			{
 				Name:  "service",
@@ -292,6 +295,13 @@ WantedBy=graphical-session.target
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			if cmd.Args().Len() > 0 {
+				fmt.Printf("'%s' is not a valid command.\n\n", cmd.Args().First())
+				cli.ShowAppHelp(cmd)
+
+				return nil
+			}
+
 			start := time.Now()
 
 			common.LoadGlobalConfig()
