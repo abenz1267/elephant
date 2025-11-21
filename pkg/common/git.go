@@ -99,6 +99,10 @@ func SetupGit(provider string, cfg Gittable) {
 				r: r,
 			}
 
+			cfg.SetLocation(folder)
+			cfg.SetRepository(r)
+			cfg.SetWorktree(w)
+
 			break
 		}
 	} else {
