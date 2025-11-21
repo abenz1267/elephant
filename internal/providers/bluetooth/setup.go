@@ -226,7 +226,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 					a = append(a, ActionDisconnect)
 				} else {
 					s = append(s, "disconnected")
-					a = append(s, ActionConnect)
+					a = append(s, ActionRemove, ActionConnect)
 				}
 			}
 		} else {
