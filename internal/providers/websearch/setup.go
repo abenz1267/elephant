@@ -13,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 
+	"al.essio.dev/pkg/shellescape"
 	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
@@ -184,7 +185,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 }
 
 func run(query, identifier, q string) {
-	cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s '%s'", common.LaunchPrefix(""), config.Command, q)))
+	cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(""), config.Command, shellescape.Quote(q))))
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setsid: true,
