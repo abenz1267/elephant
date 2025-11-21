@@ -102,10 +102,15 @@ func SetupGit(provider string, cfg Gittable) {
 			break
 		}
 	} else {
-		cfg.SetLocation(folder)
-		cfg.SetRepository(val.r)
-		cfg.SetWorktree(val.w)
+		slog.Info(provider, "gitsetup", "repo already setup")
+
+		r = val.r
+		w = val.w
 	}
+
+	cfg.SetLocation(folder)
+	cfg.SetRepository(r)
+	cfg.SetWorktree(w)
 }
 
 type PushData struct {
