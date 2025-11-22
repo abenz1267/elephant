@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/abenz1267/elephant/v2/pkg/common"
@@ -16,7 +17,16 @@ var db *sql.DB
 func openDB() error {
 	path := common.CacheFile("files.db")
 	os.Remove(path)
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create cache dir: %v", err)
+	}
+
 	os.Create(path)
+
+	for !common.FileExists(path) {
+		time.Sleep(time.Millisecond * 10)
+	}
 
 	var err error
 
