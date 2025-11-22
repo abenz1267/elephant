@@ -33,13 +33,14 @@ var (
 var readme string
 
 type Config struct {
-	common.Config    `koanf:",squash"`
-	Engines          []Engine `koanf:"entries" desc:"entries" default:"google"`
-	History          bool     `koanf:"history" desc:"make use of history for sorting" default:"true"`
-	HistoryWhenEmpty bool     `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
-	EnginesAsActions bool     `koanf:"engines_as_actions" desc:"run engines as actions" default:"true"`
-	TextPrefix       string   `koanf:"text_prefix" desc:"prefix for the entry text" default:"Search: "`
-	Command          string   `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"xdg-open"`
+	common.Config     `koanf:",squash"`
+	Engines           []Engine `koanf:"entries" desc:"entries" default:"google"`
+	History           bool     `koanf:"history" desc:"make use of history for sorting" default:"true"`
+	HistoryWhenEmpty  bool     `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
+	EnginesAsActions  bool     `koanf:"engines_as_actions" desc:"run engines as actions" default:"true"`
+	AlwaysShowDefault bool     `koanf:"always_show_default" desc:"always show the default search engine when queried" default:"true"`
+	TextPrefix        string   `koanf:"text_prefix" desc:"prefix for the entry text" default:"Search: "`
+	Command           string   `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"xdg-open"`
 }
 
 type Engine struct {
@@ -56,11 +57,12 @@ func Setup() {
 			Icon:     "applications-internet",
 			MinScore: 20,
 		},
-		History:          true,
-		HistoryWhenEmpty: false,
-		EnginesAsActions: false,
-		TextPrefix:       "Search: ",
-		Command:          "xdg-open",
+		History:           true,
+		HistoryWhenEmpty:  false,
+		EnginesAsActions:  false,
+		TextPrefix:        "Search: ",
+		Command:           "xdg-open",
+		AlwaysShowDefault: true,
 	}
 
 	common.LoadConfig(Name, config)
@@ -80,6 +82,8 @@ func Setup() {
 	if len(config.Engines) == 1 {
 		config.Engines[0].Default = true
 	}
+
+	handlers.WebsearchAlwaysShow = config.AlwaysShowDefault
 
 	for k, v := range config.Engines {
 		if v.Default {
@@ -230,7 +234,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			Actions:    a,
 			Icon:       Icon(),
 			Provider:   Name,
-			Score:      int32(100),
+			Score:      1,
 			Type:       0,
 		}
 
@@ -300,7 +304,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 						Actions:    []string{"search"},
 						Icon:       icon,
 						Provider:   Name,
-						Score:      int32(100 - k),
+						Score:      int32(15 - k),
 						Type:       0,
 					}
 
