@@ -10,9 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/charlievieth/fastwalk"
+	"github.com/fsnotify/fsnotify"
 	"github.com/pelletier/go-toml/v2"
 
 	lua "github.com/yuin/gopher-lua"
@@ -39,6 +41,7 @@ type Menu struct {
 	AsyncActions         []string          `toml:"async_actions" desc:"set which actions should update the item on the client asynchronously"`
 	SearchName           bool              `toml:"search_name" desc:"wether to search for the menu name as well when searching globally" default:"false"`
 	Cache                bool              `toml:"cache" desc:"will cache the results of the lua script on startup"`
+	RefreshOnChange      []string          `toml:"refresh_on_change" desc:"will enable cache and auto-refresh the cache if there's file changes on the specified files/folders"`
 	Entries              []Entry           `toml:"entries" desc:"menu items"`
 	Terminal             bool              `toml:"terminal" desc:"execute action in terminal or not"`
 	Keywords             []string          `toml:"keywords" desc:"searchable keywords"`
@@ -75,6 +78,52 @@ func (m *Menu) NewLuaState() *lua.LState {
 	l.SetGlobal("jsonDecode", l.NewFunction(JSONDecode))
 
 	return l
+}
+
+func (m *Menu) watch() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		slog.Error(m.Name, "watch", err)
+	}
+
+	for _, v := range m.RefreshOnChange {
+		watcher.Add(v)
+	}
+
+	changeChan := make(chan struct{})
+
+	go func() {
+		for {
+			select {
+			case _, ok := <-watcher.Events:
+				if !ok {
+					continue
+				}
+
+				changeChan <- struct{}{}
+			case _, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+			}
+		}
+	}()
+
+	timer := time.NewTimer(time.Millisecond * 500)
+	do := false
+
+	for {
+		select {
+		case <-changeChan:
+			timer.Reset(time.Millisecond * 500)
+			do = true
+		case <-timer.C:
+			if do {
+				m.CreateLuaEntries()
+				do = false
+			}
+		}
+	}
 }
 
 var (
@@ -479,6 +528,17 @@ func createLuaMenu(path string) {
 		}
 	}
 
+	if val := state.GetGlobal("RefreshOnChange"); val != lua.LNil {
+		if table, ok := val.(*lua.LTable); ok {
+			m.RefreshOnChange = make([]string, 0)
+			table.ForEach(func(key, value lua.LValue) {
+				if str, ok := value.(lua.LString); ok {
+					m.RefreshOnChange = append(m.RefreshOnChange, string(str))
+				}
+			})
+		}
+	}
+
 	if val := state.GetGlobal("FixedOrder"); val != lua.LNil {
 		m.FixedOrder = bool(val.(lua.LBool))
 	}
@@ -503,8 +563,16 @@ func createLuaMenu(path string) {
 		m.SubMenu = string(val.(lua.LString))
 	}
 
+	if len(m.RefreshOnChange) > 0 {
+		m.Cache = true
+	}
+
 	if m.Cache {
 		m.CreateLuaEntries()
+	}
+
+	if len(m.RefreshOnChange) > 0 {
+		go m.watch()
 	}
 
 	if m.Name == "" || m.NamePretty == "" {
