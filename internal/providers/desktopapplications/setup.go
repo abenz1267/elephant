@@ -58,6 +58,7 @@ type Config struct {
 	Aliases                        map[string]string `koanf:"aliases" desc:"setup aliases for applications. Matched aliases will always be placed on top of the list. Example: 'ffp' => '<identifier>'. Check elephant log output when activating an item to get its identifier." default:""`
 	Blacklist                      []string          `koanf:"blacklist" desc:"blacklist desktop files from being parsed. Regexp." default:"<empty>"`
 	WindowIntegration              bool              `koanf:"window_integration" desc:"will enable window integration, meaning focusing an open app instead of opening a new instance" default:"false"`
+	IgnorePinWithWindow            bool              `koanf:"ignore_pin_with_window" desc:"will ignore pinned apps that have an opened window" default:"true"`
 	WindowIntegrationIgnoreActions bool              `koanf:"window_integration_ignore_actions" desc:"will ignore the window integration for actions" default:"true"`
 	WMIntegration                  bool              `koanf:"wm_integration" desc:"Moves apps to the workspace where they were launched at automatically. Currently Niri only." default:"false"`
 	ScoreOpenWindows               bool              `koanf:"score_open_windows" desc:"Apps that have open windows, get their score halved. Requires window_integration." default:"true"`
@@ -95,6 +96,7 @@ func Setup() {
 		},
 		ScoreOpenWindows:        true,
 		ActionMinScore:          20,
+		IgnorePinWithWindow:     true,
 		OnlySearchTitle:         false,
 		ShowActions:             false,
 		ShowGeneric:             true,
