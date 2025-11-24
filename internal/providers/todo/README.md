@@ -21,7 +21,7 @@ Basic Todolist
 You can set
 
 ```toml
-location = "https://github.com/abenz1267/elephanttodo"
+location = "https://github.wcom/abenz1267/elephanttodo"
 ```
 
 This will automatically try to clone/pull the repo. It will also automatically comimt and push on changes.
@@ -30,17 +30,15 @@ This will automatically try to clone/pull the repo. It will also automatically c
 
 ##### Creating a new item
 
-By default, you can create a new item whenever no items matches the configured `min_score` threshold. If you want to, you can also configure `create_prefix`, f.e. `add`. In that case you can do `add:new item`.
-
 If you want to create a scheduled task, you can prefix your item with f.e.:
 
 ```
-+5d my task
-in 10m my task
-in 5d at 15:00 my task
-jan 1 at 13:00 my task
-january 1 at 13:00 my task
-1 jan at 13:00 my task
++5d > my task
+in 10m > my task
+in 5d at 15:00 > my task
+jan 1 at 13:00 > my task
+january 1 at 13:00 > my task
+1 jan at 13:00 > my task
 ```
 
 Adding a `!` suffix will mark an item as urgent.
