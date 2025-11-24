@@ -21,7 +21,7 @@ Basic Todolist
 You can set
 
 ```toml
-location = "https://github.wcom/abenz1267/elephanttodo"
+location = "https://github.com/abenz1267/elephanttodo"
 ```
 
 This will automatically try to clone/pull the repo. It will also automatically comimt and push on changes.
