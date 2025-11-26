@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -380,6 +381,13 @@ func setupAURPkgs() {
 		return
 	}
 	defer resp.Body.Close()
+
+	if resp.Header.Get("Content-Encoding") == "" {
+		gzReader, err := gzip.NewReader(resp.Body)
+		if err == nil {
+			resp.Body = gzReader
+		}
+	}
 
 	decoder := json.NewDecoder(resp.Body)
 
