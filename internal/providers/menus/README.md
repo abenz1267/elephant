@@ -198,8 +198,9 @@ Actions = {
     test = "lua:Test",
 }
 
-function Test(value, args)
+function Test(value, args, query)
     os.execute("notify-send '" .. value .. "'")
     os.execute("notify-send '" .. args .. "'")
+    os.execute("notify-send '" .. query .. "'")
 end
 ```
