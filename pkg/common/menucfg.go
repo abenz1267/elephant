@@ -119,7 +119,7 @@ func (m *Menu) watch() {
 			do = true
 		case <-timer.C:
 			if do {
-				m.CreateLuaEntries()
+				m.CreateLuaEntries("")
 				do = false
 			}
 		}
@@ -271,7 +271,7 @@ func goValueToLua(L *lua.LState, val any) lua.LValue {
 	}
 }
 
-func (m *Menu) CreateLuaEntries() {
+func (m *Menu) CreateLuaEntries(query string) {
 	state := m.NewLuaState()
 
 	if state == nil {
@@ -283,7 +283,7 @@ func (m *Menu) CreateLuaEntries() {
 		Fn:      state.GetGlobal("GetEntries"),
 		NRet:    1,
 		Protect: true,
-	}); err != nil {
+	}, lua.LString(query)); err != nil {
 		slog.Error(m.Name, "GetLuaEntries", err)
 		return
 	}
@@ -568,7 +568,7 @@ func createLuaMenu(path string) {
 	}
 
 	if m.Cache {
-		m.CreateLuaEntries()
+		m.CreateLuaEntries("")
 	}
 
 	if len(m.RefreshOnChange) > 0 {

@@ -152,7 +152,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 					Fn:      state.GetGlobal(functionName),
 					NRet:    0,
 					Protect: true,
-				}, lua.LString(e.Value), lua.LString(args)); err != nil {
+				}, lua.LString(e.Value), lua.LString(args), lua.LString(query)); err != nil {
 					slog.Error(Name, "lua function call", err, "function", functionName)
 				}
 
@@ -241,7 +241,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, format uint8) [
 		}
 
 		if v.IsLua && (len(v.Entries) == 0 || !v.Cache) {
-			v.CreateLuaEntries()
+			v.CreateLuaEntries(query)
 		}
 
 		for k, me := range v.Entries {
