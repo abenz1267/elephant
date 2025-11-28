@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"os/exec"
@@ -80,44 +79,30 @@ const (
 	ActionCopy2FA      = "copy_2fa"
 )
 
+func notifyAndClear() {
+	if config.Notify {
+		exec.Command("notify-send", "copied").Run()
+	}
+
+	if config.ClearAfter > 0 {
+		time.Sleep(time.Duration(config.ClearAfter))
+		exec.Command("wl-copy", "--clear")
+	}
+}
+
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
 	case ActionCopyPassword:
 		toRun := "wl-copy $(op item get %VALUE% --fields password --reveal)"
 
 		cmd := common.ReplaceResultOrStdinCmd(toRun, identifier)
-		stderr, _ := cmd.StderrPipe()
 
-		err := cmd.Start()
+		err := cmd.Run()
 		if err != nil {
 			slog.Error(Name, "copy password", err)
-			output, _ := io.ReadAll(stderr)
-
-			if config.Notify {
-				if strings.Contains(string(output), "[ERROR]") {
-					exec.Command("notify-send", "No password field for this item").Run()
-				} else {
-					exec.Command("notify-send", "copied").Run()
-
-					if config.ClearAfter > 0 {
-						time.Sleep(time.Duration(config.ClearAfter))
-						exec.Command("wl-copy", "--clear")
-					}
-				}
-			}
+			exec.Command("notify-send", "error copying password.").Run()
 		} else {
-			if config.Notify {
-				exec.Command("notify-send", "copied").Run()
-
-				if config.ClearAfter > 0 {
-					time.Sleep(time.Duration(config.ClearAfter))
-					exec.Command("wl-copy", "--clear")
-				}
-			}
-
-			go func() {
-				cmd.Wait()
-			}()
+			notifyAndClear()
 		}
 	case ActionCopyUsername:
 		res := ""
@@ -129,48 +114,26 @@ func Activate(single bool, identifier, action string, query string, args string,
 		}
 
 		cmd := common.ReplaceResultOrStdinCmd("wl-copy", res)
-		err := cmd.Start()
+
+		err := cmd.Run()
 		if err != nil {
 			slog.Error(Name, "copy username", err)
-			return
+			exec.Command("notify-send", "error copying username.").Run()
 		} else {
-			go func() {
-				cmd.Wait()
-			}()
-
-			if config.ClearAfter > 0 {
-				time.Sleep(time.Duration(config.ClearAfter))
-				exec.Command("wl-copy", "--clear")
-			}
+			notifyAndClear()
 		}
 	case ActionCopy2FA:
 		toRun := "wl-copy $(op item get %VALUE% --otp)"
 
 		cmd := common.ReplaceResultOrStdinCmd(toRun, identifier)
-		stderr, _ := cmd.StderrPipe()
 
-		err := cmd.Start()
+		err := cmd.Run()
 		if err != nil {
 			slog.Error(Name, "copy 2fa", err)
-			return
+			exec.Command("notify-send", "error copying OTP.").Run()
+		} else {
+			notifyAndClear()
 		}
-
-		go func() {
-			output, _ := io.ReadAll(stderr)
-			cmd.Wait()
-			if config.Notify {
-				if strings.Contains(string(output), "[ERROR]") {
-					exec.Command("notify-send", "No OTP field for this item").Run()
-				} else {
-					exec.Command("notify-send", "copied").Run()
-
-					if config.ClearAfter > 0 {
-						time.Sleep(time.Duration(config.ClearAfter))
-						exec.Command("wl-copy", "--clear")
-					}
-				}
-			}
-		}()
 	}
 }
 
