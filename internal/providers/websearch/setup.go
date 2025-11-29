@@ -127,7 +127,12 @@ const (
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
 	case ActionOpenURL:
-		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s xdg-open %s", common.LaunchPrefix(""), shellescape.Quote(fmt.Sprintf("https://%s", query)))))
+		address := query
+		if !strings.Contains(address, "://") {
+			address = fmt.Sprintf("https://%s", query)
+		}
+
+		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s xdg-open %s", common.LaunchPrefix(""), shellescape.Quote(address))))
 
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Setsid: true,
@@ -227,31 +232,47 @@ func run(query, identifier, q string) {
 	}
 }
 
+func isAddress(query string) bool {
+	if !(strings.Contains(query, ".") ||
+		strings.Contains(query, "://")) ||
+		strings.Contains(query, " ") ||
+		strings.HasSuffix(query, ".") ||
+		strings.HasPrefix(query, ".") {
+		return false
+	}
+
+	return true
+}
+
 func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	entries := []*pb.QueryResponse_Item{}
 
+	// Get current engine prefix if it exists
 	prefix := ""
-
-	for k := range prefixes {
-		if strings.HasPrefix(query, k) {
-			prefix = k
+	for enginePrefix := range prefixes {
+		if strings.HasPrefix(query, enginePrefix) {
+			prefix = enginePrefix
 			break
 		}
 	}
 
-	if strings.Contains(query, ".") && !strings.HasSuffix(query, ".") {
-		_, err := url.ParseRequestURI(fmt.Sprintf("https://%s", query))
-		if err == nil {
-			e := &pb.QueryResponse_Item{
-				Identifier: "websearch",
-				Text:       fmt.Sprintf("Open: %s", query),
-				Actions:    []string{ActionOpenURL},
-				Icon:       Icon(),
-				Provider:   Name,
-				Score:      1000000,
-			}
+	// When an address entered directly add visit entry
+	if isAddress(query) && prefix == "" {
+		address := query
+		if !strings.Contains(address, "://") {
+			address = fmt.Sprintf("https://%s", query)
+		}
 
-			entries = append(entries, e)
+		addressEntry := &pb.QueryResponse_Item{
+			Identifier: "websearch",
+			Text:       fmt.Sprintf("visit: %s", address),
+			Actions:    []string{"open_url"},
+			Icon:       Icon(),
+			Provider:   Name,
+			Score:      1000000,
+		}
+
+		entries = append(entries, addressEntry)
 		}
 	} else {
 		if config.EnginesAsActions {
