@@ -190,6 +190,10 @@ Elephant uses a configuration directory structure:
 └── <provider>.toml      # Provider config
 ```
 
+Markdown documentation for configuring Elephant and its providers can be obtained using `elephant generatedoc`.
+
+Markdown documentation for configuring a specific provider can be obtained using `elephant generatedoc <provider>`, e.g. `elephant generatedoc unicode`.
+
 ## API & Integration
 
 ### Communication Protocol
