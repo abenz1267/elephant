@@ -17,6 +17,7 @@ var (
 	Name = "bitwarden"
 	NamePretty = "Bitwarden"
 	config *Config
+	cachedItems []RbwItem
 )
 
 type Config struct {
@@ -57,6 +58,7 @@ func Setup() {
 
 	common.LoadConfig(Name, config)
 
+	initItems()
 }
 
 func HideFromProviderlist() bool {

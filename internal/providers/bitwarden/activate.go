@@ -39,7 +39,18 @@ type RbwUris struct {
 	MatchType string `json:"match_type"`
 }
 
-func Activate(single bool, identifier, action, query, args string, format uint8, conn net.Conn) {
+func syncLocalRbwVault() {
+	cmd := exec.Command("rbw", "sync")
+	if err := cmd.Run(); err != nil {
+		slog.Error(Name, "sync failed", err)
+		return
+	}
+
+	initItems()
+	exec.Command("notify-send", "Vault synced successfully").Run()
+}
+
+func getRbwItem(identifier string, action string) *RbwLoginItem {
 	cmd := common.ReplaceResultOrStdinCmd("rbw get %VALUE% --full --raw", identifier)
 	stdout, stderr := cmd.CombinedOutput()
 
@@ -47,12 +58,26 @@ func Activate(single bool, identifier, action, query, args string, format uint8,
 		slog.Error(Name, action, stderr)
 
 		exec.Command("notify-send", "Failed to fetch data").Run()
+		return nil
+	}
+
+	item := &RbwLoginItem{}
+	if err := json.Unmarshal(stdout, &item); err != nil {
+		slog.Error(Name, "parse", err)
+		return nil
+	}
+
+	return item
+}
+
+func Activate(single bool, identifier, action, query, args string, format uint8, conn net.Conn) {
+	if action == ActionSyncVault {
+		syncLocalRbwVault()
 		return
 	}
 
-	var item RbwLoginItem
-	if err := json.Unmarshal(stdout, &item); err != nil {
-		slog.Error(Name, "parse", err)
+	item := getRbwItem(identifier, action);
+	if item == nil {
 		return
 	}
 

@@ -20,27 +20,30 @@ type RbwItem struct {
 	Folder string `json:"folder"`
 }
 
-func Query(conn net.Conn, query string, single bool, exact bool, format uint8) []*pb.QueryResponse_Item {
-	start := time.Now()
-
-	entries := []*pb.QueryResponse_Item{}
+func initItems() {
+	cachedItems = nil
 	cmd := exec.Command("rbw", "list", "--raw")
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
 		slog.Error(Name, "init", err, "msg", output)
-		return entries
+		return
 	}
 
-	var items []RbwItem
-	if err := json.Unmarshal(output, &items); err != nil {
+	if err := json.Unmarshal(output, &cachedItems); err != nil {
 		slog.Error(Name, "parse", err, "msg", output)
-		return entries
+		return
 	}
+}
 
-	for k, v :=	 range items {
+func Query(conn net.Conn, query string, single bool, exact bool, format uint8) []*pb.QueryResponse_Item {
+	start := time.Now()
+
+	entries := []*pb.QueryResponse_Item{}
+
+	for k, v :=	range cachedItems {
 		var subtexts []string
-		actions := []string{ActionCopyPassword, ActionCopyTotp}
+		actions := []string{ActionCopyPassword, ActionCopyTotp, ActionSyncVault}
 
 		if v.User != "" {
 			subtexts = append(subtexts, fmt.Sprintf("User: %s", v.User))	
