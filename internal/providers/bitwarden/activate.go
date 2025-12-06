@@ -29,7 +29,7 @@ type RbwLoginItem struct {
 
 type RbwLoginData struct {
 	Username string `json:"username"`
-	Password string `json:"password"`
+	Password *string `json:"password"`
 	Totp string `json:"totp"`
 	Uris []RbwUris `json:"uris"`
 }
@@ -67,6 +67,11 @@ func getRbwItem(identifier string, action string) *RbwLoginItem {
 		return nil
 	}
 
+	if item.Data.Password == nil {
+		exec.Command("notify-send", "Unsupported Item").Run()
+		return nil
+	}
+
 	return item
 }
 
@@ -95,7 +100,7 @@ func Activate(single bool, identifier, action, query, args string, format uint8,
 		}()
 		exec.Command("notify-send", "Username copied successfully").Run()
 	case ActionCopyPassword:
-		cmd := common.ReplaceResultOrStdinCmd("wl-copy", item.Data.Password)
+		cmd := common.ReplaceResultOrStdinCmd("wl-copy", *item.Data.Password)
 		err := cmd.Start()
 		if err != nil {
 			slog.Error(Name, "copy password", err)
