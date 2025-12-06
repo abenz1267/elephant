@@ -6,9 +6,21 @@ Access your Bitwarden vault.
 
 Implemented features:
 
-- copy username
-- copy password
-- copy totp
+- Copy username
+- Copy password
+- Copy totp
+- Sync vault
+
+Supported item types:
+
+- Login
+
+Not yet supported types:
+
+- Card
+- Identity
+- Note
+- SSH key
 
 #### Requirements
 
