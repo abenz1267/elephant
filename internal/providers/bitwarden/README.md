@@ -6,9 +6,8 @@ Access your Bitwarden vault.
 
 Implemented features:
 
-- Copy username
-- Copy password
-- Copy totp
+- Copy username, password, totp
+- Type username, password, totp
 - Sync vault
 
 Supported item types:
@@ -24,4 +23,5 @@ Not yet supported types:
 
 #### Requirements
 
-- `rbw` and `wl-clipboard` installed
+With default configuration:
+- `rbw`, `wl-clipboard` and `ydotool` installed
