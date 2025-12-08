@@ -18,23 +18,30 @@ const (
 	ActionCopyPath  = "copypath"
 	ActionCopyFile  = "copyfile"
 	ActionLocalsend = "localsend"
+	ActionReindex   = "refresh_index"
 )
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	f := getFile(identifier)
 
-	if f == nil {
+	var path string
+
+	if f == nil && action != ActionReindex {
 		slog.Error(Name, "activate", "file not found")
 		return
 	}
 
-	path := f.Path
+	if f != nil {
+		path = f.Path
+	}
 
 	if action == "" {
 		action = ActionOpen
 	}
 
 	switch action {
+	case ActionReindex:
+		index()
 	case ActionLocalsend:
 		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(""), "localsend", path)))
 

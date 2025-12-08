@@ -85,6 +85,13 @@ func putFileBatch(files []File) error {
 	return tx.Commit()
 }
 
+func dropAll() {
+	_, err := db.Exec("DELETE FROM files")
+	if err != nil {
+		slog.Error(Name, "delete", err)
+	}
+}
+
 func putFile(f File) {
 	changedUnix := int64(0)
 	if !f.Changed.IsZero() {
