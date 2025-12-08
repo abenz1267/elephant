@@ -89,12 +89,19 @@ func copyToClipboard(value string, logStr string) {
 	go func() {
 		cmd.Wait()
 		exec.Command("notify-send", fmt.Sprintf("%s succeeded", logStr)).Run()
+		clearClipboard()
 	}()
 }
 
-func typeValue(value string, logStr string) {
-	time.Sleep(500 * time.Millisecond)
+func clearClipboard() {
+	if config.ClearAfter > 0 {
+		time.Sleep(time.Duration(config.ClearAfter) * time.Second)
+		exec.Command("wl-copy", "--clear").Run()
+		exec.Command("notify-send", "Clipboard cleared").Run()
+	}
+}
 
+func typeValue(value string, logStr string) {
 	cmd := common.ReplaceResultOrStdinCmd(config.AutoTypeCommand, value)
 	err := cmd.Start()
 	if err != nil {
@@ -137,9 +144,11 @@ func Activate(single bool, identifier, action, query, args string, format uint8,
 			err := cmd.Wait()
 			if err != nil {
 				exec.Command("notify-send", "Entry does not contain totp").Run()
-			} else {
-				exec.Command("notify-send", "Totp copied successfully").Run()
+				return
 			}
+
+			exec.Command("notify-send", "Totp copied successfully").Run()
+			clearClipboard()
 		}()
 	case ActionTypeUsername:
 		typeValue(item.Data.Username, "Typing username")
