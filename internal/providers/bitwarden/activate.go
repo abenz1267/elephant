@@ -102,6 +102,10 @@ func clearClipboard() {
 }
 
 func typeValue(value string, logStr string) {
+	if config.AutoTypeDelay > 0 {
+		time.Sleep(time.Duration(config.AutoTypeDelay) * time.Millisecond)
+	}
+
 	cmd := common.ReplaceResultOrStdinCmd(config.AutoTypeCommand, value)
 	err := cmd.Start()
 	if err != nil {
