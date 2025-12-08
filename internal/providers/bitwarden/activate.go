@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net"
 	"os/exec"
+	"strings"
+	"time"
 
 	"github.com/abenz1267/elephant/v2/pkg/common"
 )
@@ -12,30 +15,30 @@ import (
 const (
 	ActionCopyUsername = "copyusername"
 	ActionCopyPassword = "copypassword"
-	ActionCopyTotp = "copytotp"
+	ActionCopyTotp     = "copytotp"
 	ActionTypeUsername = "typeusername"
 	ActionTypePassword = "typepassword"
-	ActionTypeTotp = "typetotp"
-	ActionSyncVault = "syncvault"
+	ActionTypeTotp     = "typetotp"
+	ActionSyncVault    = "syncvault"
 )
 
 type RbwLoginItem struct {
-	ID string `json:"id"`
-	Folder string `json:"folder"`
-	Name string `json:"name"`
-	Data RbwLoginData `json:"data"`
-	Notes string `json:"notes"`
+	ID     string       `json:"id"`
+	Folder string       `json:"folder"`
+	Name   string       `json:"name"`
+	Data   RbwLoginData `json:"data"`
+	Notes  string       `json:"notes"`
 }
 
 type RbwLoginData struct {
-	Username string `json:"username"`
-	Password *string `json:"password"`
-	Totp string `json:"totp"`
-	Uris []RbwUris `json:"uris"`
+	Username string    `json:"username"`
+	Password *string   `json:"password"`
+	Totp     string    `json:"totp"`
+	Uris     []RbwUris `json:"uris"`
 }
 
 type RbwUris struct {
-	Uri string `json:"uri"`
+	Uri       string `json:"uri"`
 	MatchType string `json:"match_type"`
 }
 
@@ -75,42 +78,52 @@ func getRbwItem(identifier string, action string) *RbwLoginItem {
 	return item
 }
 
+func copyToClipboard(value string, logStr string) {
+	cmd := common.ReplaceResultOrStdinCmd(config.CopyCommand, value)
+	err := cmd.Start()
+	if err != nil {
+		slog.Error(Name, fmt.Sprintf("%s failed", logStr), err)
+		return
+	}
+
+	go func() {
+		cmd.Wait()
+		exec.Command("notify-send", fmt.Sprintf("%s succeeded", logStr)).Run()
+	}()
+}
+
+func typeValue(value string, logStr string) {
+	time.Sleep(500 * time.Millisecond)
+
+	cmd := common.ReplaceResultOrStdinCmd(config.AutoTypeCommand, value)
+	err := cmd.Start()
+	if err != nil {
+		slog.Error(Name, fmt.Sprintf("%s failed", logStr), err)
+		return
+	}
+
+	go func() {
+		cmd.Wait()
+		exec.Command("notify-send", fmt.Sprintf("%s succeeded", logStr)).Run()
+	}()
+}
+
 func Activate(single bool, identifier, action, query, args string, format uint8, conn net.Conn) {
 	if action == ActionSyncVault {
 		syncLocalRbwVault()
 		return
 	}
 
-	item := getRbwItem(identifier, action);
+	item := getRbwItem(identifier, action)
 	if item == nil {
 		return
 	}
 
 	switch action {
 	case ActionCopyUsername:
-		cmd := common.ReplaceResultOrStdinCmd("wl-copy", item.Data.Username)
-		err := cmd.Start()
-		if err != nil {
-			slog.Error(Name, "copy username", err)
-			return
-		}
-
-		go func() {
-			cmd.Wait()
-		}()
-		exec.Command("notify-send", "Username copied successfully").Run()
+		copyToClipboard(item.Data.Username, "Username copy")
 	case ActionCopyPassword:
-		cmd := common.ReplaceResultOrStdinCmd("wl-copy", *item.Data.Password)
-		err := cmd.Start()
-		if err != nil {
-			slog.Error(Name, "copy password", err)
-			return
-		}
-
-		go func() {
-			cmd.Wait()
-		}()
-		exec.Command("notify-send", "Password copied successfully").Run()
+		copyToClipboard(*item.Data.Password, "Password copy")
 	case ActionCopyTotp:
 		cmd := common.ReplaceResultOrStdinCmd("rbw totp %VALUE% --clipboard", identifier)
 
@@ -119,7 +132,7 @@ func Activate(single bool, identifier, action, query, args string, format uint8,
 			slog.Error(Name, "copy totp", err)
 			return
 		}
-		
+
 		go func() {
 			err := cmd.Wait()
 			if err != nil {
@@ -128,6 +141,20 @@ func Activate(single bool, identifier, action, query, args string, format uint8,
 				exec.Command("notify-send", "Totp copied successfully").Run()
 			}
 		}()
+	case ActionTypeUsername:
+		typeValue(item.Data.Username, "Typing username")
+	case ActionTypePassword:
+		typeValue(*item.Data.Password, "Typing password")
+	case ActionTypeTotp:
+		cmd := common.ReplaceResultOrStdinCmd("rbw totp %VALUE%", identifier)
+
+		output, err := cmd.Output()
+		if err != nil {
+			exec.Command("notify-send", "Entry does not contain totp").Run()
+			return
+		}
+
+		value := strings.TrimSpace(string(output[:]))
+		typeValue(value, "Typing totp")
 	}
 }
-

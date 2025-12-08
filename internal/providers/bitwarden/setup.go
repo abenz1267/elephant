@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os/exec"
 
+	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
@@ -14,51 +15,58 @@ import (
 var readme string
 
 var (
-	Name = "bitwarden"
-	NamePretty = "Bitwarden"
-	config *Config
+	Name        = "bitwarden"
+	NamePretty  = "Bitwarden"
+	config      *Config
 	cachedItems []RbwItem
 )
 
 type Config struct {
-	common.Config	`koanf:",squash"`
+	common.Config   `koanf:",squash"`
+	CopyCommand     string `koanf:"copy_command" desc:"copy command to be executed. supports %VALUE%." default:"wl-copy --"`
+	AutoTypeSupport bool   `koanf:"autotype_support" desc:"enable autotype support" default:"false"`
+	AutoTypeCommand string `koanf:"autotype_command" desc:"copy command to be executed. supports %VALUE%." default:"ydotool type -- %VALUE%"`
 }
 
-func checkExecutable(command string) bool {
+func Setup() {
+	config = &Config{
+		Config: common.Config{
+			Icon:     "bitwarden",
+			MinScore: 20,
+		},
+		CopyCommand:     "wl-copy --",
+		AutoTypeSupport: false,
+		AutoTypeCommand: "ydotool type -- %VALUE%",
+	}
+
+	common.LoadConfig(Name, config)
+
+	initItems()
+}
+
+func executableExists(command string) bool {
 	p, err := exec.LookPath(command)
 
 	if p == "" || err != nil {
 		slog.Info(Name, "available", fmt.Sprintf("%s not found. disabling.", command))
 		return false
 	}
-	
+
 	return true
 }
 
 func Available() bool {
-	return checkExecutable("rbw") && checkExecutable("wl-copy")
+	return executableExists("rbw")
 }
 
 func PrintDoc() {
 	fmt.Println(readme)
 	fmt.Println()
+	util.PrintConfig(Config{}, Name)
 }
 
 func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
-}
-
-func Setup() {
-	config = &Config{
-		Config: common.Config{
-			Icon: "bitwarden",
-			MinScore: 20,
-		},
-	}
-
-	common.LoadConfig(Name, config)
-
-	initItems()
 }
 
 func HideFromProviderlist() bool {
