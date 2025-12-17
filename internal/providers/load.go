@@ -40,8 +40,11 @@ var (
 	QueryProviders map[uint32][]string
 	libDirs        = []string{
 		"/usr/lib/elephant",
+		"/usr/lib64/elephant",
 		"/usr/local/lib/elephant",
+		"/usr/local/lib64/elephant",
 		"/lib/elephant",
+		"/lib64/elephant",
 	}
 )
 
