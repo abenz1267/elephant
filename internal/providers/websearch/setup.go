@@ -111,6 +111,7 @@ func Setup() {
 
 	if len(config.Engines) == 1 {
 		config.Engines[0].Default = true
+		config.Engines[0].DefaultSingle = true
 	}
 
 	for k, v := range config.Engines {
@@ -125,7 +126,6 @@ func Setup() {
 		}
 
 		if v.Prefix != "" {
-			engineNameMap[v.Prefix] = &config.Engines[k]
 			handlers.WebsearchPrefixes[v.Prefix] = v.Name
 		}
 
@@ -139,7 +139,7 @@ func splitEnginePrefix(query string) (string, string) {
 	prefix := ""
 	found := false
 	for _, engine := range config.Engines {
-		if strings.HasPrefix(query, engine.Prefix) {
+		if engine.Prefix != "" && strings.HasPrefix(query, engine.Prefix) {
 			prefix = engine.Prefix
 			query = strings.TrimPrefix(query, prefix)
 			found = true

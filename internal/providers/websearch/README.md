@@ -63,7 +63,7 @@ suggestions_path = "categories.#(type==\"anime\").items.#.name"
 name = "Amazon"
 icon = "amazon"
 prefix = "!shop"
-url = "https://www.amazon.ca/s?k=%TERM%";
+url = "https://www.amazon.ca/s?k=%TERM%"
 
 [[entries]]
 name = "Newegg"

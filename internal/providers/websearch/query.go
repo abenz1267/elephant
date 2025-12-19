@@ -192,7 +192,7 @@ func getAPISuggestions(queriedEngines []Engine, prefix string, query string, sin
 					Identifier: identifier,
 					Content:    content,
 					Engine:     engine,
-					Score:      int32(-1000 - i - engineIndex),
+					Score:      int32(-i - engineIndex),
 				})
 			}
 

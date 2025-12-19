@@ -38,7 +38,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 			args = query
 		}
 
-		_, args := splitEnginePrefix(args)
+		_, args = splitEnginePrefix(args)
 
 		address := expandSubstitutions(engine.URL, args)
 		run(query, identifier, address)
@@ -67,30 +67,18 @@ func Activate(single bool, identifier, action string, query string, args string,
 			return
 		}
 
-		for _, v := range config.Engines {
-			fmt.Println(action)
-			if v.Name == action {
-				q = v.URL
-				break
-			}
-		}
-
+		q = engineNameMap[action].URL
 		q = expandSubstitutions(q, args)
 		run(query, identifier, q)
 	}
 }
 
 func expandSubstitutions(format string, args string) string {
-	if strings.TrimSpace(args) == "" {
-		args = "\"\""
-	}
-
 	result := format
 	if strings.Contains(format, "%CLIPBOARD%") {
 		clipboardText := common.ClipboardText()
 		if clipboardText == "" {
 			slog.Error(Name, "activate", "empty clipboard")
-			args = "\"\""
 		}
 
 		result = strings.ReplaceAll(os.ExpandEnv(format), "%CLIPBOARD%", url.QueryEscape(clipboardText))
