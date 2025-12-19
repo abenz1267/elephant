@@ -1,5 +1,5 @@
 *.so
 cmd/elephant/elephant
 tmp
-.direnv
 .vscode
+.direnv
