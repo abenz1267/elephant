@@ -147,7 +147,7 @@ func queryEngines(prefix string, query string, single bool, exact bool) []*pb.Qu
 	// Engines finder
 	isPrefix := prefix == config.EngineFinderPrefix && prefix != ""
 	isDefault := prefix == "" && !single && config.EngineFinderDefault
-	isDefaultSingle := prefix == "" && single && config.EngineFinderDefault
+	isDefaultSingle := prefix == "" && single && config.EngineFinderDefaultSingle
 	if isPrefix || isDefault || isDefaultSingle {
 		entries = append(entries, listEngines(query, single, exact)...)
 	}

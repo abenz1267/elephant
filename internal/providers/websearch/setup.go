@@ -44,7 +44,7 @@ type Config struct {
 	AlwaysShowDefault         bool     `koanf:"always_show_default" desc:"show default search engine when multiple providers are queried" default:"true"`
 	EngineFinderPrefix        string   `koanf:"engine_finder_prefix" desc:"prefix for explicitly querying the engine finder" default:"!e"`
 	EngineFinderDefault       bool     `koanf:"engine_finder_default" desc:"include engine finder results when searching with no engine prefix" default:"false"`
-	EngineFinderDefaultSingle bool     `koanf:"engine_finder_default" desc:"display by default when no engine prefix" default:"true"`
+	EngineFinderDefaultSingle bool     `koanf:"engine_finder_default_single" desc:"display by default when no engine prefix" default:"true"`
 	TextPrefix                string   `koanf:"text_prefix" desc:"text prefix for search entries" default:"Search: "`
 	Command                   string   `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"xdg-open"`
 	MaxApiItems               int      `koanf:"max_api_items" desc:"maximum final number of api suggestion items" default:"4"`
