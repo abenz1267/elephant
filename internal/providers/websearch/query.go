@@ -40,12 +40,28 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		entries = append(entries, addressEntry)
 	}
 
-	// TODO: re-add support for engines as actions
+	if config.EnginesAsActions {
+		actions := make([]string, len(config.Engines))
+		for i, engine := range config.Engines {
+			actions[i] = engine.Name
+		}
 
-	if query == "" && prefix == "" {
-		entries = append(entries, queryEmpty(single, exact)...)
+		actionEntry := &pb.QueryResponse_Item{
+			Identifier: "websearch",
+			Text:       fmt.Sprintf("%s%s", config.TextPrefix, query),
+			Actions:    actions,
+			Icon:       Icon(),
+			Provider:   Name,
+			Score:      1,
+			Type:       0,
+		}
+		entries = append(entries, actionEntry)
 	} else {
-		entries = append(entries, queryEngines(prefix, query, single, exact)...)
+		if query == "" && prefix == "" {
+			entries = append(entries, queryEmpty(single, exact)...)
+		} else {
+			entries = append(entries, queryEngines(prefix, query, single, exact)...)
+		}
 	}
 
 	// force search to be first when queried with prefix

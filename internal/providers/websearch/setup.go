@@ -41,8 +41,8 @@ type Config struct {
 	History                   bool     `koanf:"history" desc:"consider usage history for engine sorting" default:"true"`
 	HistoryWhenEmpty          bool     `koanf:"history_when_empty" desc:"consider usage history when query is empty" default:"false"`
 	EnginesAsActions          bool     `koanf:"engines_as_actions" desc:"run engines as actions" default:"true"`
-	AlwaysShowDefault         bool     `koanf:"always_show_default" desc:"show default search engine when multiple providers are queried" default:"true"`
-	EngineFinderPrefix        string   `koanf:"engine_finder_prefix" desc:"prefix for explicitly querying the engine finder" default:"!e"`
+	AlwaysShowDefault         bool     `koanf:"always_show_default" desc:"show default search engine when multiple providers are queried" default:"false"`
+	EngineFinderPrefix        string   `koanf:"engine_finder_prefix" desc:"prefix for explicitly querying the engine finder" default:"@e"`
 	EngineFinderDefault       bool     `koanf:"engine_finder_default" desc:"include engine finder results when searching with no engine prefix" default:"false"`
 	EngineFinderDefaultSingle bool     `koanf:"engine_finder_default_single" desc:"display by default when no engine prefix" default:"true"`
 	TextPrefix                string   `koanf:"text_prefix" desc:"text prefix for search entries" default:"Search: "`
@@ -77,7 +77,7 @@ func Setup() {
 		History:                   true,
 		HistoryWhenEmpty:          false,
 		EnginesAsActions:          false,
-		EngineFinderPrefix:        "!e",
+		EngineFinderPrefix:        "@e",
 		EngineFinderDefault:       false,
 		EngineFinderDefaultSingle: true,
 		TextPrefix:                "Search: ",

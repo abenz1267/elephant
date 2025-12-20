@@ -22,6 +22,7 @@ const (
 )
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
+	fmt.Println("Test: ")
 	switch action {
 	case ActionOpenURL:
 		address := query
@@ -52,24 +53,31 @@ func Activate(single bool, identifier, action string, query string, args string,
 			return
 		}
 
-		// TODO: Add engine history instead of suggestion history since suggestions are temporary
 		url := expandSubstitutions(s.Engine.URL, s.Content)
-		run(query, identifier, url)
+		run(query, s.Engine.Name, url)
 
 	case history.ActionDelete:
 		h.Remove(identifier)
 
 	default:
-		q := ""
-
 		if !config.EnginesAsActions {
 			slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
 			return
 		}
 
-		q = engineNameMap[action].URL
+		if args == "" {
+			args = query
+		}
+
+		engine := engineNameMap[action]
+		if engine == nil {
+			slog.Error(Name, "activate", "unknown engine", "action", action)
+			return
+		}
+
+		q := engine.URL
 		q = expandSubstitutions(q, args)
-		run(query, identifier, q)
+		run(query, engine.Name, q)
 	}
 }
 
