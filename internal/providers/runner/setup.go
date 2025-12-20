@@ -154,8 +154,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 		bin := ""
 
 		if identifier == "generic" {
-			split := strings.SplitN(query, " ", 2)
-			bin = split[0]
+			bin = query
 		} else {
 			for _, v := range items {
 				if v.Identifier == identifier {
