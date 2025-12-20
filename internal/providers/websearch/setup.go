@@ -239,6 +239,8 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		}
 	}
 
+	isURL := false
+
 	if strings.Contains(query, ".") && !strings.HasSuffix(query, ".") {
 		_, err := url.ParseRequestURI(fmt.Sprintf("https://%s", query))
 		if err == nil {
@@ -252,8 +254,11 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			}
 
 			entries = append(entries, e)
+			isURL = true
 		}
-	} else {
+	}
+
+	if !isURL {
 		if config.EnginesAsActions {
 			a := []string{}
 
