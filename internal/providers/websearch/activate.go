@@ -33,7 +33,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 		openURL(address)
 
 	case ActionSearch:
-		engine := engineNameMap[identifier]
+		engine := engineIdentifierMap[identifier]
 
 		if args == "" {
 			args = query
@@ -54,7 +54,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 		}
 
 		url := expandSubstitutions(s.Engine.URL, s.Content)
-		run(query, s.Engine.Name, url)
+		run(query, s.Engine.Identifier, url)
 
 	case history.ActionDelete:
 		h.Remove(identifier)
@@ -77,7 +77,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 
 		q := engine.URL
 		q = expandSubstitutions(q, args)
-		run(query, engine.Name, q)
+		run(query, identifier, q)
 	}
 }
 

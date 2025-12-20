@@ -17,7 +17,7 @@ Search the web with custom defined search engines.
 max_api_items = 10
 engine_finder_default_single = false
 
-# name is required must be unique
+# name and url are required 
 [[entries]]
 default = true
 name = "Example"

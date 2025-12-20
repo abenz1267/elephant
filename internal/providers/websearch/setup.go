@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/md5"
 	_ "embed"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
@@ -23,6 +25,7 @@ var (
 	currentSuggestions      = make(map[string]Suggestion)
 	currentSuggestionsMutex = &sync.RWMutex{}
 	engineNameMap           = make(map[string]*Engine)
+	engineIdentifierMap     = make(map[string]*Engine)
 	httpClient              = &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        10,
@@ -52,6 +55,7 @@ type Config struct {
 }
 
 type Engine struct {
+	Identifier      string
 	Name            string `koanf:"name" desc:"name of the entry" default:""`
 	Default         bool   `koanf:"default" desc:"display by default when querying multiple providers" default:"false"`
 	DefaultSingle   bool   `koanf:"default_single" desc:"display by default when querying only the websearch provider" default:"false"`
@@ -115,7 +119,9 @@ func Setup() {
 	}
 
 	for k, v := range config.Engines {
+		config.Engines[k].Identifier = hashEngineIdentifier(v)
 		engineNameMap[v.Name] = &config.Engines[k]
+		engineIdentifierMap[config.Engines[k].Identifier] = &config.Engines[k]
 
 		if v.Icon == "" {
 			config.Engines[k].Icon = config.Config.Icon
@@ -133,6 +139,16 @@ func Setup() {
 			handlers.MaxGlobalItemsToDisplayWebsearch++
 		}
 	}
+}
+
+func hashEngineIdentifier(engine Engine) string {
+	hash := md5.Sum([]byte(engine.Name + engine.URL + engine.Prefix))
+	return hex.EncodeToString(hash[:])
+}
+
+func hashSuggestionIdentifier(content, engineIdentifier string) string {
+	hash := md5.Sum([]byte(content + engineIdentifier))
+	return hex.EncodeToString(hash[:])
 }
 
 func splitEnginePrefix(query string) (string, string) {

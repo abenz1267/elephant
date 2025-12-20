@@ -142,7 +142,7 @@ func queryEngines(prefix string, query string, single bool, exact bool) []*pb.Qu
 		}
 
 		entries = append(entries, &pb.QueryResponse_Item{
-			Identifier: engine.Name,
+			Identifier: engine.Identifier,
 			Text:       text,
 			Subtext:    subtext,
 			Actions:    []string{"search"},
@@ -202,7 +202,7 @@ func getAPISuggestions(queriedEngines []Engine, prefix string, query string, sin
 
 			local := make([]Suggestion, 0, len(suggestions))
 			for i, content := range suggestions {
-				identifier := engine.Name + ":" + content
+				identifier := hashSuggestionIdentifier(content, engine.Identifier)
 
 				local = append(local, Suggestion{
 					Identifier: identifier,
@@ -268,7 +268,7 @@ func listEngines(query string, _ bool, exact bool) []*pb.QueryResponse_Item {
 		}
 
 		e := &pb.QueryResponse_Item{
-			Identifier: v.Name,
+			Identifier: v.Identifier,
 			Text:       text,
 			Subtext:    "",
 			Actions:    []string{"search"},
