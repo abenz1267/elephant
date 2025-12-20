@@ -1,8 +1,8 @@
-# Elephant Websearch Provider
+### Elephant Websearch Provider
 
 Search the web with custom defined search engines.
 
-## Features
+#### Features
 
 - Opening URLs directly
 - Define custom search engines
@@ -11,7 +11,7 @@ Search the web with custom defined search engines.
 - Search multiple engines simultaneously with deduplicated suggestions
 - Engine finder to search configured engines
 
-## Example Config
+#### Example Config
 
 ```toml
 max_api_items = 10
@@ -42,13 +42,11 @@ suggestions_url = "https://suggestqueries.google.com/complete/search?client=fire
 suggestions_path = "1"
 ```
 
-### Tips
+#### Tips
 
 1.  The engine URL and suggestions API don't need to match
 
 ```toml
-[[entries]]
-
 [[entries]]
 name = "Crunchyroll"
 prefix = "@anime"
