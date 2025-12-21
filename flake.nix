@@ -31,6 +31,11 @@
             gcc
             protobuf
             protoc-gen-go
+            air
+            wl-clipboard
+            libqalculate
+            imagemagick
+            bluez
           ];
         };
       });

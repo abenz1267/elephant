@@ -40,6 +40,9 @@ require (
 	github.com/pjbgf/sha1cd v0.5.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/yalue/native_endian v1.0.2 // indirect
 	golang.org/x/crypto v0.44.0 // indirect
 	golang.org/x/text v0.31.0 // indirect

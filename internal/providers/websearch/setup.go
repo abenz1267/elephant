@@ -1,19 +1,15 @@
 package main
 
 import (
+	"crypto/md5"
 	_ "embed"
+	"encoding/hex"
 	"fmt"
-	"log/slog"
-	"net"
-	"net/url"
-	"os"
-	"os/exec"
-	"slices"
-	"strconv"
+	"net/http"
 	"strings"
-	"syscall"
+	"sync"
+	"time"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
@@ -22,33 +18,58 @@ import (
 )
 
 var (
-	Name       = "websearch"
-	NamePretty = "Websearch"
-	config     *Config
-	prefixes   = make(map[string]int)
-	h          = history.Load(Name)
+	Name                    = "websearch"
+	NamePretty              = "Web Search"
+	config                  *Config
+	h                       = history.Load(Name)
+	currentSuggestions      = make(map[string]Suggestion)
+	currentSuggestionsMutex = &sync.RWMutex{}
+	engineNameMap           = make(map[string]*Engine)
+	engineIdentifierMap     = make(map[string]*Engine)
+	httpClient              = &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 5,
+			IdleConnTimeout:     30 * time.Second,
+		},
+	}
 )
 
 //go:embed README.md
 var readme string
 
 type Config struct {
-	common.Config     `koanf:",squash"`
-	Engines           []Engine `koanf:"entries" desc:"entries" default:"google"`
-	History           bool     `koanf:"history" desc:"make use of history for sorting" default:"true"`
-	HistoryWhenEmpty  bool     `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
-	EnginesAsActions  bool     `koanf:"engines_as_actions" desc:"run engines as actions" default:"true"`
-	AlwaysShowDefault bool     `koanf:"always_show_default" desc:"always show the default search engine when queried" default:"true"`
-	TextPrefix        string   `koanf:"text_prefix" desc:"prefix for the entry text" default:"Search: "`
-	Command           string   `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"xdg-open"`
+	common.Config             `koanf:",squash"`
+	Engines                   []Engine `koanf:"entries" desc:"entries" default:"google"`
+	History                   bool     `koanf:"history" desc:"consider usage history for engine sorting" default:"true"`
+	HistoryWhenEmpty          bool     `koanf:"history_when_empty" desc:"consider usage history when query is empty" default:"false"`
+	EnginesAsActions          bool     `koanf:"engines_as_actions" desc:"run engines as actions" default:"true"`
+	AlwaysShowDefault         bool     `koanf:"always_show_default" desc:"show default search engine when multiple providers are queried" default:"false"`
+	EngineFinderPrefix        string   `koanf:"engine_finder_prefix" desc:"prefix for explicitly querying the engine finder" default:"@e"`
+	EngineFinderDefault       bool     `koanf:"engine_finder_default" desc:"include engine finder results when searching with no engine prefix" default:"false"`
+	EngineFinderDefaultSingle bool     `koanf:"engine_finder_default_single" desc:"display by default when no engine prefix" default:"true"`
+	TextPrefix                string   `koanf:"text_prefix" desc:"text prefix for search entries" default:"Search: "`
+	Command                   string   `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"xdg-open"`
+	MaxApiItems               int      `koanf:"max_api_items" desc:"maximum final number of api suggestion items" default:"4"`
+	SuggestionsTimeout        int      `koanf:"suggestions_timeout" desc:"timeout at which a suggestion query will be dropped" default:"1000"`
 }
 
 type Engine struct {
-	Name    string `koanf:"name" desc:"name of the entry" default:""`
-	Default bool   `koanf:"default" desc:"entry to display when querying multiple providers" default:""`
-	Prefix  string `koanf:"prefix" desc:"prefix to actively trigger this entry" default:""`
-	URL     string `koanf:"url" desc:"url, example: 'https://www.google.com/search?q=%TERM%'" default:""`
-	Icon    string `koanf:"icon" desc:"icon to display, fallsback to global" default:""`
+	Identifier      string
+	Name            string `koanf:"name" desc:"name of the entry" default:""`
+	Default         bool   `koanf:"default" desc:"display by default when querying multiple providers" default:"false"`
+	DefaultSingle   bool   `koanf:"default_single" desc:"display by default when querying only the websearch provider" default:"false"`
+	Prefix          string `koanf:"prefix" desc:"prefix to actively trigger this entry" default:""`
+	URL             string `koanf:"url" desc:"url, example: 'https://www.google.com/search?q=%TERM%'" default:""`
+	Icon            string `koanf:"icon" desc:"icon to display, fallsback to global" default:""`
+	SuggestionsURL  string `koanf:"suggestions_url" desc:"API endpoint for suggestions" default:""`
+	SuggestionsPath string `koanf:"suggestions_path" desc:"JSON path to extract suggestions" default:"1"`
+}
+type Suggestion struct {
+	Identifier string
+	Content    string
+	Engine     Engine
+	Score      int32
 }
 
 func Setup() {
@@ -57,12 +78,17 @@ func Setup() {
 			Icon:     "applications-internet",
 			MinScore: 20,
 		},
-		History:           true,
-		HistoryWhenEmpty:  false,
-		EnginesAsActions:  false,
-		TextPrefix:        "Search: ",
-		Command:           "xdg-open",
-		AlwaysShowDefault: true,
+		History:                   true,
+		HistoryWhenEmpty:          false,
+		EnginesAsActions:          false,
+		EngineFinderPrefix:        "@e",
+		EngineFinderDefault:       false,
+		EngineFinderDefaultSingle: true,
+		TextPrefix:                "Search: ",
+		Command:                   "xdg-open",
+		AlwaysShowDefault:         true,
+		MaxApiItems:               4,
+		SuggestionsTimeout:        1000,
 	}
 
 	common.LoadConfig(Name, config)
@@ -71,42 +97,80 @@ func Setup() {
 		NamePretty = config.NamePretty
 	}
 
+	handlers.WebsearchAlwaysShow = config.AlwaysShowDefault
+
 	if len(config.Engines) == 0 {
-		config.Engines = append(config.Engines, Engine{
-			Name:    "Google",
-			Default: true,
-			URL:     "https://www.google.com/search?q=%TERM%",
-		})
+		config.Engines =
+			append(config.Engines,
+				Engine{
+					Name:    "Google",
+					Default: true,
+					URL:     "https://www.google.com/search?q=%TERM%",
+					// TODO: Enable suggestion by default after async additions have been added
+					//// SuggestionsURL:  "https://suggestqueries.google.com/complete/search?client=firefox&q=%TERM%",
+					//// SuggestionsPath: "1",
+				},
+			)
 	}
 
 	if len(config.Engines) == 1 {
 		config.Engines[0].Default = true
+		config.Engines[0].DefaultSingle = true
 	}
 
-	handlers.WebsearchAlwaysShow = config.AlwaysShowDefault
-
 	for k, v := range config.Engines {
-		if v.Default {
-			handlers.MaxGlobalItemsToDisplayWebsearch++
+		config.Engines[k].Identifier = hashEngineIdentifier(v)
+		engineNameMap[v.Name] = &config.Engines[k]
+		engineIdentifierMap[config.Engines[k].Identifier] = &config.Engines[k]
+
+		if v.Icon == "" {
+			config.Engines[k].Icon = config.Config.Icon
+		}
+
+		if v.SuggestionsPath == "" {
+			config.Engines[k].SuggestionsPath = "1" // Assume open search format by default
 		}
 
 		if v.Prefix != "" {
-			prefixes[v.Prefix] = k
 			handlers.WebsearchPrefixes[v.Prefix] = v.Name
+		}
+
+		if v.Default {
+			handlers.MaxGlobalItemsToDisplayWebsearch++
+		}
+	}
+}
+
+func hashEngineIdentifier(engine Engine) string {
+	hash := md5.Sum([]byte(engine.Name + engine.URL + engine.Prefix))
+	return hex.EncodeToString(hash[:])
+}
+
+func hashSuggestionIdentifier(content, engineIdentifier string) string {
+	hash := md5.Sum([]byte(content + engineIdentifier))
+	return hex.EncodeToString(hash[:])
+}
+
+func splitEnginePrefix(query string) (string, string) {
+	prefix := ""
+	found := false
+	for _, engine := range config.Engines {
+		if engine.Prefix != "" && strings.HasPrefix(query, engine.Prefix) {
+			prefix = engine.Prefix
+			query = strings.TrimPrefix(query, prefix)
+			found = true
+			break
 		}
 	}
 
-	slices.SortFunc(config.Engines, func(a, b Engine) int {
-		if a.Default {
-			return -1
-		}
+	if !found && strings.HasPrefix(query, config.EngineFinderPrefix) {
+		prefix = config.EngineFinderPrefix
+		query = strings.TrimPrefix(query, config.EngineFinderPrefix)
+	}
 
-		if b.Default {
-			return 1
-		}
+	query = strings.TrimSpace(query)
 
-		return 0
-	})
+	return prefix, query
 }
 
 func Available() bool {
@@ -117,243 +181,6 @@ func PrintDoc() {
 	fmt.Println(readme)
 	fmt.Println()
 	util.PrintConfig(Config{}, Name)
-}
-
-const (
-	ActionSearch  = "search"
-	ActionOpenURL = "open_url"
-)
-
-func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
-	switch action {
-	case ActionOpenURL:
-		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s xdg-open %s", common.LaunchPrefix(""), shellescape.Quote(fmt.Sprintf("https://%s", query)))))
-
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Setsid: true,
-		}
-
-		err := cmd.Start()
-		if err != nil {
-			slog.Error(Name, "activate", err)
-		} else {
-			go func() {
-				cmd.Wait()
-			}()
-		}
-	case history.ActionDelete:
-		h.Remove(identifier)
-		return
-	case ActionSearch:
-		i, _ := strconv.Atoi(identifier)
-
-		for k := range prefixes {
-			if after, ok := strings.CutPrefix(query, k); ok {
-				query = after
-				break
-			}
-		}
-
-		if args == "" {
-			args = query
-		}
-
-		q := ""
-
-		if strings.Contains(config.Engines[i].URL, "%CLIPBOARD%") {
-			clipboard := common.ClipboardText()
-
-			if clipboard == "" {
-				slog.Error(Name, "activate", "empty clipbpoard")
-				return
-			}
-
-			q = strings.ReplaceAll(os.ExpandEnv(config.Engines[i].URL), "%CLIPBOARD%", url.QueryEscape(clipboard))
-		} else {
-			q = strings.ReplaceAll(os.ExpandEnv(config.Engines[i].URL), "%TERM%", url.QueryEscape(strings.TrimSpace(args)))
-		}
-
-		run(query, identifier, q)
-	default:
-		q := ""
-
-		if !config.EnginesAsActions {
-			slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
-			return
-		}
-
-		for _, v := range config.Engines {
-			if v.Name == action {
-				q = v.URL
-				break
-			}
-		}
-
-		if strings.Contains(q, "%CLIPBOARD%") {
-			clipboard := common.ClipboardText()
-
-			if clipboard == "" {
-				slog.Error(Name, "activate", "empty clipbpoard")
-				return
-			}
-
-			q = strings.ReplaceAll(q, "%CLIPBOARD%", url.QueryEscape(clipboard))
-		} else {
-			q = strings.ReplaceAll(q, "%TERM%", url.QueryEscape(strings.TrimSpace(query)))
-		}
-
-		run(query, identifier, q)
-	}
-}
-
-func run(query, identifier, q string) {
-	cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(""), config.Command, shellescape.Quote(q))))
-
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setsid: true,
-	}
-
-	err := cmd.Start()
-	if err != nil {
-		slog.Error(Name, "activate", err)
-	} else {
-		go func() {
-			cmd.Wait()
-		}()
-	}
-
-	if config.History {
-		h.Save(query, identifier)
-	}
-}
-
-func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
-	entries := []*pb.QueryResponse_Item{}
-
-	prefix := ""
-
-	for k := range prefixes {
-		if strings.HasPrefix(query, k) {
-			prefix = k
-			break
-		}
-	}
-
-	isURL := false
-
-	if strings.Contains(query, ".") && !strings.HasSuffix(query, ".") {
-		_, err := url.ParseRequestURI(fmt.Sprintf("https://%s", query))
-		if err == nil {
-			e := &pb.QueryResponse_Item{
-				Identifier: "websearch",
-				Text:       fmt.Sprintf("Open: %s", query),
-				Actions:    []string{ActionOpenURL},
-				Icon:       Icon(),
-				Provider:   Name,
-				Score:      1000000,
-			}
-
-			entries = append(entries, e)
-			isURL = true
-		}
-	}
-
-	if !isURL {
-		if config.EnginesAsActions {
-			a := []string{}
-
-			for _, v := range config.Engines {
-				a = append(a, v.Name)
-			}
-
-			e := &pb.QueryResponse_Item{
-				Identifier: "websearch",
-				Text:       fmt.Sprintf("%s%s", config.TextPrefix, query),
-				Actions:    a,
-				Icon:       Icon(),
-				Provider:   Name,
-				Score:      1,
-				Type:       0,
-			}
-
-			entries = append(entries, e)
-		} else {
-			if single {
-				for k, v := range config.Engines {
-					icon := v.Icon
-					if icon == "" {
-						icon = config.Icon
-					}
-
-					e := &pb.QueryResponse_Item{
-						Identifier: strconv.Itoa(k),
-						Text:       v.Name,
-						Subtext:    "",
-						Actions:    []string{"search"},
-						Icon:       icon,
-						Provider:   Name,
-						Score:      int32(100 - k),
-						Type:       0,
-					}
-
-					if query != "" {
-						score, pos, start := common.FuzzyScore(query, v.Name, exact)
-
-						e.Score = score
-						e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
-							Field:     "text",
-							Positions: pos,
-							Start:     start,
-						}
-					}
-
-					var usageScore int32
-					if config.History {
-						if e.Score > config.MinScore || query == "" && config.HistoryWhenEmpty {
-							usageScore = h.CalcUsageScore(query, e.Identifier)
-
-							if usageScore != 0 {
-								e.State = append(e.State, "history")
-								e.Actions = append(e.Actions, history.ActionDelete)
-							}
-
-							e.Score = e.Score + usageScore
-						}
-					}
-
-					if e.Score > config.MinScore || query == "" {
-						entries = append(entries, e)
-					}
-				}
-			}
-
-			if len(entries) == 0 || !single {
-				for k, v := range config.Engines {
-					if v.Default || (prefix != "" && v.Prefix == prefix) {
-						icon := v.Icon
-						if icon == "" {
-							icon = config.Icon
-						}
-
-						e := &pb.QueryResponse_Item{
-							Identifier: strconv.Itoa(k),
-							Text:       v.Name,
-							Subtext:    "",
-							Actions:    []string{"search"},
-							Icon:       icon,
-							Provider:   Name,
-							Score:      int32(15 - k),
-							Type:       0,
-						}
-
-						entries = append(entries, e)
-					}
-				}
-			}
-		}
-	}
-
-	return entries
 }
 
 func Icon() string {
