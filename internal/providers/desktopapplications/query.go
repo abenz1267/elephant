@@ -205,6 +205,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 				}
 
 				var usageScore int32
+
 				if config.History {
 					if score > config.MinScore || query == "" && config.HistoryWhenEmpty {
 						usageScore = h.CalcUsageScore(query, identifier)
