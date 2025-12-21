@@ -21,6 +21,7 @@ var (
 	Name       = "bluetooth"
 	NamePretty = "Bluetooth"
 	find       = false
+	on         = true
 )
 
 //go:embed README.md
@@ -59,6 +60,8 @@ func Setup() {
 		NamePretty = config.NamePretty
 	}
 
+	checkPowerState()
+
 	slog.Info(Name, "loaded", time.Since(start))
 }
 
@@ -80,6 +83,8 @@ func PrintDoc() {
 }
 
 const (
+	ActionPowerOff   = "power_off"
+	ActionPowerOn    = "power_on"
 	ActionDisconnect = "disconnect"
 	ActionConnect    = "connect"
 	ActionRemove     = "remove"
@@ -88,6 +93,28 @@ const (
 	ActionUntrust    = "untrust"
 	ActionFind       = "find"
 )
+
+func checkPowerState() error {
+	cmd := exec.Command("bluetoothctl", "show")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	for line := range strings.Lines(string(out)) {
+		if strings.Contains(line, "PowerState") {
+			if strings.Contains(line, "off") {
+				on = false
+			} else {
+				on = true
+			}
+
+			break
+		}
+	}
+
+	return nil
+}
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	cmd := exec.Command("bluetoothctl")
@@ -98,6 +125,12 @@ func Activate(single bool, identifier, action string, query string, args string,
 	connect := false
 
 	switch action {
+	case ActionPowerOn:
+		cmd.Args = append(cmd.Args, "power", "on")
+		handlers.ProviderUpdated <- "bluetooth:poweron"
+	case ActionPowerOff:
+		cmd.Args = append(cmd.Args, "power", "off")
+		handlers.ProviderUpdated <- "bluetooth:poweroff"
 	case ActionFind:
 		find = true
 		handlers.ProviderUpdated <- "bluetooth:find"
@@ -154,6 +187,11 @@ quit
 
 	slog.Debug(Name, "activate", out)
 
+	if action == ActionPowerOn || action == ActionPowerOff {
+		checkPowerState()
+		return
+	}
+
 	if added || removed {
 		for {
 			found := make(map[string]struct{})
@@ -206,6 +244,10 @@ quit
 func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
+
+	if !on {
+		return entries
+	}
 
 	getDevices()
 
@@ -275,15 +317,23 @@ func HideFromProviderlist() bool {
 }
 
 func State(provider string) *pb.ProviderStateResponse {
-	if !find {
-		return &pb.ProviderStateResponse{
-			States:   []string{},
-			Actions:  []string{ActionFind},
-			Provider: "",
+	actions := []string{}
+
+	if on {
+		actions = append(actions, ActionPowerOff)
+
+		if !find {
+			actions = append(actions, ActionFind)
 		}
+	} else {
+		actions = append(actions, ActionPowerOn)
 	}
 
-	return &pb.ProviderStateResponse{}
+	return &pb.ProviderStateResponse{
+		States:   []string{},
+		Actions:  actions,
+		Provider: "",
+	}
 }
 
 func getDevices() {
