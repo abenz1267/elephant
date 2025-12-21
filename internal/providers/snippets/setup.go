@@ -106,6 +106,8 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		}
 
 		if query != "" {
+			e.Score = 0
+
 			score, positions, start, found := calcScore(query, v, exact)
 
 			if found {
