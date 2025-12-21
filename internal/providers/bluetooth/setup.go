@@ -35,6 +35,7 @@ type Device struct {
 	Name      string
 	Mac       string
 	Icon      string
+	Battery   string
 	Paired    bool
 	Trusted   bool
 	Connected bool
@@ -276,13 +277,19 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			a = append(a, ActionPair)
 		}
 
+		t := v.Name
+
+		if v.Battery != "" {
+			t = fmt.Sprintf("%s (%s)", t, v.Battery)
+		}
+
 		e := &pb.QueryResponse_Item{
 			Identifier: v.Mac,
 			Score:      1000 - int32(k),
 			State:      s,
 			Actions:    a,
 			Icon:       v.Icon,
-			Text:       v.Name,
+			Text:       t,
 			Subtext:    v.Mac,
 			Provider:   Name,
 			Type:       pb.QueryResponse_REGULAR,
@@ -412,6 +419,12 @@ func getDevices() {
 					if strings.Contains(l, "yes") {
 						d.Trusted = true
 					}
+				}
+
+				if strings.HasPrefix(strings.TrimSpace(l), "Battery Percentage") {
+					d.Battery = strings.Fields(strings.Split(l, ":")[1])[1]
+					d.Battery = strings.ReplaceAll(d.Battery, "(", "")
+					d.Battery = strings.ReplaceAll(d.Battery, ")", "%")
 				}
 			}
 
