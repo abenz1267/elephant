@@ -13,7 +13,7 @@ func init() {
 }
 
 func FuzzyScore(input, target string, exact bool) (int32, []int32, int32) {
-	runes := []rune(input)
+	runes := algo.NormalizeRunes([]rune(input))
 	chars := util.ToChars([]byte(target))
 
 	var res algo.Result
@@ -38,7 +38,9 @@ func FuzzyScore(input, target string, exact bool) (int32, []int32, int32) {
 		int32Slice = make([]int32, 0)
 	}
 
-	res.Score = res.Score - res.Start
+	if res.Start > -1 {
+		res.Score = res.Score - res.Start
+	}
 
 	return int32(res.Score), int32Slice, int32(res.Start)
 }
