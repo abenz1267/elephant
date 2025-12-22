@@ -329,7 +329,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 			if len(entries) == 0 || !single {
 				for k, v := range config.Engines {
-					if v.Default || (prefix != "" && v.Prefix == prefix) {
+					if (prefix == "" && v.Default) || (v.Prefix == prefix) {
 						icon := v.Icon
 						if icon == "" {
 							icon = config.Icon
