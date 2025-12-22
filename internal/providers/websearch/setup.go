@@ -100,17 +100,16 @@ func Setup() {
 	handlers.WebsearchAlwaysShow = config.AlwaysShowDefault
 
 	if len(config.Engines) == 0 {
-		config.Engines =
-			append(config.Engines,
-				Engine{
-					Name:    "Google",
-					Default: true,
-					URL:     "https://www.google.com/search?q=%TERM%",
-					// TODO: Enable suggestion by default after async additions have been added
-					//// SuggestionsURL:  "https://suggestqueries.google.com/complete/search?client=firefox&q=%TERM%",
-					//// SuggestionsPath: "1",
-				},
-			)
+		config.Engines = append(config.Engines,
+			Engine{
+				Name:    "Google",
+				Default: true,
+				URL:     "https://www.google.com/search?q=%TERM%",
+				// TODO: Enable suggestion by default after async additions have been added
+				//// SuggestionsURL:  "https://suggestqueries.google.com/complete/search?client=firefox&q=%TERM%",
+				//// SuggestionsPath: "1",
+			},
+		)
 	}
 
 	if len(config.Engines) == 1 {
@@ -152,25 +151,17 @@ func hashSuggestionIdentifier(content, engineIdentifier string) string {
 }
 
 func splitEnginePrefix(query string) (string, string) {
-	prefix := ""
-	found := false
 	for _, engine := range config.Engines {
-		if engine.Prefix != "" && strings.HasPrefix(query, engine.Prefix) {
-			prefix = engine.Prefix
-			query = strings.TrimPrefix(query, prefix)
-			found = true
-			break
+		if after, found := strings.CutPrefix(query, engine.Prefix); engine.Prefix != "" && found {
+			return engine.Prefix, strings.TrimSpace(after)
 		}
 	}
 
-	if !found && strings.HasPrefix(query, config.EngineFinderPrefix) {
-		prefix = config.EngineFinderPrefix
-		query = strings.TrimPrefix(query, config.EngineFinderPrefix)
+	if after, found := strings.CutPrefix(query, config.EngineFinderPrefix); config.EngineFinderPrefix != "" && found {
+		return config.EngineFinderPrefix, strings.TrimSpace(after)
 	}
 
-	query = strings.TrimSpace(query)
-
-	return prefix, query
+	return "", query
 }
 
 func Available() bool {
