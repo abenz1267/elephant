@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/abenz1267/elephant/pkg/common"
 	"github.com/go-git/go-git/v6"
 )
 
@@ -35,7 +34,7 @@ func SetupGit(provider string, cfg Gittable) {
 
 	x := 0
 	base := filepath.Base(cfg.URL())
-	folder := common.CacheFile(base)
+	folder := CacheFile(base)
 	var w *git.Worktree
 	var r *git.Repository
 	var pull bool
@@ -49,7 +48,7 @@ func SetupGit(provider string, cfg Gittable) {
 			slog.Info(provider, "gitsetup", "trying to setup git...")
 
 			// clone
-			if !common.FileExists(folder) {
+			if !FileExists(folder) {
 				var err error
 
 				url := cfg.URL()
