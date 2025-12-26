@@ -33,12 +33,31 @@ func init() {
 
 func Query(data string, async, j bool) {
 	v := strings.Split(data, ";")
-	maxresults, _ := strconv.Atoi(v[2])
+	if len(v) < 3 || len(v) > 4 {
+		fmt.Fprintln(os.Stderr, "query expects '<providers>;<query>;<limit>[;exactsearch]'")
+		return
+	}
+
+	maxresults, err := strconv.Atoi(v[2])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "query: invalid limit %q: %v\n", v[2], err)
+		return
+	}
+
+	exact := false
+	if len(v) > 3 {
+		exact, err = strconv.ParseBool(v[3])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "query: invalid exactsearch flag %q: %v\n", v[3], err)
+			return
+		}
+	}
 
 	req := pb.QueryRequest{
-		Providers:  strings.Split(v[0], ","),
-		Query:      v[1],
-		Maxresults: int32(maxresults),
+		Providers:   strings.Split(v[0], ","),
+		Query:       v[1],
+		Maxresults:  int32(maxresults),
+		Exactsearch: exact,
 	}
 
 	b, err := json.Marshal(&req)
