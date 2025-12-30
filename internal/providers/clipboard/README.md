@@ -8,6 +8,7 @@ Store clipboard history.
 - filter to show images only
 - edit saved content
 - localsend support
+- pin items
 
 #### Requirements
 

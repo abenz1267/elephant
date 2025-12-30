@@ -66,6 +66,7 @@ type Item struct {
 	Img     string
 	Time    time.Time
 	State   string
+	Pinned  bool
 }
 
 type Config struct {
@@ -519,6 +520,8 @@ func PrintDoc() {
 
 const (
 	ActionPause      = "pause"
+	ActionPin        = "pin"
+	ActionUnpin      = "unpin"
 	ActionLocalsend  = "localsend"
 	ActionUnpause    = "unpause"
 	ActionCopy       = "copy"
@@ -684,9 +687,36 @@ func Activate(single bool, identifier, action string, query string, args string,
 		}
 
 		mu.Unlock()
+	case ActionUnpin:
+		mu.Lock()
+
+		if val, ok := clipboardhistory[identifier]; ok {
+			val.Pinned = false
+
+			saveToFile()
+		}
+
+		mu.Unlock()
+	case ActionPin:
+		mu.Lock()
+
+		if val, ok := clipboardhistory[identifier]; ok {
+			val.Pinned = true
+
+			saveToFile()
+		}
+
+		mu.Unlock()
 	case ActionRemoveAll:
 		mu.Lock()
-		clipboardhistory = make(map[string]*Item)
+
+		for k, v := range clipboardhistory {
+			if v.Pinned {
+				continue
+			}
+
+			delete(clipboardhistory, k)
+		}
 
 		saveToFile()
 		cleanupImages()
@@ -737,8 +767,20 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 
 		actions := []string{ActionCopy, ActionEdit, ActionRemove}
 
+		if v.Pinned {
+			actions = append(actions, ActionUnpin)
+		} else {
+			actions = append(actions, ActionPin)
+		}
+
 		if hasLocalsend {
 			actions = append(actions, ActionLocalsend)
+		}
+
+		state := []string{}
+
+		if v.Pinned {
+			state = append(state, "pinned")
 		}
 
 		e := &pb.QueryResponse_Item{
@@ -746,6 +788,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			Text:       v.Content,
 			Subtext:    v.Time.Format(time.RFC1123Z),
 			Type:       pb.QueryResponse_REGULAR,
+			State:      state,
 			Actions:    actions,
 			Provider:   Name,
 		}
@@ -784,8 +827,12 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			return ta.Compare(tb) * -1
 		})
 
-		for k := range entries {
-			entries[k].Score = int32(10000 - k)
+		for k, v := range entries {
+			if slices.Contains(v.State, "pinned") {
+				entries[k].Score = int32(1_000_000_000 - k)
+			} else {
+				entries[k].Score = int32(1_000_000 - k)
+			}
 		}
 	}
 
