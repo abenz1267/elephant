@@ -34,9 +34,10 @@ var (
 var readme string
 
 const (
-	ActionCopy   = "copy"
-	ActionSave   = "save"
-	ActionDelete = "delete"
+	ActionCopy      = "copy"
+	ActionSave      = "save"
+	ActionDelete    = "delete"
+	ActionDeleteAll = "delete_all"
 )
 
 type Config struct {
@@ -149,6 +150,10 @@ func Activate(single bool, identifier, action string, query string, args string,
 		}
 	case ActionSave:
 		saveToHistory(query, result)
+	case ActionDeleteAll:
+		history = []HistoryItem{}
+
+		saveHist()
 	case ActionDelete:
 		i := 0
 
@@ -337,5 +342,13 @@ func HideFromProviderlist() bool {
 }
 
 func State(provider string) *pb.ProviderStateResponse {
-	return &pb.ProviderStateResponse{}
+	actions := []string{}
+
+	if len(history) > 0 {
+		actions = append(actions, ActionDeleteAll)
+	}
+
+	return &pb.ProviderStateResponse{
+		Actions: actions,
+	}
 }
