@@ -40,6 +40,8 @@ var (
 	mu               sync.Mutex
 	currentMode      = Combined
 	nextMode         = ActionImagesOnly
+	hasImg           = false
+	hasText          = false
 	hasLocalsend     bool
 )
 
@@ -119,6 +121,14 @@ func Setup() {
 
 	if config.AutoCleanup != 0 {
 		go cleanup()
+	}
+
+	for _, v := range clipboardhistory {
+		if v.Img != "" {
+			hasImg = true
+		} else {
+			hasText = true
+		}
 	}
 
 	slog.Info(Name, "history", len(clipboardhistory), "time", time.Since(start))
@@ -313,6 +323,7 @@ func handleChange() {
 		if texterr == nil {
 			mu.Lock()
 			updateText(text)
+			hasText = true
 			mu.Unlock()
 			continue
 		}
@@ -321,6 +332,7 @@ func handleChange() {
 		if imgerr == nil {
 			mu.Lock()
 			updateImage(img)
+			hasImg = true
 			mu.Unlock()
 			continue
 		}
@@ -647,6 +659,27 @@ func Activate(single bool, identifier, action string, query string, args string,
 
 			delete(clipboardhistory, identifier)
 
+			hasText = false
+			hasImg = false
+
+			if len(clipboardhistory) != 0 {
+				for _, v := range clipboardhistory {
+					if v.Img != "" {
+						hasImg = true
+					} else {
+						hasText = true
+					}
+				}
+
+				if currentMode == ImagesOnly && !hasImg {
+					currentMode = Combined
+				}
+
+				if currentMode == TextOnly && !hasText {
+					currentMode = Combined
+				}
+			}
+
 			saveToFile()
 		}
 
@@ -657,6 +690,9 @@ func Activate(single bool, identifier, action string, query string, args string,
 
 		saveToFile()
 		cleanupImages()
+		hasImg = false
+		hasText = false
+		currentMode = Combined
 		mu.Unlock()
 	case ActionCopy:
 		cmd := exec.Command("sh", "-c", config.Command)
@@ -779,7 +815,17 @@ func HideFromProviderlist() bool {
 
 func State(provider string) *pb.ProviderStateResponse {
 	states := []string{currentMode}
-	actions := []string{nextMode}
+	actions := []string{}
+
+	if hasImg && hasText {
+		actions = append(actions, nextMode)
+	}
+
+	if len(clipboardhistory) == 0 {
+		actions = []string{}
+	} else {
+		actions = append(actions, ActionRemoveAll)
+	}
 
 	if paused {
 		states = append(states, "paused")
@@ -787,10 +833,6 @@ func State(provider string) *pb.ProviderStateResponse {
 	} else {
 		states = append(states, "unpaused")
 		actions = append(actions, ActionPause)
-	}
-
-	if len(clipboardhistory) > 0 {
-		actions = append(actions, ActionRemoveAll)
 	}
 
 	return &pb.ProviderStateResponse{
