@@ -363,10 +363,6 @@ func runBeforeCommands() {
 			}
 
 			slog.Error("elephant", "before_load", string(out))
-
-			time.Sleep(1 * time.Second)
 		}
 	}
-
-	time.Sleep(1 * time.Second)
 }
