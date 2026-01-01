@@ -180,7 +180,7 @@ WantedBy=graphical-session.target
 						Name:        "async",
 						Category:    "",
 						DefaultText: "run async, close manually",
-						Usage:       "use to not close after querying, in case of async querying.",
+						Usage:       "Don't close after querying, in case of async querying.",
 					},
 					&cli.BoolFlag{
 						Name:        "json",
