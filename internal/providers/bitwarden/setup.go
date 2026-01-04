@@ -23,12 +23,12 @@ var (
 
 type Config struct {
 	common.Config   `koanf:",squash"`
-	ClearAfter      int    `koanf:"clear_after" desc:"clipboard will be cleared after X seconds. 0 to disable." default:5`
+	ClearAfter      int    `koanf:"clear_after" desc:"clipboard will be cleared after X seconds. 0 to disable." default:"5"`
 	CopyCommand     string `koanf:"copy_command" desc:"clipboard copy command to be executed. supports %VALUE%." default:"wl-copy --"`
 	ClearCommand    string `koanf:"clear_command" desc:"clipboard clear command to be executed." default:"wl-copy --clear"`
 	AutoTypeSupport bool   `koanf:"autotype_support" desc:"enable autotype support" default:"false"`
-	AutoTypeCommand string `koanf:"autotype_command" desc:"copy command to be executed. supports %VALUE%." default:"ydotool type -- %VALUE%"`
-	AutoTypeDelay   int    `koanf:"autotype_delay" desc:"delay autotype for X milliseconds. 0 to disable." default:500`
+	AutoTypeCommand string `koanf:"autotype_command" desc:"copy command to be executed. supports %VALUE%." default:"wtype -- %VALUE%"`
+	AutoTypeDelay   int    `koanf:"autotype_delay" desc:"delay autotype for X milliseconds. 0 to disable." default:"500"`
 }
 
 func Setup() {
@@ -41,7 +41,7 @@ func Setup() {
 		CopyCommand:     "wl-copy --",
 		ClearCommand:    "wl-copy --clear",
 		AutoTypeSupport: false,
-		AutoTypeCommand: "ydotool type -- %VALUE%",
+		AutoTypeCommand: "wtype -- %VALUE%",
 		AutoTypeDelay:   500,
 	}
 
