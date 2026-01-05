@@ -40,6 +40,7 @@ func GetTerminal() string {
 	}
 
 	t := []string{
+		"xdg-terminal-exec",
 		"kitty",
 		"foot",
 		"ghostty",

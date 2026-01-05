@@ -33,6 +33,7 @@ var (
 	queries                          = make(map[uint32]context.CancelFunc)
 	queryMutex                       sync.Mutex
 	MaxGlobalItemsToDisplayWebsearch = 0
+	WebsearchAlwaysShow              = false
 	WebsearchPrefixes                = make(map[string]string)
 	qid                              atomic.Uint32
 )
@@ -179,7 +180,7 @@ func (h *QueryRequest) Handle(format uint8, cid uint32, conn net.Conn, data []by
 		entries = entries[:req.Maxresults]
 	}
 
-	hideWebsearch := len(req.Providers) > 1 && len(entries) > MaxGlobalItemsToDisplayWebsearch
+	hideWebsearch := (len(req.Providers) > 1 && len(entries) > MaxGlobalItemsToDisplayWebsearch) && !WebsearchAlwaysShow
 
 	for _, v := range entries {
 		if isCncld() {

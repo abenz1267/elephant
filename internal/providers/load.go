@@ -38,6 +38,11 @@ type Provider struct {
 var (
 	Providers      map[string]Provider
 	QueryProviders map[uint32][]string
+	libDirs        = []string{
+		"/usr/lib/elephant",
+		"/usr/local/lib/elephant",
+		"/lib/elephant",
+	}
 )
 
 func Load(setup bool) {
@@ -46,7 +51,14 @@ func Load(setup bool) {
 
 	var mut sync.Mutex
 	have := []string{}
-	dirs := append(common.ConfigDirs(), os.Getenv("ELEPHANT_PROVIDER_DIR"))
+	dirs := libDirs
+	env := os.Getenv("ELEPHANT_PROVIDER_DIR")
+
+	if env != "" {
+		dirs = []string{env}
+	} else {
+		dirs = append(dirs, common.ConfigDirs()...)
+	}
 
 	Providers = make(map[string]Provider)
 	QueryProviders = make(map[uint32][]string)

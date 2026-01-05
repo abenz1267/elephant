@@ -188,9 +188,10 @@ func pinItem(identifier string) {
 
 func appHasWindow(f *DesktopFile) (wl.ProxyId, bool) {
 	w := wlr.Windows()
+	bin := strings.Fields(f.Exec)[0]
 
 	for k, v := range w {
-		if v.AppID == f.StartupWMClass || v.AppID == f.Icon || v.AppID == strings.Fields(f.Exec)[0] {
+		if v.AppID == f.StartupWMClass || v.AppID == f.Icon || v.AppID == bin || v.Title == bin {
 			return k, true
 		}
 	}

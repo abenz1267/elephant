@@ -2,8 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/abenz1267/elephant/v2/pkg/common"
@@ -15,13 +17,22 @@ var db *sql.DB
 func openDB() error {
 	path := common.CacheFile("files.db")
 	os.Remove(path)
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create cache dir: %v", err)
+	}
+
 	os.Create(path)
+
+	for !common.FileExists(path) {
+		time.Sleep(time.Millisecond * 10)
+	}
 
 	var err error
 
 	db, err = sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory")
 	if err != nil {
-		return err
+		return fmt.Errorf("sql open: %v", err)
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS files (
@@ -30,18 +41,18 @@ func openDB() error {
 		changed INTEGER
 	)`)
 	if err != nil {
-		return err
+		return fmt.Errorf("sql create table: %v", err)
 	}
 
 	// Create indexes for query performance
 	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_files_path ON files(path)`)
 	if err != nil {
-		return err
+		return fmt.Errorf("sql create index path: %v", err)
 	}
 
 	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_files_changed ON files(changed DESC)`)
 	if err != nil {
-		return err
+		return fmt.Errorf("sql create index changed: %v", err)
 	}
 
 	return nil
@@ -72,6 +83,13 @@ func putFileBatch(files []File) error {
 	}
 
 	return tx.Commit()
+}
+
+func dropAll() {
+	_, err := db.Exec("DELETE FROM files")
+	if err != nil {
+		slog.Error(Name, "delete", err)
+	}
 }
 
 func putFile(f File) {

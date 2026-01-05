@@ -33,13 +33,14 @@ var (
 var readme string
 
 type Config struct {
-	common.Config    `koanf:",squash"`
-	Engines          []Engine `koanf:"entries" desc:"entries" default:"google"`
-	History          bool     `koanf:"history" desc:"make use of history for sorting" default:"true"`
-	HistoryWhenEmpty bool     `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
-	EnginesAsActions bool     `koanf:"engines_as_actions" desc:"run engines as actions" default:"true"`
-	TextPrefix       string   `koanf:"text_prefix" desc:"prefix for the entry text" default:"Search: "`
-	Command          string   `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"xdg-open"`
+	common.Config     `koanf:",squash"`
+	Engines           []Engine `koanf:"entries" desc:"entries" default:"google"`
+	History           bool     `koanf:"history" desc:"make use of history for sorting" default:"true"`
+	HistoryWhenEmpty  bool     `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
+	EnginesAsActions  bool     `koanf:"engines_as_actions" desc:"run engines as actions" default:"true"`
+	AlwaysShowDefault bool     `koanf:"always_show_default" desc:"always show the default search engine when queried" default:"true"`
+	TextPrefix        string   `koanf:"text_prefix" desc:"prefix for the entry text" default:"Search: "`
+	Command           string   `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"xdg-open"`
 }
 
 type Engine struct {
@@ -56,11 +57,12 @@ func Setup() {
 			Icon:     "applications-internet",
 			MinScore: 20,
 		},
-		History:          true,
-		HistoryWhenEmpty: false,
-		EnginesAsActions: false,
-		TextPrefix:       "Search: ",
-		Command:          "xdg-open",
+		History:           true,
+		HistoryWhenEmpty:  false,
+		EnginesAsActions:  false,
+		TextPrefix:        "Search: ",
+		Command:           "xdg-open",
+		AlwaysShowDefault: true,
 	}
 
 	common.LoadConfig(Name, config)
@@ -80,6 +82,8 @@ func Setup() {
 	if len(config.Engines) == 1 {
 		config.Engines[0].Default = true
 	}
+
+	handlers.WebsearchAlwaysShow = config.AlwaysShowDefault
 
 	for k, v := range config.Engines {
 		if v.Default {
@@ -115,10 +119,28 @@ func PrintDoc() {
 	util.PrintConfig(Config{}, Name)
 }
 
-const ActionSearch = "search"
+const (
+	ActionSearch  = "search"
+	ActionOpenURL = "open_url"
+)
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
+	case ActionOpenURL:
+		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s xdg-open %s", common.LaunchPrefix(""), shellescape.Quote(fmt.Sprintf("https://%s", query)))))
+
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Setsid: true,
+		}
+
+		err := cmd.Start()
+		if err != nil {
+			slog.Error(Name, "activate", err)
+		} else {
+			go func() {
+				cmd.Wait()
+			}()
+		}
 	case history.ActionDelete:
 		h.Remove(identifier)
 		return
@@ -217,77 +239,42 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		}
 	}
 
-	if config.EnginesAsActions {
-		a := []string{}
-
-		for _, v := range config.Engines {
-			a = append(a, v.Name)
-		}
-
-		e := &pb.QueryResponse_Item{
-			Identifier: "websearch",
-			Text:       fmt.Sprintf("%s%s", config.TextPrefix, query),
-			Actions:    a,
-			Icon:       Icon(),
-			Provider:   Name,
-			Score:      int32(100),
-			Type:       0,
-		}
-
-		entries = append(entries, e)
-	} else {
-		if single {
-			for k, v := range config.Engines {
-				icon := v.Icon
-				if icon == "" {
-					icon = config.Icon
-				}
-
-				e := &pb.QueryResponse_Item{
-					Identifier: strconv.Itoa(k),
-					Text:       v.Name,
-					Subtext:    "",
-					Actions:    []string{"search"},
-					Icon:       icon,
-					Provider:   Name,
-					Score:      int32(100 - k),
-					Type:       0,
-				}
-
-				if query != "" {
-					score, pos, start := common.FuzzyScore(query, v.Name, exact)
-
-					e.Score = score
-					e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
-						Field:     "text",
-						Positions: pos,
-						Start:     start,
-					}
-				}
-
-				var usageScore int32
-				if config.History {
-					if e.Score > config.MinScore || query == "" && config.HistoryWhenEmpty {
-						usageScore = h.CalcUsageScore(query, e.Identifier)
-
-						if usageScore != 0 {
-							e.State = append(e.State, "history")
-							e.Actions = append(e.Actions, history.ActionDelete)
-						}
-
-						e.Score = e.Score + usageScore
-					}
-				}
-
-				if e.Score > config.MinScore || query == "" {
-					entries = append(entries, e)
-				}
+	if strings.Contains(query, ".") && !strings.HasSuffix(query, ".") {
+		_, err := url.ParseRequestURI(fmt.Sprintf("https://%s", query))
+		if err == nil {
+			e := &pb.QueryResponse_Item{
+				Identifier: "websearch",
+				Text:       fmt.Sprintf("Open: %s", query),
+				Actions:    []string{ActionOpenURL},
+				Icon:       Icon(),
+				Provider:   Name,
+				Score:      1000000,
 			}
-		}
 
-		if len(entries) == 0 || !single {
-			for k, v := range config.Engines {
-				if v.Default || (prefix != "" && v.Prefix == prefix) {
+			entries = append(entries, e)
+		}
+	} else {
+		if config.EnginesAsActions {
+			a := []string{}
+
+			for _, v := range config.Engines {
+				a = append(a, v.Name)
+			}
+
+			e := &pb.QueryResponse_Item{
+				Identifier: "websearch",
+				Text:       fmt.Sprintf("%s%s", config.TextPrefix, query),
+				Actions:    a,
+				Icon:       Icon(),
+				Provider:   Name,
+				Score:      1,
+				Type:       0,
+			}
+
+			entries = append(entries, e)
+		} else {
+			if single {
+				for k, v := range config.Engines {
 					icon := v.Icon
 					if icon == "" {
 						icon = config.Icon
@@ -304,7 +291,58 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 						Type:       0,
 					}
 
-					entries = append(entries, e)
+					if query != "" {
+						score, pos, start := common.FuzzyScore(query, v.Name, exact)
+
+						e.Score = score
+						e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
+							Field:     "text",
+							Positions: pos,
+							Start:     start,
+						}
+					}
+
+					var usageScore int32
+					if config.History {
+						if e.Score > config.MinScore || query == "" && config.HistoryWhenEmpty {
+							usageScore = h.CalcUsageScore(query, e.Identifier)
+
+							if usageScore != 0 {
+								e.State = append(e.State, "history")
+								e.Actions = append(e.Actions, history.ActionDelete)
+							}
+
+							e.Score = e.Score + usageScore
+						}
+					}
+
+					if e.Score > config.MinScore || query == "" {
+						entries = append(entries, e)
+					}
+				}
+			}
+
+			if len(entries) == 0 || !single {
+				for k, v := range config.Engines {
+					if v.Default || (prefix != "" && v.Prefix == prefix) {
+						icon := v.Icon
+						if icon == "" {
+							icon = config.Icon
+						}
+
+						e := &pb.QueryResponse_Item{
+							Identifier: strconv.Itoa(k),
+							Text:       v.Name,
+							Subtext:    "",
+							Actions:    []string{"search"},
+							Icon:       icon,
+							Provider:   Name,
+							Score:      int32(15 - k),
+							Type:       0,
+						}
+
+						entries = append(entries, e)
+					}
 				}
 			}
 		}
