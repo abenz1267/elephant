@@ -1,4 +1,4 @@
-package main
+package bookmarks
 
 import (
 	_ "embed"
@@ -15,6 +15,7 @@ import (
 
 	"al.essio.dev/pkg/shellescape"
 	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
+	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/common/history"
@@ -811,4 +812,19 @@ func calcScore(q string, d Bookmark, exact bool) (string, int32, []int32, int32,
 	scoreRes = max(scoreRes-min(modifier*5, 50)-startRes, 10)
 
 	return match, scoreRes, posRes, startRes, true
+}
+
+func init() {
+	providers.Register(providers.Provider{
+		Name:                 &Name,
+		NamePretty:           &NamePretty,
+		Available:            Available,
+		PrintDoc:             PrintDoc,
+		State:                State,
+		Setup:                Setup,
+		HideFromProviderlist: HideFromProviderlist,
+		Icon:                 Icon,
+		Activate:             Activate,
+		Query:                Query,
+	})
 }

@@ -1,5 +1,5 @@
 // Package windows provides window focusing.
-package main
+package windows
 
 import (
 	"fmt"
@@ -15,6 +15,7 @@ import (
 
 	_ "embed"
 
+	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/common/wlr"
@@ -247,4 +248,19 @@ func walkFunction(path string, d fs.DirEntry, err error) error {
 	}
 
 	return err
+}
+
+func init() {
+	providers.Register(providers.Provider{
+		Name:                 &Name,
+		NamePretty:           &NamePretty,
+		Available:            Available,
+		PrintDoc:             PrintDoc,
+		State:                State,
+		Setup:                Setup,
+		HideFromProviderlist: HideFromProviderlist,
+		Icon:                 Icon,
+		Activate:             Activate,
+		Query:                Query,
+	})
 }

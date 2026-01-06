@@ -1,4 +1,4 @@
-package main
+package desktopapplications
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/common/history"
 	"github.com/abenz1267/elephant/v2/pkg/common/wlr"
@@ -162,4 +163,19 @@ func HideFromProviderlist() bool {
 
 func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
+}
+
+func init() {
+	providers.Register(providers.Provider{
+		Name:                 &Name,
+		NamePretty:           &NamePretty,
+		Available:            Available,
+		PrintDoc:             PrintDoc,
+		State:                State,
+		Setup:                Setup,
+		HideFromProviderlist: HideFromProviderlist,
+		Icon:                 Icon,
+		Activate:             Activate,
+		Query:                Query,
+	})
 }

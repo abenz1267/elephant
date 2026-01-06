@@ -13,7 +13,7 @@ import (
 
 func GenerateDoc(provider string) {
 	provider = strings.ToLower(provider)
-	
+
 	if provider == "" || provider == "elephant" {
 		fmt.Println("# Elephant")
 
@@ -29,7 +29,7 @@ func GenerateDoc(provider string) {
 	if provider == "" {
 		fmt.Println("## Provider Configuration")
 	}
-	
+
 	p := []providers.Provider{}
 
 	for _, v := range providers.Providers {
@@ -42,7 +42,7 @@ func GenerateDoc(provider string) {
 
 	for _, v := range p {
 		if provider == "" || provider == strings.ToLower(*v.Name) || provider == strings.ToLower(*v.NamePretty) {
-			v.PrintDoc()	
+			v.PrintDoc()
 		}
 	}
 }

@@ -1,4 +1,4 @@
-package main
+package calc
 
 import (
 	"bytes"
@@ -19,6 +19,7 @@ import (
 	_ "embed"
 
 	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
+	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
@@ -351,4 +352,19 @@ func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{
 		Actions: actions,
 	}
+}
+
+func init() {
+	providers.Register(providers.Provider{
+		Name:                 &Name,
+		NamePretty:           &NamePretty,
+		Available:            Available,
+		PrintDoc:             PrintDoc,
+		State:                State,
+		Setup:                Setup,
+		HideFromProviderlist: HideFromProviderlist,
+		Icon:                 Icon,
+		Activate:             Activate,
+		Query:                Query,
+	})
 }

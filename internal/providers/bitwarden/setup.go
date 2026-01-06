@@ -1,4 +1,4 @@
-package main
+package bitwarden
 
 import (
 	_ "embed"
@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os/exec"
 
+	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
@@ -81,4 +82,19 @@ func HideFromProviderlist() bool {
 
 func Icon() string {
 	return config.Icon
+}
+
+func init() {
+	providers.Register(providers.Provider{
+		Name:                 &Name,
+		NamePretty:           &NamePretty,
+		Available:            Available,
+		PrintDoc:             PrintDoc,
+		State:                State,
+		Setup:                Setup,
+		HideFromProviderlist: HideFromProviderlist,
+		Icon:                 Icon,
+		Activate:             Activate,
+		Query:                Query,
+	})
 }

@@ -39,8 +39,8 @@ in {
 
     package = mkOption {
       type = types.package;
-      default = flake.packages.${pkgs.stdenv.system}.elephant-with-providers;
-      defaultText = literalExpression "flake.packages.\${pkgs.stdenv.system}.elephant-with-providers";
+      default = flake.packages.${pkgs.stdenv.system}.elephant;
+      defaultText = literalExpression "flake.packages.\${pkgs.stdenv.system}.elephant";
       description = "The elephant package to use.";
     };
 
@@ -222,20 +222,6 @@ in {
           };
         }
 
-        # Generate provider files
-        (builtins.listToAttrs
-          (map
-            (
-              provider:
-                lib.nameValuePair
-                "elephant/providers/${provider}.so"
-                {
-                  source = "${cfg.package}/lib/elephant/providers/${provider}.so";
-                  force = true; # Required since previous version used activation script
-                }
-            )
-            cfg.providers))
-
         # Generate provider configs
         (mapAttrs'
           (
@@ -289,14 +275,13 @@ in {
         Restart = "on-failure";
         RestartSec = 1;
 
+        RuntimeDirectory = "elephant";
+
         X-Restart-Triggers = [
           (builtins.hashString "sha256" (builtins.toJSON {
             inherit (cfg) settings providers provider debug;
           }))
         ];
-
-        # Clean up socket on stop
-        ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
       };
 
       Install = {

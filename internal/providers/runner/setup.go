@@ -1,5 +1,5 @@
 // Package runner provides access to binaries in $PATH.
-package main
+package runner
 
 import (
 	"crypto/md5"
@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/common/history"
@@ -270,4 +271,19 @@ func HideFromProviderlist() bool {
 
 func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
+}
+
+func init() {
+	providers.Register(providers.Provider{
+		Name:                 &Name,
+		NamePretty:           &NamePretty,
+		Available:            Available,
+		PrintDoc:             PrintDoc,
+		State:                State,
+		Setup:                Setup,
+		HideFromProviderlist: HideFromProviderlist,
+		Icon:                 Icon,
+		Activate:             Activate,
+		Query:                Query,
+	})
 }

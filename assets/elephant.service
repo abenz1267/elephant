@@ -6,6 +6,7 @@ After=graphical-session.target
 Type=simple
 ExecStart=elephant
 Restart=on-failure
+RuntimeDirectory=elephant
 
 [Install]
 WantedBy=graphical-session.target

@@ -1,4 +1,4 @@
-package main
+package symbols
 
 import (
 	"crypto/md5"

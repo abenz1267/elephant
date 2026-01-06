@@ -1,4 +1,4 @@
-package main
+package onepassword
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 
 	_ "embed"
 
+	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
@@ -21,6 +22,21 @@ var (
 	config      *Config
 	cachedItems []OpItem
 )
+
+func init() {
+	providers.Register(providers.Provider{
+		Name:                 &Name,
+		NamePretty:           &NamePretty,
+		Available:            Available,
+		PrintDoc:             PrintDoc,
+		State:                State,
+		Setup:                Setup,
+		HideFromProviderlist: HideFromProviderlist,
+		Icon:                 Icon,
+		Activate:             Activate,
+		Query:                Query,
+	})
+}
 
 //go:embed README.md
 var readme string

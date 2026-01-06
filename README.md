@@ -91,10 +91,6 @@ Elephant acts as a unified backend service that aggregates data from various sou
 
 ```
 yay -S elephant
-
-# Providers, f.e.
-
-yay -S elephant-desktopapplications
 ```
 
 ### Building from Source
@@ -104,17 +100,15 @@ yay -S elephant-desktopapplications
 git clone https://github.com/abenz1267/elephant
 cd elephant
 
-# Build and install the main binary
-cd cmd/elephant
-go install elephant.go
+# Prefetch dependencies (optional)
+go mod download
 
-# Create configuration directories
-mkdir -p ~/.config/elephant/providers
+# Build and install the binary
+go build
+mv elephant ~/go/bin/ # or any other directory in your PATH
 
-# Build and install a provider (example: desktop applications)
-cd ../../internal/providers/desktopapplications
-go build -buildmode=plugin
-cp desktopapplications.so ~/.config/elephant/providers/
+# Run tests
+go test ./...
 ```
 
 ## Usage
@@ -209,7 +203,7 @@ Elephant uses Unix domain sockets for IPC and Protocol Buffers for message seria
 
 To integrate with Elephant, your application needs to:
 
-1. Connect to the Unix socket (typically at `/tmp/elephant.sock`)
+1. Connect to the Unix socket (typically at `$XDG_RUNTIME_DIR/elephant/elephant.sock`, falling back to `/tmp/elephant/elephant.sock`)
 2. Send Protocol Buffer messages
 3. Handle responses and updates
 
@@ -221,11 +215,11 @@ See the `pkg/pb/` directory for Protocol Buffer definitions.
 
 ```
 elephant/
-├── cmd/                 # Main application entry point
+├── main.go            # Main application entry point
 ├── internal/
-│   ├── comm/           # Communication layer (Unix sockets, protobuf)
-│   ├── common/         # Shared utilities and configuration
-│   ├── providers/      # Data provider plugins
+│   ├── comm/          # Communication layer (Unix sockets, protobuf)
+│   ├── common/        # Shared utilities and configuration
+│   ├── providers/     # Data providers
 │   └── util/          # Helper utilities
 ├── pkg/pb/            # Protocol Buffer definitions
 └── flake.nix          # Nix development environment
@@ -233,24 +227,7 @@ elephant/
 
 ### Creating Custom Providers
 
-Providers are Go plugins that implement the provider interface. See existing providers in `internal/providers/` for examples.
-
-### Building from Source
-
-```bash
-# Clone repository
-git clone https://github.com/abenz1267/elephant
-cd elephant
-
-# Install dependencies
-go mod download
-
-# Build main binary
-go build -o elephant cmd/elephant.go
-
-# Run tests
-go test ./...
-```
+Providers are integrated into the binary. See existing providers in `internal/providers/` for examples.
 
 ### Development Environment
 

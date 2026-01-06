@@ -17,6 +17,7 @@ import (
 	"github.com/abenz1267/elephant/v2/internal/comm/client"
 	"github.com/abenz1267/elephant/v2/internal/install"
 	"github.com/abenz1267/elephant/v2/internal/providers"
+	_ "github.com/abenz1267/elephant/v2/internal/providers/all"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/adrg/xdg"
@@ -56,6 +57,7 @@ After=graphical-session.target
 Type=simple
 ExecStart=elephant
 Restart=on-failure
+RuntimeDirectory=elephant
 
 [Install]
 WantedBy=graphical-session.target

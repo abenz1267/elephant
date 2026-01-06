@@ -1,4 +1,4 @@
-package main
+package dnfpackages
 
 import (
 	"bufio"
@@ -12,37 +12,38 @@ import (
 
 	_ "embed"
 
+	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
 type PackageDetail struct {
-	Name string `json:"name,omitempty"`
-	Version string `json:"version,omitempty"`
-	Repo string `json:"repo,omitempty"`
-	Installed bool  `json:"installed,omitempty"`
-	URL string `json:"url,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	License string `json:"license,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Version   string `json:"version,omitempty"`
+	Repo      string `json:"repo,omitempty"`
+	Installed bool   `json:"installed,omitempty"`
+	URL       string `json:"url,omitempty"`
+	Summary   string `json:"summary,omitempty"`
+	License   string `json:"license,omitempty"`
 }
 
 var (
-	Name       = "dnfpackages"
-	NamePretty = "DNF Packages"
-	config     *Config
+	Name              = "dnfpackages"
+	NamePretty        = "DNF Packages"
+	config            *Config
 	installedPackages = map[string]PackageDetail{}
-	allPackages = map[string]PackageDetail{}
-	installedOnly = false
+	allPackages       = map[string]PackageDetail{}
+	installedOnly     = false
 )
 
 const (
-	ActionInstall  = "install"
-	ActionRemove   = "remove"
-	ActionRefresh  = "refresh"
+	ActionInstall       = "install"
+	ActionRemove        = "remove"
+	ActionRefresh       = "refresh"
 	ActionShowInstalled = "show_installed"
 	ActionShowAll       = "show_all"
-	ActionVisitURL = "visit_url"
+	ActionVisitURL      = "visit_url"
 )
 
 var readme string
@@ -54,14 +55,14 @@ type Config struct {
 func Setup() {
 	config = &Config{
 		Config: common.Config{
-			Icon: "system-software-install",
+			Icon:     "system-software-install",
 			MinScore: 20,
 		},
 	}
 
 	common.LoadConfig(Name, config)
 
-	if (config.NamePretty != "") { 
+	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
 	}
 
@@ -109,7 +110,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 
 	toRun := common.WrapWithTerminal(fmt.Sprintf("sudo /usr/bin/dnf %s %s", pkgcmd, identifier))
 	cmd := exec.Command("sh", "-c", toRun)
-	err := cmd.Start();
+	err := cmd.Start()
 	if err != nil {
 		slog.Error(Name, "activate", fmt.Sprintf("could not install package %s", err.Error()))
 	} else {
@@ -124,16 +125,16 @@ func refresh() {
 	refreshAllPackages()
 }
 
-func refreshPackages(refreshInstalledOnly bool) (map[string]PackageDetail,error) {
+func refreshPackages(refreshInstalledOnly bool) (map[string]PackageDetail, error) {
 	startTime := time.Now()
-	packages := map[string]PackageDetail{} 
+	packages := map[string]PackageDetail{}
 
 	cmd := exec.Command("/usr/bin/dnf", "repoquery", "--queryformat", "%{NAME}|%{FULL_NEVRA}|%{REPOID}|%{URL}|%{SUMMARY}|%{LICENSE}\n")
 	if refreshInstalledOnly {
 		cmd = exec.Command("/usr/bin/dnf", "repoquery", "--installed", "--queryformat", "%{NAME}|%{FULL_NEVRA}|%{FROM_REPO}|%{URL}|%{SUMMARY}|%{LICENSE}\n")
 	}
 
-	output, err := cmd.StdoutPipe();
+	output, err := cmd.StdoutPipe()
 
 	if err != nil {
 		slog.Error(Name, "could not fetch packages", err.Error())
@@ -158,14 +159,14 @@ func refreshPackages(refreshInstalledOnly bool) (map[string]PackageDetail,error)
 				}
 			}
 
-			entry := PackageDetail {
-				Name: fields[0],
-				Version: fields[1],
-				Repo: fields[2],
+			entry := PackageDetail{
+				Name:      fields[0],
+				Version:   fields[1],
+				Repo:      fields[2],
 				Installed: pkg_installed,
-				URL: fields[3],
-				Summary: fields[4],
-				License: fields[5],
+				URL:       fields[3],
+				Summary:   fields[4],
+				License:   fields[5],
 			}
 
 			packages[fields[0]] = entry
@@ -183,7 +184,6 @@ func refreshInstalledPackages() {
 func refreshAllPackages() {
 	allPackages, _ = refreshPackages(false)
 }
-
 
 func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	startTime := time.Now()
@@ -210,7 +210,6 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			subtext = p.Version
 		}
 
-
 		var buff strings.Builder
 		fmt.Fprintf(&buff, "%-*s: %s\n", 15, "Name", p.Name)
 		fmt.Fprintf(&buff, "%-*s: %s\n", 15, "Summary", p.Summary)
@@ -220,12 +219,12 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		fmt.Fprintf(&buff, "%-*s: %s\n", 15, "URL", p.URL)
 
 		entry := &pb.QueryResponse_Item{
-			Identifier: p.Name,
-			Text: p.Name,
-			Subtext: subtext,
-			Provider: Name,
-			Actions: actions,
-			Preview: buff.String(),
+			Identifier:  p.Name,
+			Text:        p.Name,
+			Subtext:     subtext,
+			Provider:    Name,
+			Actions:     actions,
+			Preview:     buff.String(),
 			PreviewType: util.PreviewTypeText,
 		}
 
@@ -234,8 +233,8 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 			entry.Score = score
 			entry.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
-				Start: start,
-				Field: "text",
+				Start:     start,
+				Field:     "text",
 				Positions: positions,
 			}
 		}
@@ -285,4 +284,19 @@ func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{
 		Actions: actions,
 	}
+}
+
+func init() {
+	providers.Register(providers.Provider{
+		Name:                 &Name,
+		NamePretty:           &NamePretty,
+		Available:            Available,
+		PrintDoc:             PrintDoc,
+		State:                State,
+		Setup:                Setup,
+		HideFromProviderlist: HideFromProviderlist,
+		Icon:                 Icon,
+		Activate:             Activate,
+		Query:                Query,
+	})
 }

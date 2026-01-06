@@ -1,4 +1,4 @@
-package main
+package archlinuxpkgs
 
 //go:generate msgp
 type CachedData struct {

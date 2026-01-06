@@ -38,8 +38,8 @@ in {
 
     package = mkOption {
       type = types.package;
-      default = flake.packages.${pkgs.stdenv.system}.elephant-with-providers;
-      defaultText = literalExpression "flake.packages.\${pkgs.stdenv.system}.elephant-with-providers";
+      default = flake.packages.${pkgs.stdenv.system}.elephant;
+      defaultText = literalExpression "flake.packages.\${pkgs.stdenv.system}.elephant";
       description = "The elephant package to use.";
     };
 
@@ -233,19 +233,6 @@ in {
           };
         }
 
-        # Generate provider files
-        (builtins.listToAttrs
-          (map
-            (
-              provider:
-                lib.nameValuePair
-                "xdg/elephant/providers/${provider}.so"
-                {
-                  source = "${cfg.package}/lib/elephant/providers/${provider}.so";
-                }
-            )
-            cfg.providers))
-
         # Generate provider configs
         (mapAttrs'
           (
@@ -298,6 +285,8 @@ in {
         Restart = "on-failure";
         RestartSec = 1;
 
+        RuntimeDirectory = "elephant";
+
         # Security settings
         NoNewPrivileges = true;
         PrivateTmp = true;
@@ -307,9 +296,6 @@ in {
           "/var/lib/elephant"
           "/tmp"
         ];
-
-        # Clean up socket on stop
-        ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
       };
 
       environment = {
