@@ -223,13 +223,13 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 				a = append(a, ActionTrust)
 			}
 
-				if v.Connected {
-					a = append(a, ActionDisconnect)
-				} else {
-					s = append(s, "disconnected")
-					a = append(a, ActionRemove, ActionConnect)
-				}
-			
+			if v.Connected {
+				s = append(s, "connected")
+				a = append(a, ActionDisconnect)
+			} else {
+				s = append(s, "disconnected")
+				a = append(a, ActionRemove, ActionConnect)
+			}
 		} else {
 			s = append(s, "unpaired")
 			a = append(a, ActionPair)
