@@ -24,4 +24,5 @@ Not yet supported types:
 #### Requirements
 
 With default configuration:
-- `rbw`, `wl-clipboard` and `ydotool` installed
+
+- `rbw`, `wl-clipboard` and `wtype` installed
