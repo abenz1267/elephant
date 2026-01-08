@@ -31,10 +31,12 @@ const (
 )
 
 type Config struct {
-	common.Config `koanf:",squash"`
-	Command       string    `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"wtype %CONTENT%"`
-	Snippets      []Snippet `koanf:"snippets" desc:"available snippets" default:""`
-	Delay         int       `koanf:"delay" desc:"delay in ms before executing command to avoid potential focus issues" default:"100"`
+	common.Config    `koanf:",squash"`
+	Command          string    `koanf:"command" desc:"default command to be executed. supports %VALUE%." default:"wtype %CONTENT%"`
+	Snippets         []Snippet `koanf:"snippets" desc:"available snippets" default:""`
+	Preview          bool      `koanf:"preview" desc:"set preview content" default:"true"`
+	PreviewAsSubtext bool      `koanf:"preview_as_subtext" desc:"display content as subtext" default:"true"`
+	Delay            int       `koanf:"delay" desc:"delay in ms before executing command to avoid potential focus issues" default:"100"`
 }
 
 type Snippet struct {
@@ -49,8 +51,10 @@ func Setup() {
 			Icon:     "insert-text",
 			MinScore: 50,
 		},
-		Command: "wtype %CONTENT%",
-		Delay:   100,
+		Command:          "wtype %CONTENT%",
+		Delay:            100,
+		Preview:          true,
+		PreviewAsSubtext: true,
 	}
 
 	common.LoadConfig(Name, config)
@@ -103,6 +107,15 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			Provider:   Name,
 			Score:      int32(100000 - k),
 			Type:       0,
+		}
+
+		if config.Preview {
+			if !config.PreviewAsSubtext {
+				e.PreviewType = util.PreviewTypeText
+				e.Preview = v.Content
+			} else {
+				e.Subtext = v.Content
+			}
 		}
 
 		if query != "" {
