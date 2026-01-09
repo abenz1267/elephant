@@ -143,6 +143,16 @@ jobs:
         echo "Building 1password plugin for linux/amd64..."
         GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/1password-linux-amd64.so ./internal/providers/1password
 
+    - name: Build bitwarden plugin for linux/amd64
+      run: |
+        echo "Building bitwarden plugin for linux/amd64..."
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/bitwarden-linux-amd64.so ./internal/providers/bitwarden
+
+    - name: Build dnfpackages plugin for linux/amd64
+      run: |
+        echo "Building dnfpackages plugin for linux/amd64..."
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/dnfpackages-linux-amd64.so ./internal/providers/dnfpackages
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -231,6 +241,12 @@ jobs:
 
         # Archive 1password plugin
         tar -czf 1password-linux-amd64.tar.gz 1password-linux-amd64.so
+
+        # Archive dnfpackages plugin
+        tar -czf dnfpackages-linux-amd64.tar.gz dnfpackages-linux-amd64.so
+
+        # Archive bitwarden plugin
+        tar -czf bitwarden-linux-amd64.tar.gz bitwarden-linux-amd64.so
 
         echo "Build completed successfully!"
         echo "Created archives:"
