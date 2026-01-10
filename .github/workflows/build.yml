@@ -42,116 +42,116 @@ jobs:
     - name: Build elephant for linux/amd64
       run: |
         echo "Building elephant for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -o build/elephant-linux-amd64 ./cmd/elephant/elephant.go
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -o build/elephant-linux-amd64 ./cmd/elephant/elephant.go
 
     - name: Build desktopapplications plugin for linux/amd64
       run: |
         echo "Building desktopapplications plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/desktopapplications-linux-amd64.so ./internal/providers/desktopapplications
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/desktopapplications-linux-amd64.so ./internal/providers/desktopapplications
 
     - name: Build files plugin for linux/amd64
       run: |
         echo "Building files plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/files-linux-amd64.so ./internal/providers/files
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/files-linux-amd64.so ./internal/providers/files
 
 
     - name: Build clipboard plugin for linux/amd64
       run: |
         echo "Building clipboard plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/clipboard-linux-amd64.so ./internal/providers/clipboard
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/clipboard-linux-amd64.so ./internal/providers/clipboard
 
 
     - name: Build runner plugin for linux/amd64
       run: |
         echo "Building runner plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/runner-linux-amd64.so ./internal/providers/runner
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/runner-linux-amd64.so ./internal/providers/runner
 
 
     - name: Build symbols plugin for linux/amd64
       run: |
         echo "Building symbols plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/symbols-linux-amd64.so ./internal/providers/symbols
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/symbols-linux-amd64.so ./internal/providers/symbols
 
 
     - name: Build calc plugin for linux/amd64
       run: |
         echo "Building calc plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/calc-linux-amd64.so ./internal/providers/calc
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/calc-linux-amd64.so ./internal/providers/calc
 
 
     - name: Build providerlist plugin for linux/amd64
       run: |
         echo "Building providerlist plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/providerlist-linux-amd64.so ./internal/providers/providerlist
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/providerlist-linux-amd64.so ./internal/providers/providerlist
 
 
     - name: Build menus plugin for linux/amd64
       run: |
         echo "Building menus plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/menus-linux-amd64.so ./internal/providers/menus
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/menus-linux-amd64.so ./internal/providers/menus
 
 
     - name: Build websearch plugin for linux/amd64
       run: |
         echo "Building websearch plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/websearch-linux-amd64.so ./internal/providers/websearch
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/websearch-linux-amd64.so ./internal/providers/websearch
 
 
     - name: Build archlinuxpkgs plugin for linux/amd64
       run: |
         echo "Building archlinuxpkgs plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/archlinuxpkgs-linux-amd64.so ./internal/providers/archlinuxpkgs
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/archlinuxpkgs-linux-amd64.so ./internal/providers/archlinuxpkgs
 
 
     - name: Build todo plugin for linux/amd64
       run: |
         echo "Building todo plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/todo-linux-amd64.so ./internal/providers/todo
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/todo-linux-amd64.so ./internal/providers/todo
 
     - name: Build unicode plugin for linux/amd64
       run: |
         echo "Building unicode plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/unicode-linux-amd64.so ./internal/providers/unicode
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/unicode-linux-amd64.so ./internal/providers/unicode
 
     - name: Build bluetooth plugin for linux/amd64
       run: |
         echo "Building bluetooth plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/bluetooth-linux-amd64.so ./internal/providers/bluetooth
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/bluetooth-linux-amd64.so ./internal/providers/bluetooth
 
     - name: Build windows plugin for linux/amd64
       run: |
         echo "Building windows plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/windows-linux-amd64.so ./internal/providers/windows
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/windows-linux-amd64.so ./internal/providers/windows
 
     - name: Build snippets plugin for linux/amd64
       run: |
         echo "Building snippets plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/snippets-linux-amd64.so ./internal/providers/snippets
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/snippets-linux-amd64.so ./internal/providers/snippets
 
     - name: Build nirisessions plugin for linux/amd64
       run: |
         echo "Building nirisessions plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/nirisessions-linux-amd64.so ./internal/providers/nirisessions
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/nirisessions-linux-amd64.so ./internal/providers/nirisessions
 
     - name: Build bookmarks plugin for linux/amd64
       run: |
         echo "Building bookmarks plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/bookmarks-linux-amd64.so ./internal/providers/bookmarks
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/bookmarks-linux-amd64.so ./internal/providers/bookmarks
 
     - name: Build 1password plugin for linux/amd64
       run: |
         echo "Building 1password plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/1password-linux-amd64.so ./internal/providers/1password
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/1password-linux-amd64.so ./internal/providers/1password
 
     - name: Build bitwarden plugin for linux/amd64
       run: |
         echo "Building bitwarden plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/bitwarden-linux-amd64.so ./internal/providers/bitwarden
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/bitwarden-linux-amd64.so ./internal/providers/bitwarden
 
     - name: Build dnfpackages plugin for linux/amd64
       run: |
         echo "Building dnfpackages plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=plugin -o build/dnfpackages-linux-amd64.so ./internal/providers/dnfpackages
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/dnfpackages-linux-amd64.so ./internal/providers/dnfpackages
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
