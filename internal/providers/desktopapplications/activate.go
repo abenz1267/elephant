@@ -60,7 +60,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 			toRun = files[parts[0]].Exec
 		}
 
-		if config.WindowIntegration && wlr.IsSetup && action != ActionNewInstance {
+		if args == "" && config.WindowIntegration && wlr.IsSetup && action != ActionNewInstance {
 			if !isAction || !config.WindowIntegrationIgnoreActions {
 				if id, ok := appHasWindow(files[parts[0]]); ok {
 					if err := wlr.Activate(id); err == nil {
