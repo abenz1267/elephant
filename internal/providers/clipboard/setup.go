@@ -772,9 +772,15 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			state = append(state, "pinned")
 		}
 
+		content := v.Content
+
+		if len(content) > 1000 {
+			content = content[:1000]
+		}
+
 		e := &pb.QueryResponse_Item{
 			Identifier: k,
-			Text:       v.Content,
+			Text:       content,
 			Subtext:    v.Time.Format(time.RFC1123Z),
 			Type:       pb.QueryResponse_REGULAR,
 			State:      state,
