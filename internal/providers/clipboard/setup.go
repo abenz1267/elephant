@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
-	"io/fs"
 	"log"
 	"log/slog"
 	"net"
@@ -261,19 +260,6 @@ func loadFromFile() {
 			}
 		}
 	}
-}
-
-func cleanupImages() {
-	d, _ := os.UserCacheDir()
-	folder := filepath.Join(d, "elephant", "clipboardimages")
-
-	filepath.Walk(folder, func(path string, info fs.FileInfo, err error) error {
-		if info != nil && !info.IsDir() {
-			os.Remove(path)
-		}
-
-		return nil
-	})
 }
 
 func saveToFile() {
@@ -716,10 +702,13 @@ func Activate(single bool, identifier, action string, query string, args string,
 			}
 
 			delete(clipboardhistory, k)
+
+			if v.Img != "" {
+				_ = os.Remove(v.Img)
+			}
 		}
 
 		saveToFile()
-		cleanupImages()
 		hasImg = false
 		hasText = false
 		currentMode = Combined
