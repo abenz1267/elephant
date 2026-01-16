@@ -133,6 +133,11 @@ jobs:
         echo "Building nirisessions plugin for linux/amd64..."
         GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/nirisessions-linux-amd64.so ./internal/providers/nirisessions
 
+    - name: Build niriactions plugin for linux/amd64
+      run: |
+        echo "Building niriactions plugin for linux/amd64..."
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/niriactions-linux-amd64.so ./internal/providers/niriactions
+
     - name: Build bookmarks plugin for linux/amd64
       run: |
         echo "Building bookmarks plugin for linux/amd64..."
@@ -235,6 +240,9 @@ jobs:
 
         # Archive nirisessions plugin
         tar -czf nirisessions-linux-amd64.tar.gz nirisessions-linux-amd64.so
+
+        # Archive niriactions plugin
+        tar -czf niriactions-linux-amd64.tar.gz niriactions-linux-amd64.so
 
         # Archive bookmarks plugin
         tar -czf bookmarks-linux-amd64.tar.gz bookmarks-linux-amd64.so

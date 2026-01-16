@@ -272,6 +272,7 @@ func Setup() {
 			Icon:     "user-bookmarks",
 			MinScore: 20,
 		},
+		History:            true,
 		Location:           "",
 		SetBrowserOnImport: false,
 	}
@@ -641,7 +642,6 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 	origQ := query
 	entries := []*pb.QueryResponse_Item{}
-	var highestScore int32
 
 	var category Category
 
@@ -679,10 +679,6 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 					e.State = append(e.State, "history")
 					e.Actions = append(e.Actions, history.ActionDelete)
 				}
-			}
-
-			if e.Score > highestScore {
-				highestScore = e.Score
 			}
 
 			if query == "" || e.Score > config.MinScore {
