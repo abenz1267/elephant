@@ -97,7 +97,6 @@ func clearClipboard() {
 	if config.ClearAfter > 0 {
 		time.Sleep(time.Duration(config.ClearAfter) * time.Second)
 		exec.Command("wl-copy", "--clear").Run()
-		exec.Command("notify-send", "Clipboard cleared").Run()
 	}
 }
 
@@ -115,7 +114,6 @@ func typeValue(value string, logStr string) {
 
 	go func() {
 		cmd.Wait()
-		exec.Command("notify-send", fmt.Sprintf("%s succeeded", logStr)).Run()
 	}()
 }
 
