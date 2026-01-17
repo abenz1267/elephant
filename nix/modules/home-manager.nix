@@ -7,27 +7,26 @@ flake: {
 with lib; let
   cfg = config.programs.elephant;
   settingsFormat = pkgs.formats.toml {};
-
-  # Available providers
-  providerOptions = {
-    desktopapplications = "Desktop application launcher";
-    files = "File search and management";
-    clipboard = "Clipboard history management";
-    runner = "Command runner";
-    symbols = "Symbols and emojis";
-    calc = "Calculator and unit conversion";
-    menus = "Custom menu system";
-    providerlist = "Provider listing and management";
-    websearch = "Web search integration";
-    todo = "Todo list";
-    bookmarks = "Bookmarks management";
-    unicode = "Unicode symbol search";
-    bluetooth = "Basic Bluetooth management";
-    windows = "Find and focus windows";
-    snippets = "Find and paste text snippets";
-    nirisessions = "Define sets of apps to open and run them";
-    "1password" = "Access your 1Password Vaults";
-  };
+  defaultProviders = [
+    "bluetooth"
+    "bookmarks"
+    "calc"
+    "clipboard"
+    "desktopapplications"
+    "files"
+    "menus"
+    "providerlist"
+    "runner"
+    "snippets"
+    "symbols"
+    "todo"
+    "unicode"
+    "websearch"
+    "windows"
+    "bitwarden"
+    "1password"
+    "nirisessions"
+  ];
 in {
   imports = [
     # Deprecated: delete with v3.0.0 release
@@ -45,16 +44,11 @@ in {
     };
 
     providers = mkOption {
-      type = types.listOf (types.enum (attrNames providerOptions));
-      default = attrNames providerOptions;
-      example = [
-        "files"
-        "desktopapplications"
-        "calc"
-      ];
+      type = types.listOf (types.str);
+      default = defaultProviders;
+      example = defaultProviders;
       description = ''
-        List of built-in providers to enable (install). Available providers:
-        ${concatStringsSep "\n" (mapAttrsToList (name: desc: "  - ${name}: ${desc}") providerOptions)}
+        List of built-in providers to enable.
       '';
     };
 
