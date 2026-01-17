@@ -26,6 +26,7 @@ with lib; let
     "bitwarden"
     "1password"
     "nirisessions"
+    "niriactions"
   ];
 in {
   imports = [
