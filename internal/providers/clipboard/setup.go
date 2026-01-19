@@ -309,10 +309,14 @@ func handleChange() {
 		text, texterr := getClipboardText()
 		if texterr == nil {
 			mu.Lock()
-			updateText(text)
-			hasText = true
-			mu.Unlock()
-			continue
+			ok := updateText(text)
+			if ok {
+				hasText = true
+				mu.Unlock()
+				continue
+			} else {
+				mu.Unlock()
+			}
 		}
 
 		img, imgerr := getClipboardImage()
@@ -409,14 +413,15 @@ func updateImage(out []byte) {
 	saveFileChan <- struct{}{}
 }
 
-func updateText(text string) {
+// ... returns false if its an image from browser
+func updateText(text string) bool {
 	if strings.TrimSpace(text) == "" {
-		return
+		return true
 	}
 
 	if config.IgnoreSymbols {
 		if _, ok := symbols[text]; ok {
-			return
+			return true
 		}
 	}
 
@@ -425,14 +430,14 @@ func updateText(text string) {
 	if slices.Contains(mt, "text/_moz_htmlcontext") || slices.Contains(mt, "chromium/x-source-url") {
 		for k := range imgTypes {
 			if slices.Contains(mt, k) {
-				return
+				return false
 			}
 		}
 	}
 
 	for _, v := range mt {
 		if slices.Contains(ignoreMimetypes, v) {
-			return
+			return true
 		}
 	}
 
@@ -455,6 +460,7 @@ func updateText(text string) {
 	}
 
 	saveFileChan <- struct{}{}
+	return true
 }
 
 func trim() {
