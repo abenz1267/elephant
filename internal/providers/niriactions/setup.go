@@ -192,10 +192,6 @@ func parseActions() {
 			action = ""
 		}
 	}
-
-	for k, v := range actions {
-		fmt.Println(k, v)
-	}
 }
 
 func Icon() string {

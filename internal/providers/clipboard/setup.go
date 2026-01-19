@@ -63,6 +63,7 @@ const StateEditable = "editable"
 type Item struct {
 	Content string
 	Img     string
+	URIList []string
 	Time    time.Time
 	State   string
 	Pinned  bool
@@ -350,7 +351,7 @@ func getClipboardText() (string, error) {
 	return string(out), err
 }
 
-var ignoreMimetypes = []string{"x-kde-passwordManagerHint", "text/uri-list"}
+var ignoreMimetypes = []string{"x-kde-passwordManagerHint"}
 
 func handleSaveToFile() {
 	timer := time.NewTimer(time.Second * 5)
@@ -435,10 +436,30 @@ func updateText(text string) bool {
 		}
 	}
 
+	isURIList := false
+
 	for _, v := range mt {
 		if slices.Contains(ignoreMimetypes, v) {
 			return true
 		}
+
+		if v == "text/uri-list" {
+			isURIList = true
+		}
+	}
+
+	uris := []string{}
+
+	if isURIList {
+		for v := range strings.FieldsSeq(text) {
+			if strings.HasPrefix(v, "file://") {
+				uris = append(uris, v)
+			} else {
+				uris = append(uris, fmt.Sprintf("file://%s", v))
+			}
+		}
+
+		text = strings.Join(uris, "\n")
 	}
 
 	b := []byte(text)
@@ -452,10 +473,17 @@ func updateText(text string) bool {
 			slog.Error(Name, "updating", "string content contains invalid UTF-8")
 		}
 
-		clipboardhistory[md5str] = &Item{
-			Content: text,
-			Time:    time.Now(),
-			State:   StateEditable,
+		if isURIList {
+			clipboardhistory[md5str] = &Item{
+				URIList: uris,
+				Time:    time.Now(),
+			}
+		} else {
+			clipboardhistory[md5str] = &Item{
+				Content: text,
+				Time:    time.Now(),
+				State:   StateEditable,
+			}
 		}
 	}
 
@@ -727,7 +755,15 @@ func Activate(single bool, identifier, action string, query string, args string,
 			f, _ := os.ReadFile(item.Img)
 			cmd.Stdin = bytes.NewReader(f)
 		} else {
-			cmd.Stdin = strings.NewReader(item.Content)
+			if len(item.URIList) > 0 {
+				withMimetype := fmt.Sprintf("%s -t 'text/uri-list'", config.Command)
+				cmd = exec.Command("sh", "-c", withMimetype)
+
+				uriList := strings.Join(item.URIList, "\n")
+				cmd.Stdin = strings.NewReader(uriList)
+			} else {
+				cmd.Stdin = strings.NewReader(item.Content)
+			}
 		}
 
 		err := cmd.Start()
@@ -780,6 +816,19 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 
 		content := v.Content
 
+		isURIList := false
+
+		if len(v.URIList) > 0 {
+			isURIList = true
+			files := []string{}
+
+			for _, v := range v.URIList {
+				files = append(files, filepath.Base(v))
+			}
+
+			content = strings.Join(files, ",")
+		}
+
 		if len(content) > 1000 {
 			content = content[:1000]
 		}
@@ -798,8 +847,18 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			e.Preview = v.Img
 			e.PreviewType = util.PreviewTypeFile
 		} else {
-			e.Preview = v.Content
-			e.PreviewType = util.PreviewTypeText
+			if isURIList {
+				if len(v.URIList) == 1 {
+					e.Preview = v.URIList[0]
+					e.PreviewType = util.PreviewTypeFile
+				} else {
+					e.Preview = strings.Join(v.URIList, "\n")
+					e.PreviewType = util.PreviewTypeText
+				}
+			} else {
+				e.Preview = v.Content
+				e.PreviewType = util.PreviewTypeText
+			}
 		}
 
 		if query != "" {
