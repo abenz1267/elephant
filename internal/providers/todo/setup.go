@@ -41,6 +41,7 @@ type Config struct {
 	common.Config     `koanf:",squash"`
 	UrgentTimeFrame   int        `koanf:"urgent_time_frame" desc:"items that have a due time within this period will be marked as urgent" default:"10"`
 	DuckPlayerVolumes bool       `koanf:"duck_player_volumes" desc:"lowers volume of players when notifying, slowly raises volumes again" default:"true"`
+	ShowCreationTime  bool       `koanf:"show_creation_time" desc:"displays the creatin time if no other time info is available" default:"true"`
 	Categories        []Category `koanf:"categories" desc:"categories" default:""`
 	Location          string     `koanf:"location" desc:"location of the CSV file" default:"elephant cache dir"`
 	TimeFormat        string     `koanf:"time_format" desc:"format of the time. Look at https://go.dev/src/time/format.go for the layout." default:"02-Jan 15:04"`
@@ -217,6 +218,7 @@ func Setup() {
 		DuckPlayerVolumes: true,
 		Location:          "",
 		TimeFormat:        "02-Jan 15:04",
+		ShowCreationTime:  true,
 		Notification: Notification{
 			Title: "Task Due",
 			Body:  "%TASK%",
@@ -740,7 +742,7 @@ func itemToEntry(urgent time.Time, i int, v Item) *pb.QueryResponse_Item {
 		e.Subtext = fmt.Sprintf("Started: %s, Ongoing: %s", v.Started.Format(config.TimeFormat), fmt.Sprintf("%02d:%02d", hours, minutes))
 	} else if !v.Scheduled.IsZero() {
 		e.Subtext = fmt.Sprintf("At: %s", v.Scheduled.Format(config.TimeFormat))
-	} else {
+	} else if config.ShowCreationTime {
 		e.Subtext = fmt.Sprintf("Created: %s", v.Created.Format(config.TimeFormat))
 	}
 
