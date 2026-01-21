@@ -173,8 +173,8 @@ func (i *Item) fromQuery(query string) {
 	i.Urgency = UrgencyNormal
 	i.Category = category
 
-	if strings.HasSuffix(query, "!") {
-		query = strings.TrimSuffix(query, "!")
+	if after, ok := strings.CutSuffix(query, "!"); ok {
+		query = after
 		i.Urgency = UrgencyCritical
 	}
 
@@ -545,14 +545,17 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 	var date *time.Time
 
-	if !creating {
+	splits := strings.SplitN(query, ">", 2)
+	fastCreate := len(splits) == 2 && !creating
+
+	if !creating && !fastCreate {
 		date, _ = parser.ParseDate(query, time.Now())
 		if date != nil {
 			query = ""
 		}
 	}
 
-	if !creating {
+	if !creating && !fastCreate {
 		slices.SortFunc(items, func(a, b Item) int {
 			if date != nil {
 				if isSameDay(date, &a.Scheduled) && !isSameDay(date, &b.Scheduled) {
@@ -630,8 +633,12 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			e.Identifier = fmt.Sprintf("CREATE:%s", origQ)
 			e.Icon = "list-add"
 			e.Text = i.Text
-			e.Actions = []string{ActionSave, ActionSaveNext}
+			e.Actions = []string{ActionSave}
 			e.State = []string{StateCreating}
+
+			if !fastCreate {
+				e.Actions = append(e.Actions, ActionSaveNext)
+			}
 
 			if !i.Scheduled.IsZero() {
 				e.Subtext = i.Scheduled.Format(config.TimeFormat)
