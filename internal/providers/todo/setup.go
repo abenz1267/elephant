@@ -255,11 +255,9 @@ func Available() bool {
 
 func notify() {
 	for {
-		now := time.Now().Truncate(time.Minute)
-		nextMinute := now.Add(time.Minute)
-		time.Sleep(time.Until(nextMinute))
+		time.Sleep(time.Second * 1)
 
-		now = time.Now().Truncate(time.Minute)
+		now := time.Now()
 
 		hasNotification := false
 
