@@ -489,14 +489,14 @@ func loadItems() {
 					i.Scheduled = t
 				}
 
-				t, _ = time.Parse(time.RFC1123Z, d[6])
+				t, err = time.Parse(time.RFC1123Z, d[6])
 				if err != nil {
 					slog.Error(Name, "timeparse", err, "field", "started")
 				} else {
 					i.Started = t
 				}
 
-				t, _ = time.Parse(time.RFC1123Z, d[7])
+				t, err = time.Parse(time.RFC1123Z, d[7])
 				if err != nil {
 					slog.Error(Name, "timeparse", err, "field", "finished")
 				} else {
@@ -504,7 +504,7 @@ func loadItems() {
 				}
 
 				if len(d) == 9 {
-					t, _ = time.Parse(time.RFC1123Z, d[8])
+					t, err = time.Parse(time.RFC1123Z, strings.TrimSpace(d[8]))
 					if err != nil {
 						slog.Error(Name, "timeparse", err, "field", "created")
 					} else {
@@ -740,6 +740,8 @@ func itemToEntry(urgent time.Time, i int, v Item) *pb.QueryResponse_Item {
 		e.Subtext = fmt.Sprintf("Started: %s, Ongoing: %s", v.Started.Format(config.TimeFormat), fmt.Sprintf("%02d:%02d", hours, minutes))
 	} else if !v.Scheduled.IsZero() {
 		e.Subtext = fmt.Sprintf("At: %s", v.Scheduled.Format(config.TimeFormat))
+	} else {
+		e.Subtext = fmt.Sprintf("Created: %s", v.Created.Format(config.TimeFormat))
 	}
 
 	if !v.Scheduled.IsZero() && v.Scheduled.Before(urgent) && v.State != StateDone && v.State != StateActive {
