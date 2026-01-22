@@ -829,8 +829,8 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			content = strings.Join(files, ",")
 		}
 
-		if len(content) > 1000 {
-			content = content[:1000]
+		if len([]rune(content)) > 1000 {
+			content = string([]rune(content)[:1000])
 		}
 
 		e := &pb.QueryResponse_Item{
