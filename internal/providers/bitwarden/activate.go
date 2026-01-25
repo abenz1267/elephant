@@ -39,7 +39,7 @@ type RbwLoginData struct {
 
 type RbwUris struct {
 	Uri       string `json:"uri"`
-	MatchType string `json:"match_type"`
+	MatchType int    `json:"match_type"`
 }
 
 func syncLocalRbwVault() {
