@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 )
 
@@ -47,7 +48,33 @@ type Symbol struct {
 	Searchable []string
 }
 
-var symbols = make(map[string]*Symbol)
+var (
+	symbols    = make(map[string]*Symbol)
+	variations = make(map[string]struct{})
+)
+
+func parseVariations() {
+	file, err := files.ReadFile("data/variations.txt")
+	if err != nil {
+		slog.Error(Name, "parsing", err)
+		return
+	}
+
+	for l := range strings.Lines(string(file)) {
+		if strings.HasPrefix(l, "#") {
+			continue
+		}
+
+		l = strings.TrimSpace(l)
+
+		if l == "" {
+			continue
+		}
+
+		fields := strings.Fields(l)
+		variations[hexToEmoji(fields[0])] = struct{}{}
+	}
+}
 
 func parse() {
 	file, err := files.ReadFile(fmt.Sprintf("data/%s.xml", config.Locale))
@@ -68,6 +95,10 @@ func parse() {
 		md5str := hex.EncodeToString(md5[:])
 
 		if val, ok := symbols[md5str]; !ok {
+			if _, ok := variations[v.CP]; ok {
+				v.CP = v.CP + "\uFE0F"
+			}
+
 			s := &Symbol{
 				CP:         v.CP,
 				Searchable: []string{},
@@ -94,4 +125,13 @@ func parse() {
 			v.Searchable[n] = strings.TrimSpace(m)
 		}
 	}
+}
+
+func hexToEmoji(hexStr string) string {
+	codePoint, err := strconv.ParseInt(hexStr, 16, 64)
+	if err != nil {
+		return ""
+	}
+
+	return string(rune(codePoint))
 }

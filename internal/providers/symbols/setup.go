@@ -56,6 +56,7 @@ func Setup() {
 		NamePretty = config.NamePretty
 	}
 
+	parseVariations()
 	parse()
 
 	slog.Info(Name, "symbols/emojis", len(symbols), "time", time.Since(start))
