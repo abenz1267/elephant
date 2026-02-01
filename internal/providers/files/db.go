@@ -30,10 +30,13 @@ func openDB() error {
 
 	var err error
 
-	db, err = sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory")
+	db, err = sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory&_busy_timeout=5000")
 	if err != nil {
 		return fmt.Errorf("sql open: %v", err)
 	}
+
+	// SQLite should serialize writes to prevent database locked errors
+	db.SetMaxOpenConns(1)
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS files (
 		identifier TEXT PRIMARY KEY,
@@ -126,7 +129,7 @@ func getFilesByQuery(query string, _ bool) []File {
 	var result []File
 
 	path := common.CacheFile("files.db")
-	queryDB, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory")
+	queryDB, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory&_busy_timeout=5000")
 	if err != nil {
 		slog.Error(Name, "open query db", err)
 		return nil
