@@ -49,7 +49,7 @@ type Config struct {
 	FdFlags        []string         `koanf:"fd_flags" desc:"flags for fd" default:"['--ignore-vcs', '--type,' ,'file', '--type,' 'directory']"`
 	WatchBuffer    int              `koanf:"watch_buffer" desc:"time in millisecnds elephant will gather changed paths before processing them" default:"2000"`
 	WatchDirs      []string         `koanf:"watch_dirs" desc:"watch these dirs, even if watch = false" default:"[]"`
-	Watch          bool             `koanf:"watch" desc:"watch indexed directories" default:"true"`
+	Watch          bool             `koanf:"watch" desc:"watch indexed directories" default:"false"`
 }
 
 func Setup() {
@@ -74,7 +74,7 @@ func Setup() {
 		LaunchPrefix: "",
 		SearchDirs:   []string{},
 		WatchBuffer:  2000,
-		Watch:        true,
+		Watch:        false,
 		FdFlags:      []string{"--ignore-vcs", "--type", "file", "--type", "directory"},
 	}
 
