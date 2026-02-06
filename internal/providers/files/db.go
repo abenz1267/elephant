@@ -17,18 +17,21 @@ var db *sql.DB
 func openDB() error {
 	path := common.CacheFile("files.db")
 	os.Remove(path)
+	os.Remove(common.CacheFile("files.db-shm"))
+	os.Remove(common.CacheFile("files.db-wal"))
 
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("create cache dir: %v", err)
 	}
 
-	os.Create(path)
+	_, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("create database file: %v", err)
+	}
 
 	for !common.FileExists(path) {
 		time.Sleep(time.Millisecond * 10)
 	}
-
-	var err error
 
 	db, err = sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory&_busy_timeout=5000")
 	if err != nil {
