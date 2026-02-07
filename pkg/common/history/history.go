@@ -20,7 +20,10 @@ type HistoryData struct {
 	Amount   int
 }
 
-const ActionDelete = "erase_history"
+const (
+	ActionDelete = "erase_history"
+	StateHistory = "history"
+)
 
 // TODO: this is global for every history ... should not be the case. Just a crutch because of gob encoding.
 var mut sync.Mutex

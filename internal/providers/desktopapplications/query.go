@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/abenz1267/elephant/v2/pkg/common"
-	"github.com/abenz1267/elephant/v2/pkg/common/history"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
@@ -106,7 +105,6 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 
 				if usageScore != 0 {
 					state = append(state, "history")
-					a = append(a, history.ActionDelete)
 				}
 
 				if pinned {
@@ -240,7 +238,6 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 
 						if usageScore != 0 {
 							state = append(state, "history")
-							actions = append(actions, history.ActionDelete)
 						}
 
 						pinsMu.RLock()

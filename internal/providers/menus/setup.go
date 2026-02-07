@@ -270,7 +270,6 @@ func Query(conn net.Conn, query string, single bool, exact bool, format uint8) [
 
 					if usageScore != 0 {
 						e.State = append(e.State, "history")
-						e.Actions = append(e.Actions, history.ActionDelete)
 					}
 
 					e.Score = e.Score + usageScore

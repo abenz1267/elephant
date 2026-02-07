@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/abenz1267/elephant/v2/internal/providers"
+	"github.com/abenz1267/elephant/v2/pkg/common/history"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 	"google.golang.org/protobuf/proto"
 )
@@ -189,6 +190,10 @@ func (h *QueryRequest) Handle(format uint8, cid uint32, conn net.Conn, data []by
 
 		if v.Provider == "websearch" && hideWebsearch && v.Text != wsprefix {
 			continue
+		}
+
+		if slices.Contains(v.State, history.StateHistory) {
+			v.Actions = append(v.Actions, history.ActionDelete)
 		}
 
 		req := pb.QueryResponse{
