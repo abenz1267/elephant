@@ -1,9 +1,6 @@
 package common
 
 import (
-	"slices"
-	"unicode"
-
 	"github.com/junegunn/fzf/src/algo"
 	"github.com/junegunn/fzf/src/util"
 )
@@ -20,9 +17,9 @@ func FuzzyScore(input, target string, exact bool) (int32, []int32, int32) {
 	var pos *[]int
 
 	if exact {
-		res, pos = algo.ExactMatchNaive(slices.ContainsFunc(runes, unicode.IsUpper), true, true, &chars, runes, true, nil)
+		res, pos = algo.ExactMatchNaive(false, true, true, &chars, runes, true, nil)
 	} else {
-		res, pos = algo.FuzzyMatchV2(slices.ContainsFunc(runes, unicode.IsUpper), true, true, &chars, runes, true, nil)
+		res, pos = algo.FuzzyMatchV2(false, true, true, &chars, runes, true, nil)
 	}
 
 	var int32Slice []int32
