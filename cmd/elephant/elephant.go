@@ -62,7 +62,7 @@ WantedBy=graphical-session.target
 							`
 
 							if !common.FileExists(file) {
-								err := os.WriteFile(file, []byte(data), 0o755)
+								err := os.WriteFile(file, []byte(data), 0o644)
 								if err != nil {
 									slog.Error("service", "enable write file", err)
 								}
