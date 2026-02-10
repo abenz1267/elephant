@@ -127,7 +127,7 @@ const (
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
 	case ActionOpenURL:
-		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s xdg-open %s", common.LaunchPrefix(""), shellescape.Quote(fmt.Sprintf("https://%s", query)))))
+		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s xdg-open %s", common.LaunchPrefix(), shellescape.Quote(fmt.Sprintf("https://%s", query)))))
 
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Setsid: true,
@@ -207,7 +207,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 }
 
 func run(query, identifier, q string) {
-	cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(""), config.Command, shellescape.Quote(q))))
+	cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(), config.Command, shellescape.Quote(q))))
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setsid: true,

@@ -164,7 +164,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 			}
 		}
 
-		run := strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(""), bin, args))
+		run := strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(), bin, args))
 		if action == ActionRunInTerminal {
 			run = common.WrapWithTerminal(run)
 		}

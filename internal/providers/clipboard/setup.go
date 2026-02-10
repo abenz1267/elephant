@@ -584,7 +584,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 			path = f.Name()
 		}
 
-		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(""), "localsend", path)))
+		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(), "localsend", path)))
 
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Setsid: true,

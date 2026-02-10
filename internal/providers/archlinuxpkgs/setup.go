@@ -173,7 +173,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 
 	switch action {
 	case ActionVisitURL:
-		run := strings.TrimSpace(fmt.Sprintf("%s xdg-open '%s'", common.LaunchPrefix(""), cachedData.Packages[identifier].URL))
+		run := strings.TrimSpace(fmt.Sprintf("%s xdg-open '%s'", common.LaunchPrefix(), cachedData.Packages[identifier].URL))
 		cmd := exec.Command("sh", "-c", run)
 
 		err := cmd.Start()

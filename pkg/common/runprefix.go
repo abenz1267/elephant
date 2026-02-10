@@ -9,6 +9,12 @@ import (
 var runPrefix = ""
 
 func InitRunPrefix() {
+	runPrefix = elephantConfig.LaunchPrefix
+
+	if runPrefix != "" {
+		return
+	}
+
 	if !elephantConfig.AutoDetectLaunchPrefix {
 		return
 	}
@@ -56,10 +62,6 @@ func InitRunPrefix() {
 	slog.Info("config", "runprefix autodetect", "<empty>")
 }
 
-func LaunchPrefix(override string) string {
-	if override != "" {
-		return override
-	}
-
+func LaunchPrefix() string {
 	return runPrefix
 }

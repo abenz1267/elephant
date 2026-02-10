@@ -43,7 +43,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 	case ActionReindex:
 		index()
 	case ActionLocalsend:
-		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(""), "localsend", path)))
+		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(), "localsend", path)))
 
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Setsid: true,
@@ -62,7 +62,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 			path = filepath.Dir(path)
 		}
 
-		run := strings.TrimSpace(fmt.Sprintf("%s xdg-open '%s'", common.LaunchPrefix(config.LaunchPrefix), path))
+		run := strings.TrimSpace(fmt.Sprintf("%s xdg-open '%s'", common.LaunchPrefix(), path))
 
 		if common.ForceTerminalForFile(path) {
 			run = common.WrapWithTerminal(run)

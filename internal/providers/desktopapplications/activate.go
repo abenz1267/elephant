@@ -42,7 +42,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 		return
 	case ActionStart, ActionNewInstance:
 		toRun := ""
-		prefix := common.LaunchPrefix(config.LaunchPrefix)
+		prefix := common.LaunchPrefix()
 
 		parts := strings.Split(identifier, ":")
 

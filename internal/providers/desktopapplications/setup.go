@@ -45,7 +45,6 @@ var readme string
 
 type Config struct {
 	common.Config                  `koanf:",squash"`
-	LaunchPrefix                   string            `koanf:"launch_prefix" desc:"overrides the default app2unit or uwsm prefix, if set." default:""`
 	Locale                         string            `koanf:"locale" desc:"to override systems locale" default:""`
 	ActionMinScore                 int               `koanf:"action_min_score" desc:"min score for actions to be shown" default:"20"`
 	ShowActions                    bool              `koanf:"show_actions" desc:"include application actions, f.e. 'New Private Window' for Firefox" default:"false"`

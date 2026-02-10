@@ -41,7 +41,6 @@ type IgnoredPreview struct {
 
 type Config struct {
 	common.Config  `koanf:",squash"`
-	LaunchPrefix   string           `koanf:"launch_prefix" desc:"overrides the default app2unit or uwsm prefix, if set." default:""`
 	IgnoredDirs    []string         `koanf:"ignored_dirs" desc:"ignore these directories. regexp based." default:""`
 	IgnorePreviews []IgnoredPreview `koanf:"ignore_previews" desc:"paths will not have a preview" default:""`
 	IgnoreWatching []string         `koanf:"ignore_watching" desc:"paths will not be watched" default:""`
@@ -71,11 +70,10 @@ func Setup() {
 			Icon:     "folder",
 			MinScore: 20,
 		},
-		LaunchPrefix: "",
-		SearchDirs:   []string{},
-		WatchBuffer:  2000,
-		Watch:        false,
-		FdFlags:      []string{"--ignore-vcs", "--type", "file", "--type", "directory"},
+		SearchDirs:  []string{},
+		WatchBuffer: 2000,
+		Watch:       false,
+		FdFlags:     []string{"--ignore-vcs", "--type", "file", "--type", "directory"},
 	}
 
 	common.LoadConfig(Name, config)
