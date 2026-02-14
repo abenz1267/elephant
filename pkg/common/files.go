@@ -14,7 +14,7 @@ var explicitDir string
 
 func SetExplicitDir(dir string) {
 	explicitDir = dir
-	slog.Info("common", "configdir", dir)
+	slog.Info("common", "explicit config dir", dir)
 }
 
 func TmpDir() string {
@@ -23,6 +23,10 @@ func TmpDir() string {
 
 func ConfigDirs() []string {
 	res := []string{}
+
+	if explicitDir != "" {
+		return []string{explicitDir}
+	}
 
 	dir, err := os.UserConfigDir()
 	if err != nil {
