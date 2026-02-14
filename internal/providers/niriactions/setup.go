@@ -40,6 +40,16 @@ type Config struct {
 }
 
 func Setup() {
+	LoadConfig()
+
+	parseActions()
+
+	if config.NamePretty != "" {
+		NamePretty = config.NamePretty
+	}
+}
+
+func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
 			Icon:     "view-grid",
@@ -51,12 +61,6 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
-
-	parseActions()
-
-	if config.NamePretty != "" {
-		NamePretty = config.NamePretty
-	}
 }
 
 func Available() bool {
@@ -68,10 +72,12 @@ func Available() bool {
 	return false
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+	util.PrintConfig(config, Name, write)
 }
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {

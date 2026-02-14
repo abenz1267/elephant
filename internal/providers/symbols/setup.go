@@ -39,6 +39,19 @@ var config *Config
 func Setup() {
 	start := time.Now()
 
+	LoadConfig()
+
+	if config.NamePretty != "" {
+		NamePretty = config.NamePretty
+	}
+
+	parseVariations()
+	parse()
+
+	slog.Info(Name, "symbols/emojis", len(symbols), "time", time.Since(start))
+}
+
+func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
 			Icon:     "face-smile",
@@ -51,38 +64,31 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
-
-	if config.NamePretty != "" {
-		NamePretty = config.NamePretty
-	}
-
-	parseVariations()
-	parse()
-
-	slog.Info(Name, "symbols/emojis", len(symbols), "time", time.Since(start))
 }
 
 func Available() bool {
 	return true
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	fmt.Println("#### Possible locales")
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+		fmt.Println("#### Possible locales")
+		entries, err := files.ReadDir("data")
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	entries, err := files.ReadDir("data")
-	if err != nil {
-		log.Fatal(err)
+		for _, v := range entries {
+			fmt.Printf("%s,", strings.TrimSuffix(filepath.Base(v.Name()), ".xml"))
+		}
+
+		fmt.Println()
+		fmt.Println()
 	}
 
-	for _, v := range entries {
-		fmt.Printf("%s,", strings.TrimSuffix(filepath.Base(v.Name()), ".xml"))
-	}
-
-	fmt.Println()
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+	util.PrintConfig(config, Name, write)
 }
 
 const ActionRunCmd = "run_cmd"

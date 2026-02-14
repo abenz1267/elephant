@@ -60,17 +60,7 @@ type Item struct {
 func Setup() {
 	start := time.Now()
 
-	config = &Config{
-		Config: common.Config{
-			Icon:     "utilities-terminal",
-			MinScore: 50,
-		},
-		History:          true,
-		HistoryWhenEmpty: false,
-		GenericText:      "run: ",
-	}
-
-	common.LoadConfig(Name, config)
+	LoadConfig()
 
 	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
@@ -130,14 +120,30 @@ func Setup() {
 	slog.Info(Name, "executables", len(items), "time", time.Since(start))
 }
 
+func LoadConfig() {
+	config = &Config{
+		Config: common.Config{
+			Icon:     "utilities-terminal",
+			MinScore: 50,
+		},
+		History:          true,
+		HistoryWhenEmpty: false,
+		GenericText:      "run: ",
+	}
+
+	common.LoadConfig(Name, config)
+}
+
 func Available() bool {
 	return true
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+	util.PrintConfig(config, Name, write)
 }
 
 const (

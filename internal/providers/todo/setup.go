@@ -209,23 +209,7 @@ func Setup() {
 		panic(err)
 	}
 
-	config = &Config{
-		Config: common.Config{
-			Icon:     "checkbox-checked",
-			MinScore: 20,
-		},
-		UrgentTimeFrame:   10,
-		DuckPlayerVolumes: true,
-		Location:          "",
-		TimeFormat:        "02-Jan 15:04",
-		ShowCreationTime:  true,
-		Notification: Notification{
-			Title: "Task Due",
-			Body:  "%TASK%",
-		},
-	}
-
-	common.LoadConfig(Name, config)
+	LoadConfig()
 
 	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
@@ -249,6 +233,26 @@ func Setup() {
 	}
 
 	go notify()
+}
+
+func LoadConfig() {
+	config = &Config{
+		Config: common.Config{
+			Icon:     "checkbox-checked",
+			MinScore: 20,
+		},
+		UrgentTimeFrame:   10,
+		DuckPlayerVolumes: true,
+		Location:          "",
+		TimeFormat:        "02-Jan 15:04",
+		ShowCreationTime:  true,
+		Notification: Notification{
+			Title: "Task Due",
+			Body:  "%TASK%",
+		},
+	}
+
+	common.LoadConfig(Name, config)
 }
 
 func Available() bool {
@@ -311,10 +315,12 @@ func duckPlayers() {
 	}
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+	util.PrintConfig(config, Name, write)
 }
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {

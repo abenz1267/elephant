@@ -32,6 +32,12 @@ type Config struct {
 }
 
 func Setup() {
+	LoadConfig()
+
+	initItems()
+}
+
+func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
 			Icon:     "bitwarden",
@@ -46,8 +52,6 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
-
-	initItems()
 }
 
 func executableExists(command string) bool {
@@ -65,10 +69,12 @@ func Available() bool {
 	return executableExists("rbw")
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+	util.PrintConfig(config, Name, write)
 }
 
 func State(provider string) *pb.ProviderStateResponse {

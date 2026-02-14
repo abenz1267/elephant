@@ -29,12 +29,16 @@ var (
 //go:embed README.md
 var readme string
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(common.MenuConfig{}, Name)
-	util.PrintConfig(common.Menu{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+		util.PrintConfig(common.MenuConfig{}, Name, write)
+		util.PrintConfig(common.Menu{}, Name, write)
+	}
 }
+
+func LoadConfig() {}
 
 func Setup() {}
 

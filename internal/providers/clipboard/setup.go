@@ -82,20 +82,7 @@ type Config struct {
 func Setup() {
 	start := time.Now()
 
-	config = &Config{
-		Config: common.Config{
-			Icon:     "user-bookmarks",
-			MinScore: 30,
-		},
-		MaxItems:       100,
-		ImageEditorCmd: "",
-		TextEditorCmd:  "",
-		Command:        "wl-copy",
-		IgnoreSymbols:  true,
-		AutoCleanup:    0,
-	}
-
-	common.LoadConfig(Name, config)
+	LoadConfig()
 
 	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
@@ -133,6 +120,23 @@ func Setup() {
 	}
 
 	slog.Info(Name, "history", len(clipboardhistory), "time", time.Since(start))
+}
+
+func LoadConfig() {
+	config = &Config{
+		Config: common.Config{
+			Icon:     "user-bookmarks",
+			MinScore: 30,
+		},
+		MaxItems:       100,
+		ImageEditorCmd: "",
+		TextEditorCmd:  "",
+		Command:        "wl-copy",
+		IgnoreSymbols:  true,
+		AutoCleanup:    0,
+	}
+
+	common.LoadConfig(Name, config)
 }
 
 func Available() bool {
@@ -532,10 +536,13 @@ func saveImg(b []byte, ext string) string {
 	return file
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+
+	util.PrintConfig(config, Name, write)
 }
 
 const (

@@ -52,6 +52,16 @@ type Config struct {
 }
 
 func Setup() {
+	LoadConfig()
+
+	if config.NamePretty != "" {
+		NamePretty = config.NamePretty
+	}
+
+	refresh()
+}
+
+func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
 			Icon:     "system-software-install",
@@ -60,12 +70,6 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
-
-	if config.NamePretty != "" {
-		NamePretty = config.NamePretty
-	}
-
-	refresh()
 }
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
@@ -255,10 +259,12 @@ func Available() bool {
 	return true
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+	util.PrintConfig(config, Name, write)
 }
 
 func Icon() string {

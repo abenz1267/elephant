@@ -52,20 +52,7 @@ type Engine struct {
 }
 
 func Setup() {
-	config = &Config{
-		Config: common.Config{
-			Icon:     "applications-internet",
-			MinScore: 20,
-		},
-		History:           true,
-		HistoryWhenEmpty:  false,
-		EnginesAsActions:  false,
-		TextPrefix:        "Search: ",
-		Command:           "xdg-open",
-		AlwaysShowDefault: true,
-	}
-
-	common.LoadConfig(Name, config)
+	LoadConfig()
 
 	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
@@ -109,14 +96,33 @@ func Setup() {
 	})
 }
 
+func LoadConfig() {
+	config = &Config{
+		Config: common.Config{
+			Icon:     "applications-internet",
+			MinScore: 20,
+		},
+		History:           true,
+		HistoryWhenEmpty:  false,
+		EnginesAsActions:  false,
+		TextPrefix:        "Search: ",
+		Command:           "xdg-open",
+		AlwaysShowDefault: true,
+	}
+
+	common.LoadConfig(Name, config)
+}
+
 func Available() bool {
 	return true
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+	util.PrintConfig(config, Name, write)
 }
 
 const (

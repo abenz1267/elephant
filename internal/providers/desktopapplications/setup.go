@@ -88,28 +88,7 @@ func loadpinned() []string {
 
 func Setup() {
 	start := time.Now()
-	config = &Config{
-		Config: common.Config{
-			Icon:     "applications-other",
-			MinScore: 30,
-		},
-		ScoreOpenWindows:        true,
-		ActionMinScore:          20,
-		IgnorePinWithWindow:     true,
-		OnlySearchTitle:         false,
-		ShowActions:             false,
-		ShowGeneric:             true,
-		ShowActionsWithoutQuery: false,
-		History:                 true,
-		WMIntegration:           false,
-		HistoryWhenEmpty:        false,
-		IconPlaceholder:         "applications-other",
-		Aliases:                 map[string]string{},
-		WindowIntegration:       false,
-		SingleInstanceApps:      []string{"discord"},
-	}
-
-	common.LoadConfig(Name, config)
+	LoadConfig()
 
 	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
@@ -134,6 +113,31 @@ func Setup() {
 	}
 
 	slog.Info(Name, "desktop files", len(files), "time", time.Since(start))
+}
+
+func LoadConfig() {
+	config = &Config{
+		Config: common.Config{
+			Icon:     "applications-other",
+			MinScore: 30,
+		},
+		ScoreOpenWindows:        true,
+		ActionMinScore:          20,
+		IgnorePinWithWindow:     true,
+		OnlySearchTitle:         false,
+		ShowActions:             false,
+		ShowGeneric:             true,
+		ShowActionsWithoutQuery: false,
+		History:                 true,
+		WMIntegration:           false,
+		HistoryWhenEmpty:        false,
+		IconPlaceholder:         "applications-other",
+		Aliases:                 map[string]string{},
+		WindowIntegration:       false,
+		SingleInstanceApps:      []string{"discord"},
+	}
+
+	common.LoadConfig(Name, config)
 }
 
 func Available() bool {

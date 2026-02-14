@@ -12,6 +12,10 @@ import (
 
 var explicitDir string
 
+func GetExplicitDir() string {
+	return explicitDir
+}
+
 func SetExplicitDir(dir string) {
 	explicitDir = dir
 	slog.Info("common", "explicit config dir", dir)

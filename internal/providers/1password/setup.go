@@ -33,7 +33,7 @@ type Config struct {
 	CategoryIcons map[string]string `koanf:"category_icons" desc:"icon mapping by category"`
 }
 
-func Setup() {
+func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
 			Icon:     "1password",
@@ -44,6 +44,10 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
+}
+
+func Setup() {
+	LoadConfig()
 
 	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
@@ -67,10 +71,13 @@ func Available() bool {
 	return true
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+
+	util.PrintConfig(config, Name, write)
 }
 
 const (

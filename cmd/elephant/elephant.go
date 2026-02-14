@@ -153,24 +153,43 @@ WantedBy=graphical-session.target
 				},
 			},
 			{
-				Name:    "generatedoc",
-				Aliases: []string{"d"},
-				Usage:   "generates a markdown documentation",
-				Arguments: []cli.Argument{
-					&cli.StringArg{
-						Name: "provider",
-					},
-				},
+				Name:    "generate",
+				Aliases: []string{"g"},
+				Usage:   "functions to generate f.e. doc or config",
 				Action: func(ctx context.Context, cmd *cli.Command) error {
-					common.LoadGlobalConfig()
-
-					logger := slog.New(slog.DiscardHandler)
-					slog.SetDefault(logger)
-
-					providers.Load(false)
-
-					util.GenerateDoc(cmd.StringArg("provider"))
+					fmt.Println("SHIT")
 					return nil
+				},
+				Commands: []*cli.Command{
+					{
+						Name:    "doc",
+						Aliases: []string{"d"},
+						Usage:   "generates documentation for the given provider or all providers, if none is specified",
+						Arguments: []cli.Argument{
+							&cli.StringArg{
+								Name: "provider",
+							},
+						},
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							handleGenerateConfig(cmd.StringArg("provider"), false)
+							return nil
+						},
+					},
+					{
+						Name:    "config",
+						Aliases: []string{"c"},
+						Usage:   "generates a config for the given provider or all providers, if none is specified. Keeps your custom config.",
+						Arguments: []cli.Argument{
+							&cli.StringArg{
+								Name: "provider",
+							},
+						},
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							handleGenerateConfig(cmd.StringArg("provider"), true)
+
+							return nil
+						},
+					},
 				},
 			},
 			{
@@ -365,4 +384,15 @@ func runBeforeCommands() {
 			slog.Error("elephant", "before_load", string(out))
 		}
 	}
+}
+
+func handleGenerateConfig(provider string, write bool) {
+	common.LoadGlobalConfig()
+
+	logger := slog.New(slog.DiscardHandler)
+	slog.SetDefault(logger)
+
+	providers.Load(false)
+
+	util.GenerateDoc(provider, write)
 }

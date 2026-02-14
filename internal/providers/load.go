@@ -25,10 +25,11 @@ type ProviderStateResponse struct {
 type Provider struct {
 	Name                 *string
 	Available            func() bool
-	PrintDoc             func()
+	PrintDoc             func(bool)
 	NamePretty           *string
 	State                func(string) *pb.ProviderStateResponse
 	Setup                func()
+	LoadConfig           func()
 	HideFromProviderlist func() bool
 	Icon                 func() string
 	Activate             func(single bool, identifier, action, query, args string, format uint8, conn net.Conn)
@@ -151,6 +152,11 @@ func Load(setup bool) {
 					slog.Error("providers", "load", err, "provider", path)
 				}
 
+				loadConfigFunc, err := p.Lookup("LoadConfig")
+				if err != nil {
+					slog.Error("providers", "load", err, "provider", path)
+				}
+
 				stateFunc, err := p.Lookup("State")
 				if err != nil {
 					slog.Error("providers", "load", err, "provider", path)
@@ -159,12 +165,13 @@ func Load(setup bool) {
 				provider := Provider{
 					Icon:                 iconFunc.(func() string),
 					Setup:                setupFunc.(func()),
+					LoadConfig:           loadConfigFunc.(func()),
 					Name:                 name.(*string),
 					Activate:             activateFunc.(func(bool, string, string, string, string, uint8, net.Conn)),
 					Query:                queryFunc.(func(net.Conn, string, bool, bool, uint8) []*pb.QueryResponse_Item),
 					NamePretty:           namePretty.(*string),
 					HideFromProviderlist: hideFromProviderlistFunc.(func() bool),
-					PrintDoc:             printDocFunc.(func()),
+					PrintDoc:             printDocFunc.(func(bool)),
 					Available:            availableFunc.(func() bool),
 					State:                stateFunc.(func(string) *pb.ProviderStateResponse),
 				}

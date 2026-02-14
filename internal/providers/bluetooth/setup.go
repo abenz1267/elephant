@@ -46,8 +46,16 @@ var devices []Device
 var config *Config
 
 func Setup() {
-	start := time.Now()
+	LoadConfig()
 
+	if config.NamePretty != "" {
+		NamePretty = config.NamePretty
+	}
+
+	checkPowerState()
+}
+
+func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
 			Icon:     "bluetooth-symbolic",
@@ -56,14 +64,6 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
-
-	if config.NamePretty != "" {
-		NamePretty = config.NamePretty
-	}
-
-	checkPowerState()
-
-	slog.Info(Name, "loaded", time.Since(start))
 }
 
 func Available() bool {
@@ -77,10 +77,12 @@ func Available() bool {
 	return true
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+	util.PrintConfig(config, Name, write)
 }
 
 const (

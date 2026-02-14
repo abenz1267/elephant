@@ -55,6 +55,14 @@ type Window struct {
 }
 
 func Setup() {
+	LoadConfig()
+
+	if config.NamePretty != "" {
+		NamePretty = config.NamePretty
+	}
+}
+
+func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
 			Icon:     "view-grid",
@@ -63,10 +71,6 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
-
-	if config.NamePretty != "" {
-		NamePretty = config.NamePretty
-	}
 }
 
 func Available() bool {
@@ -78,10 +82,12 @@ func Available() bool {
 	return false
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+	util.PrintConfig(config, Name, write)
 }
 
 type OpenedOrChangedEvent struct {

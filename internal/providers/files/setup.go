@@ -65,18 +65,7 @@ func Setup() {
 		hasLocalsend = true
 	}
 
-	config = &Config{
-		Config: common.Config{
-			Icon:     "folder",
-			MinScore: 20,
-		},
-		SearchDirs:  []string{},
-		WatchBuffer: 2000,
-		Watch:       false,
-		FdFlags:     []string{"--ignore-vcs", "--type", "file", "--type", "directory"},
-	}
-
-	common.LoadConfig(Name, config)
+	LoadConfig()
 
 	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
@@ -118,6 +107,21 @@ func Setup() {
 	go index()
 
 	slog.Info(Name, "time", time.Since(start))
+}
+
+func LoadConfig() {
+	config = &Config{
+		Config: common.Config{
+			Icon:     "folder",
+			MinScore: 20,
+		},
+		SearchDirs:  []string{},
+		WatchBuffer: 2000,
+		Watch:       false,
+		FdFlags:     []string{"--ignore-vcs", "--type", "file", "--type", "directory"},
+	}
+
+	common.LoadConfig(Name, config)
 }
 
 func index() {
@@ -332,10 +336,12 @@ func handleRegular(regularChan chan string) {
 	}
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
-	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+	util.PrintConfig(config, Name, write)
 }
 
 func Icon() string {

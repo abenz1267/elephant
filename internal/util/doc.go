@@ -3,33 +3,42 @@ package util
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
 
 	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/pelletier/go-toml/v2"
 )
 
-func GenerateDoc(provider string) {
+func GenerateDoc(provider string, write bool) {
 	provider = strings.ToLower(provider)
-	
-	if provider == "" || provider == "elephant" {
-		fmt.Println("# Elephant")
 
-		fmt.Println("A service providing various datasources which can be triggered to perform actions.")
-		fmt.Println()
-		fmt.Println("Run `elephant -h` to get an overview of the available commandline flags and actions.")
-
-		fmt.Println("## Elephant Configuration")
-
-		PrintConfig(common.ElephantConfig{}, "elephant")
+	if write {
+		fmt.Println("Written:")
+		fmt.Println("--------")
 	}
 
-	if provider == "" {
+	if provider == "" || provider == "elephant" {
+		if !write {
+			fmt.Println("# Elephant")
+			fmt.Println("A service providing various datasources which can be triggered to perform actions.")
+			fmt.Println()
+			fmt.Println("Run `elephant -h` to get an overview of the available commandline flags and actions.")
+			fmt.Println("## Elephant Configuration")
+		}
+
+		PrintConfig(common.GetElephantConfig(), "elephant", write)
+	}
+
+	if provider == "" && !write {
 		fmt.Println("## Provider Configuration")
 	}
-	
+
 	p := []providers.Provider{}
 
 	for _, v := range providers.Providers {
@@ -42,14 +51,50 @@ func GenerateDoc(provider string) {
 
 	for _, v := range p {
 		if provider == "" || provider == strings.ToLower(*v.Name) || provider == strings.ToLower(*v.NamePretty) {
-			v.PrintDoc()	
+			v.LoadConfig()
+			v.PrintDoc(write)
 		}
 	}
 }
 
-func PrintConfig(c any, name string) {
-	fmt.Printf("`~/.config/elephant/%s.toml`\n", name)
-	printStructTable(c, getStructName(c))
+func PrintConfig(c any, name string, write bool) {
+	if !write {
+		fmt.Printf("`~/.config/elephant/%s.toml`\n", name)
+		printStructTable(c, getStructName(c))
+	} else {
+		dir := common.GetExplicitDir()
+
+		if dir == "" {
+			var err error
+
+			dir, err = os.UserConfigDir()
+			if err != nil {
+				slog.Error("printconfig", "get user config dir", err)
+				return
+			}
+		}
+
+		b, err := toml.Marshal(c)
+		if err != nil {
+			slog.Error("printconfig", "marshall config", err)
+			return
+
+		}
+
+		if !strings.HasSuffix(dir, "elephant") {
+			dir = filepath.Join(dir, "elephant")
+		}
+
+		file := filepath.Join(dir, fmt.Sprintf("%s.toml", name))
+
+		err = os.WriteFile(file, b, 0o644)
+		if err != nil {
+			slog.Error("printconfig", "write config", err)
+			return
+		}
+
+		fmt.Println(file)
+	}
 }
 
 func getStructName(c any) string {
