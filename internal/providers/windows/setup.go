@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -38,11 +39,20 @@ var (
 var readme string
 
 type Config struct {
-	common.Config `koanf:",squash"`
-	Delay         int `koanf:"delay" desc:"delay in ms before focusing to avoid potential focus issues" default:"100"`
+	common.Config  `koanf:",squash"`
+	Delay          int  `koanf:"delay" desc:"delay in ms before focusing to avoid potential focus issues" default:"100"`
+	ShowWorkspaces bool `koanf:"show_workspaces" desc:"show windows and workspaces" default:"true"`
 }
 
-var config *Config
+var (
+	config           *Config
+	workspaceHandler WorkspaceHandler
+)
+
+type WorkspaceHandler interface {
+	GetWorkspaces(query string, exact bool) []*pb.QueryResponse_Item
+	Focus(workspace string)
+}
 
 func Setup() {
 	start := time.Now()
@@ -59,6 +69,15 @@ func Setup() {
 
 	findIcons()
 
+	if config.ShowWorkspaces {
+		if os.Getenv("XDG_CURRENT_DESKTOP") == "niri" {
+			niri, err := exec.LookPath("niri")
+			if err == nil && niri != "" {
+				workspaceHandler = &NiriWorkspaceHandler{}
+			}
+		}
+	}
+
 	slog.Info(Name, "loaded", time.Since(start))
 }
 
@@ -68,7 +87,8 @@ func LoadConfig() {
 			Icon:     "view-restore",
 			MinScore: 20,
 		},
-		Delay: 100,
+		Delay:          100,
+		ShowWorkspaces: true,
 	}
 
 	common.LoadConfig(Name, config)
@@ -87,15 +107,21 @@ func PrintDoc(write bool) {
 }
 
 const (
-	ActionFocus = "focus"
+	ActionFocus          = "focus"
+	ActionFocusWorkspace = "focus_workspace"
 )
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	time.Sleep(time.Duration(config.Delay) * time.Millisecond)
 
-	i, _ := strconv.Atoi(identifier)
+	switch action {
+	case ActionFocus:
+		i, _ := strconv.Atoi(identifier)
 
-	wlr.Activate(wl.ProxyId(i))
+		wlr.Activate(wl.ProxyId(i))
+	case ActionFocusWorkspace:
+		workspaceHandler.Focus(identifier)
+	}
 }
 
 func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
@@ -145,6 +171,14 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 		}
 	}
 
+	if workspaceHandler == nil {
+		slog.Debug(Name, "query", time.Since(start))
+
+		return entries
+	}
+
+	entries = append(entries, workspaceHandler.GetWorkspaces(query, exact)...)
+
 	slog.Debug(Name, "query", time.Since(start))
 
 	return entries
@@ -169,6 +203,34 @@ func calcScore(q string, d *wlr.Window, exact bool) (string, int32, []int32, int
 	var match string
 
 	toSearch := []string{d.Title, d.AppID}
+
+	for _, v := range toSearch {
+		score, pos, start := common.FuzzyScore(q, v, exact)
+
+		if score > scoreRes {
+			scoreRes = score
+			posRes = pos
+			startRes = start
+			match = v
+		}
+	}
+
+	if scoreRes == 0 {
+		return "", 0, nil, 0, false
+	}
+
+	scoreRes = max(scoreRes-startRes, 10)
+
+	return match, scoreRes, posRes, startRes, true
+}
+
+func calcScoreWorkspace(q string, name string, subtext string, exact bool) (string, int32, []int32, int32, bool) {
+	var scoreRes int32
+	var posRes []int32
+	var startRes int32
+	var match string
+
+	toSearch := []string{name, subtext}
 
 	for _, v := range toSearch {
 		score, pos, start := common.FuzzyScore(q, v, exact)
