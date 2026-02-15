@@ -39,7 +39,14 @@ func (a *StateRequest) Handle(format uint8, cid uint32, conn net.Conn, data []by
 		p = "menus"
 	}
 
-	res := providers.Providers[p].State(req.Provider)
+	provider, ok := providers.Providers[p]
+
+	if !ok {
+		slog.Error("staterequesthandler", "missing provider", p)
+		return
+	}
+
+	res := provider.State(req.Provider)
 	res.Provider = req.Provider
 
 	var b []byte
