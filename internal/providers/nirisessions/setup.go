@@ -123,6 +123,7 @@ func monitor(appid string, res chan int) {
 		err := json.Unmarshal(scanner.Bytes(), &e)
 		if err != nil {
 			slog.Error(Name, "event unmarshal", err)
+			continue
 		}
 
 		if e.WindowOpenedOrChanged != nil && e.WindowOpenedOrChanged.Window.AppID == appid && e.WindowOpenedOrChanged.Window.Layout.PosInScrollingLayout != nil {
