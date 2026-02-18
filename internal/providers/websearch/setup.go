@@ -127,7 +127,17 @@ const (
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
 	case ActionOpenURL:
-		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s xdg-open %s", common.LaunchPrefix(), shellescape.Quote(fmt.Sprintf("https://%s", query)))))
+		cmd := exec.Command(
+			"sh",
+			"-c",
+			strings.TrimSpace(
+				fmt.Sprintf("%s %s %s",
+					common.LaunchPrefix(),
+					config.Command,
+					shellescape.Quote(identifier),
+				),
+			),
+		)
 
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Setsid: true,
@@ -240,22 +250,47 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 	}
 
 	isURL := false
+	finalURL := ""
 
-	if strings.Contains(query, ".") && !strings.HasSuffix(query, ".") {
-		_, err := url.ParseRequestURI(fmt.Sprintf("https://%s", query))
-		if err == nil {
-			e := &pb.QueryResponse_Item{
-				Identifier: "websearch",
-				Text:       fmt.Sprintf("Open: %s", query),
-				Actions:    []string{ActionOpenURL},
-				Icon:       Icon(),
-				Provider:   Name,
-				Score:      1000000,
-			}
+	q := strings.TrimSpace(query)
 
-			entries = append(entries, e)
+	parseURL := func(raw string) (string, bool) {
+		u, err := url.Parse(raw)
+		if err != nil || u.Host == "" {
+			return "", false
+		}
+
+		// Ensure scheme exists
+		if u.Scheme == "" {
+			u.Scheme = "https"
+		}
+
+		return u.String(), true
+	}
+
+	// Try as-is
+	if urlStr, ok := parseURL(q); ok {
+		finalURL = urlStr
+		isURL = true
+	} else if !strings.Contains(q, " ") && strings.Contains(q, ".") {
+		// Try with https:// prefix
+		if urlStr, ok := parseURL("https://" + q); ok {
+			finalURL = urlStr
 			isURL = true
 		}
+	}
+
+	if isURL {
+		e := &pb.QueryResponse_Item{
+			Identifier: finalURL,
+			Text:       fmt.Sprintf("Open: %s", finalURL),
+			Actions:    []string{ActionOpenURL},
+			Icon:       Icon(),
+			Provider:   Name,
+			Score:      1000000,
+		}
+
+		entries = append(entries, e)
 	}
 
 	if !isURL {
