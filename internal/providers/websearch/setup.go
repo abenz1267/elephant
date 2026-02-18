@@ -133,7 +133,7 @@ const (
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
 	case ActionOpenURL:
-		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s xdg-open %s", common.LaunchPrefix(), shellescape.Quote(fmt.Sprintf("https://%s", query)))))
+		cmd := exec.Command("sh", "-c", strings.TrimSpace(fmt.Sprintf("%s %s %s", common.LaunchPrefix(), config.Command, shellescape.Quote(identifier))))
 
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Setsid: true,
@@ -245,26 +245,24 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		}
 	}
 
-	isURL := false
+	link := strings.TrimSpace(query)
 
-	if strings.Contains(query, ".") && !strings.HasSuffix(query, ".") {
-		_, err := url.ParseRequestURI(fmt.Sprintf("https://%s", query))
-		if err == nil {
-			e := &pb.QueryResponse_Item{
-				Identifier: "websearch",
-				Text:       fmt.Sprintf("Open: %s", query),
-				Actions:    []string{ActionOpenURL},
-				Icon:       Icon(),
-				Provider:   Name,
-				Score:      1000000,
-			}
-
-			entries = append(entries, e)
-			isURL = true
-		}
+	if !strings.HasPrefix(link, "https://") && !strings.HasPrefix(link, "http://") {
+		link = fmt.Sprintf("https://%s", link)
 	}
 
-	if !isURL {
+	if !strings.Contains(query, " ") && isURLStrict(link) {
+		e := &pb.QueryResponse_Item{
+			Identifier: link,
+			Text:       fmt.Sprintf("Open: %s", link),
+			Actions:    []string{ActionOpenURL},
+			Icon:       Icon(),
+			Provider:   Name,
+			Score:      1000000,
+		}
+
+		entries = append(entries, e)
+	} else {
 		if config.EnginesAsActions {
 			a := []string{}
 
@@ -371,4 +369,29 @@ func HideFromProviderlist() bool {
 
 func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
+}
+
+func isURLStrict(s string) bool {
+	u, err := url.ParseRequestURI(s)
+	if err != nil {
+		return false
+	}
+
+	switch u.Scheme {
+	case "http", "https":
+	default:
+		return false
+	}
+
+	host := u.Host
+
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+
+	if !strings.Contains(s, "localhost") && !strings.Contains(host, ".") {
+		return false
+	}
+
+	return true
 }
