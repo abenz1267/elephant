@@ -12,6 +12,7 @@ import (
 
 	_ "embed"
 
+	"github.com/abenz1267/elephant/v2/internal/comm/handlers"
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
@@ -26,8 +27,13 @@ var (
 var readme string
 
 type Config struct {
-	common.Config  `koanf:",squash"`
-	VolumeStepSize int `koanf:"volume-step-size" desc:"volume step size (in percent, max: 100)" default:"5"`
+	common.Config   `koanf:",squash"`
+	VolumeStepSize  int    `koanf:"volume-step-size" desc:"volume step size (in percent, max: 100)" default:"5"`
+	IconOutputMuted string `koanf:"icon_output_muted" desc:"icon for muted output device" default:"audio-volume-muted"`
+	IconOutput      string `koanf:"icon_output" desc:"icon for output device" default:"audio-volume-high"`
+
+	IconInputMuted string `koanf:"icon_input_muted" desc:"icon for muted input device" default:"audio-input-microphone-muted"`
+	IconInput      string `koanf:"icon_input" desc:"icon for input device" default:"audio-input-microphone-high"`
 }
 
 var config *Config
@@ -35,10 +41,14 @@ var config *Config
 func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
-			Icon:     "multimedia-volume-control-symbolic",
+			Icon:     "multimedia-volume-control",
 			MinScore: 50,
 		},
-		VolumeStepSize: 5,
+		VolumeStepSize:  5,
+		IconOutput:      "audio-volume-high",
+		IconOutputMuted: "audio-volume-muted",
+		IconInputMuted:  "audio-input-microphone-muted",
+		IconInput:       "audio-input-microphone-high",
 	}
 
 	common.LoadConfig(Name, config)
@@ -84,7 +94,8 @@ func PrintDoc(write bool) {
 const (
 	ActionIncreaseVolume   = "increase_volume"
 	ActionDecreaseVolume   = "decrease_volume"
-	ActionToggleMute       = "toggle_mute"
+	ActionUnmute           = "unmute"
+	ActionMute             = "mute"
 	ActionSetDefaultDevice = "set_default_device"
 )
 
@@ -97,9 +108,9 @@ func Activate(single bool, identifier, action string, query string, args string,
 			return
 		}
 
-		SetVolume(deviceId, config.VolumeStepSize)
-
-		return
+		if ok := setVolume(deviceId, false); !ok {
+			return
+		}
 	case ActionDecreaseVolume:
 		deviceId, err := strconv.Atoi(identifier)
 		if err != nil {
@@ -107,19 +118,19 @@ func Activate(single bool, identifier, action string, query string, args string,
 			return
 		}
 
-		SetVolume(deviceId, -config.VolumeStepSize)
-
-		return
-	case ActionToggleMute:
+		if ok := setVolume(deviceId, true); !ok {
+			return
+		}
+	case ActionMute, ActionUnmute:
 		deviceId, err := strconv.Atoi(identifier)
 		if err != nil {
 			slog.Error(Name, "invalid deviceId", err)
 			return
 		}
 
-		ToggleMute(deviceId)
-
-		return
+		if ok := toggleMute(deviceId); !ok {
+			return
+		}
 	case ActionSetDefaultDevice:
 		deviceId, err := strconv.Atoi(identifier)
 		if err != nil {
@@ -127,30 +138,36 @@ func Activate(single bool, identifier, action string, query string, args string,
 			return
 		}
 
-		SetDefaultDevice(deviceId)
-		return
+		if ok := setDefaultDevice(deviceId); !ok {
+			return
+		}
 	default:
 		slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
-		return
+	}
+
+	devices, err := devices()
+	if err != nil {
+		slog.Error(Name, "activate update", err)
+	}
+
+	for _, v := range devices {
+		if strconv.Itoa(v.ID) == identifier {
+			handlers.UpdateItem(format, query, conn, v.toEntry())
+			break
+		}
 	}
 }
-
-const (
-	IconSink        = "audio-volume-high-symbolic"
-	IconSinkMuted   = "audio-volume-muted-symbolic"
-	IconSource      = "microphone-sensitivity-high-symbolic"
-	IconSourceMuted = "microphone-sensitivity-muted-symbolic"
-)
 
 func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 
-	devices, err := GetDevices()
+	devices, err := devices()
 	if err != nil {
 		slog.Error(Name, "query", err)
 		return entries
 	}
+
 	// sort to move the currently selected in/outputs to the top
 	// only relevant if the search query is empty
 	sort.Slice(devices, func(i, j int) bool {
@@ -160,57 +177,36 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 
 		return devices[i].PipewireType == PipewireTypeSink
 	})
+
 	for _, dev := range devices {
-		score, positions, start := common.FuzzyScore(query, dev.Description, exact)
+		entry := dev.toEntry()
 
-		var usageScore int32
+		if query != "" {
+			match, score, positions, start, found := calcScore(query, entry.Text, entry.Subtext, exact)
 
-		var icon string
-		if dev.PipewireType == PipewireTypeSink {
-			if dev.Muted {
-				icon = IconSinkMuted
-			} else {
-				icon = IconSink
-			}
-		} else {
-			if dev.Muted {
-				icon = IconSourceMuted
-			} else {
-				icon = IconSource
-			}
-		}
+			if found {
+				field := "subtext"
 
-		actions := []string{ActionSetDefaultDevice, ActionIncreaseVolume, ActionDecreaseVolume, ActionToggleMute}
+				if match == entry.Text {
+					field = "text"
+				}
 
-		info := fmt.Sprintf("Volume: %d%%", dev.Volume)
-		if dev.Muted {
-			info += " (Muted)"
-		}
-
-		if dev.Selected {
-			info += " ✓"
-		}
-
-		if usageScore != 0 || score > config.MinScore || query == "" {
-			entries = append(entries, &pb.QueryResponse_Item{
-				Identifier: strconv.Itoa(dev.ID),
-				Score:      score,
-				Text:       dev.Description,
-				Subtext:    info,
-				Icon:       icon,
-				Provider:   Name,
-				Actions:    actions,
-				Fuzzyinfo: &pb.QueryResponse_Item_FuzzyInfo{
+				entry.Score = score
+				entry.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
 					Start:     start,
-					Field:     "text",
+					Field:     field,
 					Positions: positions,
-				},
-				Type: pb.QueryResponse_REGULAR,
-			})
+				}
+			}
+		}
+
+		if entry.Score > config.MinScore || query == "" {
+			entries = append(entries, entry)
 		}
 	}
 
 	slog.Debug(Name, "query", time.Since(start))
+
 	return entries
 }
 
@@ -224,4 +220,34 @@ func HideFromProviderlist() bool {
 
 func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
+}
+
+func calcScore(q, v, vv string, exact bool) (string, int32, []int32, int32, bool) {
+	var scoreRes int32
+	var posRes []int32
+	var startRes int32
+	var match string
+	var modifier int32
+
+	toSearch := []string{v, vv}
+
+	for k, v := range toSearch {
+		score, pos, start := common.FuzzyScore(q, v, exact)
+
+		if score > scoreRes {
+			scoreRes = score
+			posRes = pos
+			startRes = start
+			match = v
+			modifier = int32(k)
+		}
+	}
+
+	if scoreRes == 0 {
+		return "", 0, nil, 0, false
+	}
+
+	scoreRes = max(scoreRes-min(modifier*5, 50)-startRes, 10)
+
+	return match, scoreRes, posRes, startRes, true
 }

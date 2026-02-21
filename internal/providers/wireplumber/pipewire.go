@@ -3,9 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
 type PipewireDumpNode []struct {
@@ -58,17 +61,68 @@ type PipewireDevice struct {
 	PipewireType string
 }
 
-func runCommand(cmd *exec.Cmd) error {
-	err := cmd.Start()
+func (d PipewireDevice) toEntry() *pb.QueryResponse_Item {
+	actions := []string{ActionSetDefaultDevice, ActionIncreaseVolume, ActionDecreaseVolume}
+	state := []string{}
+
+	var icon string
+
+	kind := "Output"
+
+	if d.PipewireType == PipewireTypeSink {
+		if d.Muted {
+			icon = config.IconOutputMuted
+			actions = append(actions, ActionUnmute)
+			state = append(state, "muted")
+		} else {
+			icon = config.IconOutput
+			actions = append(actions, ActionMute)
+			state = append(state, "unmuted")
+		}
+	} else {
+		kind = "Input"
+
+		if d.Muted {
+			icon = config.IconInputMuted
+			actions = append(actions, ActionUnmute)
+			state = append(state, "muted")
+		} else {
+			icon = config.IconInput
+			actions = append(actions, ActionMute)
+			state = append(state, "unmuted")
+		}
+	}
+
+	info := fmt.Sprintf("%s-Volume: %d%%", kind, d.Volume)
+
+	if d.Selected {
+		info = fmt.Sprintf("%s ✓", info)
+	}
+
+	entry := &pb.QueryResponse_Item{
+		Identifier: strconv.Itoa(d.ID),
+		Text:       d.Description,
+		Subtext:    info,
+		Icon:       icon,
+		Provider:   Name,
+		Actions:    actions,
+		Type:       pb.QueryResponse_REGULAR,
+	}
+
+	return entry
+}
+
+func runCommand(cmd *exec.Cmd) ([]byte, error) {
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return out, err
 	}
 
 	go func() {
 		cmd.Wait()
 	}()
 
-	return nil
+	return nil, nil
 }
 
 func getVolumeState(deviceId int) (int, bool, error) {
@@ -124,14 +178,16 @@ func getDefaultSinkAndSource() (defaultSourceName, defaultSinkName string, err e
 	return defaultSourceName, defaultSinkName, nil
 }
 
-func GetDevices() ([]PipewireDevice, error) {
+func devices() ([]PipewireDevice, error) {
 	cmd := exec.Command(PwDumpCommand, "Node")
+
 	output, err := cmd.Output()
 	if err != nil {
 		return []PipewireDevice{}, err
 	}
 
 	dump := PipewireDumpNode{}
+
 	err = json.Unmarshal(output, &dump)
 	if err != nil {
 		return []PipewireDevice{}, err
@@ -143,6 +199,7 @@ func GetDevices() ([]PipewireDevice, error) {
 	}
 
 	var devices []PipewireDevice
+
 	for _, node := range dump {
 		if node.Info.Props.MediaClass == PipewireTypeSink || node.Info.Props.MediaClass == PipewireTypeSource {
 			var volume int
@@ -165,23 +222,46 @@ func GetDevices() ([]PipewireDevice, error) {
 	return devices, nil
 }
 
-func SetDefaultDevice(deviceId int) error {
+func setDefaultDevice(deviceId int) bool {
 	cmd := exec.Command(WpCtlCommand, "set-default", strconv.Itoa(deviceId))
-	return runCommand(cmd)
+
+	out, err := runCommand(cmd)
+	if err != nil {
+		slog.Error(Name, "set volume", string(out))
+		return false
+	}
+
+	return true
 }
 
-func ToggleMute(deviceId int) error {
+func toggleMute(deviceId int) bool {
 	cmd := exec.Command(WpCtlCommand, "set-mute", strconv.Itoa(deviceId), "toggle")
-	return runCommand(cmd)
+
+	out, err := runCommand(cmd)
+	if err != nil {
+		slog.Error(Name, "set volume", string(out))
+		return false
+	}
+
+	return true
 }
 
-func SetVolume(deviceId int, volumeDiffPercentage int) error {
+func setVolume(deviceId int, decrease bool) bool {
 	var sign string
-	if volumeDiffPercentage >= 0 {
+
+	if !decrease {
 		sign = "+"
 	} else {
 		sign = "-"
 	}
-	cmd := exec.Command(WpCtlCommand, "set-volume", strconv.Itoa(deviceId), fmt.Sprintf("%d%%%s", volumeDiffPercentage, sign))
-	return runCommand(cmd)
+
+	cmd := exec.Command(WpCtlCommand, "set-volume", strconv.Itoa(deviceId), fmt.Sprintf("%d%%%s", config.VolumeStepSize, sign))
+
+	out, err := runCommand(cmd)
+	if err != nil {
+		slog.Error(Name, "set volume", string(out))
+		return false
+	}
+
+	return true
 }
