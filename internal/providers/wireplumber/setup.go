@@ -32,9 +32,7 @@ type Config struct {
 
 var config *Config
 
-func Setup() {
-	start := time.Now()
-
+func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
 			Icon:     "multimedia-volume-control-symbolic",
@@ -44,6 +42,12 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
+}
+
+func Setup() {
+	start := time.Now()
+
+	LoadConfig()
 
 	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
