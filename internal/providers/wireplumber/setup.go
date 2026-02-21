@@ -30,9 +30,7 @@ type Config struct {
 	VolumeStepSize int `koanf:"volume-step-size" desc:"volume step size (in percent, max: 100)" default:"5"`
 }
 
-var (
-	config *Config
-)
+var config *Config
 
 func Setup() {
 	start := time.Now()
@@ -73,16 +71,18 @@ func Available() bool {
 	return executableExists("pw-dump") && executableExists("wpctl")
 }
 
-func PrintDoc() {
+func PrintDoc(write bool) {
 	fmt.Println(readme)
 	fmt.Println()
-	util.PrintConfig(Config{}, Name)
+	util.PrintConfig(Config{}, Name, write)
 }
 
-const ActionIncreaseVolume = "increase_volume"
-const ActionDecreaseVolume = "decrease_volume"
-const ActionToggleMute = "toggle_mute"
-const ActionSetDefaultDevice = "set_default_device"
+const (
+	ActionIncreaseVolume   = "increase_volume"
+	ActionDecreaseVolume   = "decrease_volume"
+	ActionToggleMute       = "toggle_mute"
+	ActionSetDefaultDevice = "set_default_device"
+)
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {

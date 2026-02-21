@@ -60,7 +60,6 @@ type PipewireDevice struct {
 
 func runCommand(cmd *exec.Cmd) error {
 	err := cmd.Start()
-
 	if err != nil {
 		return err
 	}
