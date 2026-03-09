@@ -92,7 +92,7 @@ func (n NiriWorkspaceHandler) GetWorkspaces(query string, exact bool) []*pb.Quer
 	}
 
 	for _, v := range workspaces {
-		text := fmt.Sprintf("Workspace: %d", v.Id)
+		text := fmt.Sprintf("Workspace: %d", v.Idx)
 
 		if v.Name != "" {
 			text = fmt.Sprintf("Workspace: %s", v.Name)
@@ -139,7 +139,7 @@ func (n NiriWorkspaceHandler) GetWorkspaces(query string, exact bool) []*pb.Quer
 		}
 
 		e := &pb.QueryResponse_Item{
-			Identifier: fmt.Sprintf("%d", v.Idx),
+			Identifier: fmt.Sprintf("%d", v.Id),
 			Text:       text,
 			Subtext:    subtext,
 			Actions:    []string{ActionFocusWorkspace},
