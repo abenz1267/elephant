@@ -12,6 +12,8 @@ import (
 
 	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/pkg/common"
+	"github.com/knadh/koanf/providers/structs"
+	"github.com/knadh/koanf/v2"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -74,7 +76,13 @@ func PrintConfig(c any, name string, write bool) {
 			}
 		}
 
-		b, err := toml.Marshal(c)
+		k := koanf.New(".")
+		if err := k.Load(structs.Provider(c, "koanf"), nil); err != nil {
+			slog.Error("printconfig", "load struct", err)
+			return
+		}
+
+		b, err := toml.Marshal(k.Raw())
 		if err != nil {
 			slog.Error("printconfig", "marshall config", err)
 			return
