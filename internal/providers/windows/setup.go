@@ -39,9 +39,10 @@ var (
 var readme string
 
 type Config struct {
-	common.Config  `koanf:",squash"`
-	Delay          int  `koanf:"delay" desc:"delay in ms before focusing to avoid potential focus issues" default:"100"`
-	ShowWorkspaces bool `koanf:"show_workspaces" desc:"show windows and workspaces" default:"true"`
+	common.Config       `koanf:",squash"`
+	Delay               int  `koanf:"delay" desc:"delay in ms before focusing to avoid potential focus issues" default:"100"`
+	ShowWorkspaces      bool `koanf:"show_workspaces" desc:"show windows and workspaces" default:"true"`
+	ShowEmptyWorkspaces bool `koanf:"show_empty_workspaces" desc:"show empty workspaces" default:"false"`
 }
 
 var (
@@ -87,8 +88,9 @@ func LoadConfig() {
 			Icon:     "view-restore",
 			MinScore: 20,
 		},
-		Delay:          100,
-		ShowWorkspaces: true,
+		Delay:               100,
+		ShowWorkspaces:      true,
+		ShowEmptyWorkspaces: false,
 	}
 
 	common.LoadConfig(Name, config)
