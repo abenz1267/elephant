@@ -335,6 +335,7 @@ func State(provider string) *pb.ProviderStateResponse {
 
 func getOfficialPkgs() {
 	cmd := exec.Command("pacman", "-Si")
+	cmd.Env = []string{"LC_ALL=C"}
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
