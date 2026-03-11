@@ -50,6 +50,9 @@ func (a *ActivateRequest) Handle(format uint8, cid uint32, conn net.Conn, data [
 		buffer.Write(lengthBuf)
 
 		_, err := conn.Write(buffer.Bytes())
+
+		slog.Debug("activation", "provider", *p.Name, "identifier", req.Identifier)
+
 		if err != nil {
 			slog.Debug("activation done", "write", err)
 		}
