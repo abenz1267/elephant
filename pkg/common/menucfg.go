@@ -46,6 +46,7 @@ type Menu struct {
 	Terminal             bool              `toml:"terminal" desc:"execute action in terminal or not"`
 	Keywords             []string          `toml:"keywords" desc:"searchable keywords"`
 	FixedOrder           bool              `toml:"fixed_order" desc:"don't sort entries alphabetically"`
+	SearchPriority       []string          `toml:"priority" desc:"The later on the list the bigger penalty. [text, subtext, keywords]"`
 	History              bool              `toml:"history" desc:"make use of history for sorting"`
 	HistoryWhenEmpty     bool              `toml:"history_when_empty" desc:"consider history when query is empty"`
 	MinScore             int32             `toml:"min_score" desc:"minimum score for items to be displayed" default:"depends on provider"`
@@ -339,6 +340,17 @@ func (m *Menu) CreateLuaEntries(query string) {
 					}
 				}
 
+				if val := item.RawGet(lua.LString("Keywords")); val != lua.LNil {
+					if table, ok := val.(*lua.LTable); ok {
+						entry.Keywords = make([]string, 0)
+						table.ForEach(func(key, value lua.LValue) {
+							if str, ok := value.(lua.LString); ok {
+								entry.Keywords = append(entry.Keywords, string(str))
+							}
+						})
+					}
+				}
+
 				if state := item.RawGet(lua.LString("State")); state != lua.LNil {
 					if stateTable, ok := state.(*lua.LTable); ok {
 						entry.State = make([]string, 0)
@@ -523,6 +535,17 @@ func createLuaMenu(path string) {
 			table.ForEach(func(key, value lua.LValue) {
 				if str, ok := value.(lua.LString); ok {
 					m.Keywords = append(m.Keywords, string(str))
+				}
+			})
+		}
+	}
+
+	if val := state.GetGlobal("SearchPriority"); val != lua.LNil {
+		if table, ok := val.(*lua.LTable); ok {
+			m.SearchPriority = make([]string, 0)
+			table.ForEach(func(key, value lua.LValue) {
+				if str, ok := value.(lua.LString); ok {
+					m.SearchPriority = append(m.SearchPriority, string(str))
 				}
 			})
 		}
