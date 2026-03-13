@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -31,6 +32,7 @@ type MenuConfig struct {
 }
 
 type Menu struct {
+	Hosts                []string          `toml:"hosts" desc:"menu will only be shown on this hosts. If empty, all." default:"[]"`
 	HideFromProviderlist bool              `toml:"hide_from_providerlist" desc:"hides a provider from the providerlist provider. provider provider." default:"false"`
 	Name                 string            `toml:"name" desc:"name of the menu"`
 	NamePretty           string            `toml:"name_pretty" desc:"prettier name you usually want to display to the user."`
@@ -314,6 +316,21 @@ func (m *Menu) CreateLuaEntries(query string) {
 					entry.Subtext = string(subtext.(lua.LString))
 				}
 
+				if state := item.RawGet(lua.LString("Hosts")); state != lua.LNil {
+					if stateTable, ok := state.(*lua.LTable); ok {
+						entry.Hosts = make([]string, 0)
+						stateTable.ForEach(func(key, value lua.LValue) {
+							if str, ok := value.(lua.LString); ok {
+								entry.Hosts = append(entry.Hosts, string(str))
+							}
+						})
+					}
+				}
+
+				if len(entry.Hosts) > 0 && !slices.Contains(entry.Hosts, host) {
+					return
+				}
+
 				if submenu := item.RawGetString("SubMenu"); submenu != lua.LNil {
 					entry.SubMenu = string(submenu.(lua.LString))
 				}
@@ -375,6 +392,7 @@ func (m *Menu) CreateLuaEntries(query string) {
 }
 
 type Entry struct {
+	Hosts       []string          `toml:"hosts" desc:"entry will only be shown on this hosts. If empty, all." default:"[]"`
 	Text        string            `toml:"text" desc:"text for entry"`
 	Async       string            `toml:"async" desc:"if the text should be updated asynchronously based on the action"`
 	Subtext     string            `toml:"subtext" desc:"sub text for entry"`
@@ -401,9 +419,12 @@ var (
 	MenuConfigLoaded MenuConfig
 	menuname         = "menus"
 	Menus            = make(map[string]*Menu)
+	host             = ""
 )
 
 func LoadMenus() {
+	host, _ = os.Hostname()
+
 	MenuConfigLoaded = MenuConfig{
 		Config: Config{
 			MinScore: 10,
@@ -539,6 +560,21 @@ func createLuaMenu(path string) {
 		}
 	}
 
+	if val := state.GetGlobal("Hosts"); val != lua.LNil {
+		if table, ok := val.(*lua.LTable); ok {
+			m.Hosts = make([]string, 0)
+			table.ForEach(func(key, value lua.LValue) {
+				if str, ok := value.(lua.LString); ok {
+					m.Hosts = append(m.Hosts, string(str))
+				}
+			})
+		}
+	}
+
+	if len(m.Hosts) > 0 && !slices.Contains(m.Hosts, host) {
+		return
+	}
+
 	if val := state.GetGlobal("FixedOrder"); val != lua.LNil {
 		m.FixedOrder = bool(val.(lua.LBool))
 	}
@@ -607,6 +643,10 @@ func createTomlMenu(path string) {
 		} else {
 			m.Entries[k].Identifier = fmt.Sprintf("%s:%s", m.Name, identifier)
 		}
+	}
+
+	if len(m.Hosts) > 0 && !slices.Contains(m.Hosts, host) {
+		return
 	}
 
 	Menus[m.Name] = &m

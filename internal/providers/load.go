@@ -52,7 +52,9 @@ var (
 func Load(setup bool) {
 	go common.LoadMenus()
 
-	ignored := common.GetElephantConfig().IgnoredProviders
+	cfg := common.GetElephantConfig()
+	ignored := cfg.IgnoredProviders
+	host, _ := os.Hostname()
 
 	var mut sync.Mutex
 	have := make(map[string]struct{})
@@ -119,6 +121,15 @@ func Load(setup bool) {
 					name, err := p.Lookup("Name")
 					if err != nil {
 						slog.Error("providers", "load", err, "provider", path)
+					}
+
+					n := name.(*string)
+
+					if val, ok := cfg.ProviderHosts[*n]; ok && len(val) > 0 {
+						if !slices.Contains(val, host) {
+							slog.Info("providers", "ignored", *n, "hosts", val, "host", host)
+							return nil
+						}
 					}
 
 					namePretty, err := p.Lookup("NamePretty")

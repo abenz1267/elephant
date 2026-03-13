@@ -24,6 +24,7 @@ var (
 	Name       = "menus"
 	NamePretty = "Menus"
 	h          = history.Load(Name)
+	host       = ""
 )
 
 //go:embed README.md
@@ -40,7 +41,9 @@ func PrintDoc(write bool) {
 
 func LoadConfig() {}
 
-func Setup() {}
+func Setup() {
+	host, _ = os.Hostname()
+}
 
 func Available() bool {
 	return true
@@ -249,6 +252,10 @@ func Query(conn net.Conn, query string, single bool, exact bool, format uint8) [
 		}
 
 		for k, me := range v.Entries {
+			if len(me.Hosts) > 0 && !slices.Contains(me.Hosts, host) {
+				continue
+			}
+
 			e := itemToEntry(format, query, conn, v.Actions, v.NamePretty, single, v.Icon, &v.Entries[k])
 
 			if v.FixedOrder {
