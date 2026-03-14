@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -99,9 +100,18 @@ func Activate(single bool, identifier, action string, query string, args string,
 		h.Remove(identifier)
 		return
 	case ActionRunCmd:
-		cmd := common.ReplaceResultOrStdinCmd(config.Command, symbols[identifier].CP)
+		val := symbols[identifier].CP
 
-		err := cmd.Start()
+		count, err := strconv.Atoi(args)
+
+		if err == nil {
+			val = strings.Repeat(val, count)
+		}
+
+		cmd := common.ReplaceResultOrStdinCmd(config.Command, val)
+
+		err = cmd.Start()
+
 		if err != nil {
 			slog.Error(Name, "activate", err)
 			return
