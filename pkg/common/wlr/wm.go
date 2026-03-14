@@ -141,7 +141,7 @@ func (*Window) HandleZwlrForeignToplevelManagerV1Toplevel(e ZwlrForeignToplevelM
 	e.Toplevel.AddAppIdHandler(handler)
 	e.Toplevel.AddClosedHandler(handler)
 
-	windows[e.Toplevel.Id()] = &Window{Toplevel: e.Toplevel}
+	windows[e.Toplevel.Id()] = handler
 }
 
 func (h *Window) HandleZwlrForeignToplevelHandleV1Closed(e ZwlrForeignToplevelHandleV1ClosedEvent) {
