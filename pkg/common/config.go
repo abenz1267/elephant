@@ -29,6 +29,7 @@ type ElephantConfig struct {
 	ProviderHosts          map[string][]string `koanf:"provider_hosts" desc:"providers will only be loaded on the specified hosts. If empty, all." default:""`
 	AutoDetectLaunchPrefix bool                `koanf:"auto_detect_launch_prefix" desc:"automatically detects uwsm, app2unit or systemd-run" default:"true"`
 	LaunchPrefix           string              `koanf:"launch_prefix" desc:"overrides the default app2unit or uwsm prefix, if set." default:""`
+	TerminalCmd            string              `koanf:"terminal_cmd" desc:"command used to open cmds with terminal" default:"<autodetect>"`
 	OverloadLocalEnv       bool                `koanf:"overload_local_env" desc:"overloads the local env" default:"false"`
 	IgnoredProviders       []string            `koanf:"ignored_providers" desc:"providers to ignore" default:"<empty>"`
 	GitOnDemand            bool                `koanf:"git_on_demand" desc:"sets up git repositories on first query instead of on start" default:"true"`

@@ -85,8 +85,14 @@ func GetTerminal() string {
 }
 
 func WrapWithTerminal(in string) string {
-	if terminal == "" {
+	t := GetElephantConfig().TerminalCmd
+
+	if terminal == "" && t == "" {
 		return in
+	}
+
+	if t != "" {
+		return fmt.Sprintf("%s %s", t, in)
 	}
 
 	return fmt.Sprintf("%s -e %s", terminal, in)
