@@ -50,6 +50,7 @@ type Config struct {
 	CommandInstall       string `koanf:"command_install" desc:"default command for AUR packages to install. supports %VALUE%." default:"yay -S %VALUE%"`
 	CommandRemove        string `koanf:"command_remove" desc:"default command to remove packages. supports %VALUE%." default:"sudo pacman -R %VALUE%"`
 	AutoWrapWithTerminal bool   `koanf:"auto_wrap_with_terminal" desc:"automatically wraps the command with terminal" default:"true"`
+	ExplicitOnly         bool   `koanf:"explicit_only" desc:"when filtering installed packages, show only explicitly installed packages, not dependencies" default:"true"`
 }
 
 type AURPackage struct {
@@ -124,6 +125,7 @@ func LoadConfig() {
 		CommandInstall:       fmt.Sprintf("%s -S %s", helper, "%VALUE%"),
 		CommandRemove:        fmt.Sprintf("%s -R %s", helper, "%VALUE%"),
 		AutoWrapWithTerminal: true,
+		ExplicitOnly: true,
 	}
 
 	common.LoadConfig(Name, config)
@@ -420,8 +422,15 @@ func setupAURPkgs() {
 
 func getInstalled() {
 	installed = []string{}
+	
+	var cmd *exec.Cmd
 
-	cmd := exec.Command("pacman", "-Qe")
+	if config.ExplicitOnly {
+		cmd = exec.Command("pacman", "-Qe")
+	} else {
+		cmd = exec.Command("pacman", "-Q")
+	}
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		slog.Error(Name, "installed", err)
