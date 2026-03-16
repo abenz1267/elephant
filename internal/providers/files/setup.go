@@ -247,14 +247,10 @@ outer:
 }
 
 func Available() bool {
-	p, err := exec.LookPath("fd")
+	p1, _ := exec.LookPath("fd")
+	p2, _ := exec.LookPath("fdfind")
 
-	if p == "" || err != nil {
-		slog.Info(Name, "available", "fd not found. disabling.")
-		return false
-	}
-
-	return true
+	return p1 != "" || p2 != ""
 }
 
 func handleDelete(deleteChan chan string) {
