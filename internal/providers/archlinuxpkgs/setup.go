@@ -22,12 +22,21 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
+type Filter int
+
+const (
+    All      Filter = iota
+    Installed
+    Outdated
+)
+
 var (
 	Name          = "archlinuxpkgs"
 	NamePretty    = "Arch Linux Packages"
 	config        *Config
 	installed     = []string{}
-	installedOnly = false
+	outdated      = []string{}
+	filter Filter = All
 	cacheFile     = common.CacheFile("archlinuxpkgs.json")
 	cachedData    = newCachedData()
 )
@@ -42,6 +51,7 @@ const (
 	ActionRefresh       = "refresh"
 	ActionRemove        = "remove"
 	ActionShowInstalled = "show_installed"
+	ActionShowOutdated  = "show_outdated"
 	ActionShowAll       = "show_all"
 )
 
@@ -144,6 +154,7 @@ func Setup() {
 
 func setup() {
 	getInstalled()
+	getOutdated()
 	getOfficialPkgs()
 	setupAURPkgs()
 
@@ -198,11 +209,14 @@ func Activate(single bool, identifier, action string, query string, args string,
 		setup()
 		return
 	case ActionShowAll:
-		installedOnly = false
+		filter = All
 		return
 	case ActionShowInstalled:
-		installedOnly = true
+		filter = Installed
 		return
+	case ActionShowOutdated:
+        filter = Outdated
+        return
 	}
 
 	name := cachedData.Packages[identifier].Name
@@ -251,9 +265,9 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 	}
 
 	for k, v := range cachedData.Packages {
-		if installedOnly && !v.Installed {
-			continue
-		}
+		if (filter == Installed && !v.Installed) || (filter == Outdated && !v.Outdated) {
+            continue
+        }
 
 		state := []string{}
 		a := []string{}
@@ -270,9 +284,15 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			a = append(a, "visit_url")
 		}
 
-		subtext := fmt.Sprintf("[%s]", strings.ToLower(v.Repository))
-		if v.Installed {
-			subtext = fmt.Sprintf("[%s] [installed]", strings.ToLower(v.Repository))
+		repo := fmt.Sprintf("[%s]", strings.ToLower(v.Repository))
+		var subtext string
+		switch {
+		case v.Installed && v.Outdated:
+			subtext = repo + " [installed] [outdated]"
+		case v.Installed:
+			subtext = repo + " [installed]"
+		default:
+			subtext = repo
 		}
 
 		e := &pb.QueryResponse_Item{
@@ -322,17 +342,20 @@ func HideFromProviderlist() bool {
 }
 
 func State(provider string) *pb.ProviderStateResponse {
-	actions := []string{ActionRefresh}
+    actions := []string{ActionRefresh}
 
-	if installedOnly {
-		actions = append(actions, ActionShowAll)
-	} else {
-		actions = append(actions, ActionShowInstalled)
-	}
+    switch filter {
+    case Installed:
+        actions = append(actions, ActionShowAll, ActionShowOutdated)
+    case Outdated:
+        actions = append(actions, ActionShowInstalled, ActionShowAll)
+    default: // All
+        actions = append(actions, ActionShowInstalled, ActionShowOutdated)
+    }
 
-	return &pb.ProviderStateResponse{
-		Actions: actions,
-	}
+    return &pb.ProviderStateResponse{
+        Actions: actions,
+    }
 }
 
 func getOfficialPkgs() {
@@ -365,6 +388,7 @@ func getOfficialPkgs() {
 		case strings.HasPrefix(line, "Name"):
 			e.Name = strings.TrimSpace(strings.Split(line, ":")[1])
 			e.Installed = slices.Contains(installed, e.Name)
+			e.Outdated = slices.Contains(outdated, e.Name)
 		case strings.HasPrefix(line, "Description"):
 			e.Description = strings.TrimSpace(strings.Split(line, ":")[1])
 		case strings.HasPrefix(line, "Version"):
@@ -414,6 +438,7 @@ func setupAURPkgs() {
 			Version:     pkg.Version,
 			Repository:  "aur",
 			Installed:   slices.Contains(installed, pkg.Name),
+			Outdated:    slices.Contains(outdated, pkg.Name),
 			URL:         pkg.URL,
 			FullInfo:    pkg.toFullInfo(),
 		}
@@ -442,4 +467,39 @@ func getInstalled() {
 			installed = append(installed, fields[0])
 		}
 	}
+}
+
+func getOutdated() {
+    outdated = []string{}
+
+    var offCmd *exec.Cmd
+    if _, err := exec.LookPath("checkupdates"); err == nil {
+        offCmd = exec.Command("checkupdates")
+    } else {
+        offCmd = exec.Command("pacman", "-Qu")
+    }
+
+	offOut, offErr := offCmd.CombinedOutput()
+    if offErr != nil {
+		// checkupdates return 2 when no updates are required
+		if exitErr, ok := offErr.(*exec.ExitError); ok && exitErr.ExitCode() != 2 {
+			slog.Error(Name, "outdated", offErr)
+        }
+    }
+
+
+    aurCmd := exec.Command(detectHelper(), "-Qu", "--aur")
+    aurOut, aurErr := aurCmd.CombinedOutput()
+    if aurErr != nil {
+        slog.Error(Name, "outdated", aurErr)
+    }
+
+    for _, out := range [][]byte{offOut, aurOut} {
+        for line := range strings.Lines(string(out)) {
+            fields := strings.Fields(line)
+            if len(fields) > 0 {
+                outdated = append(outdated, fields[0])
+            }
+        }
+    }
 }
