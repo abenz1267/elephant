@@ -115,12 +115,14 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 
 	for k, v := range actions {
 		e := &pb.QueryResponse_Item{
-			Identifier: k,
-			Text:       v,
-			Subtext:    k,
-			Icon:       config.Icon,
-			Provider:   Name,
-			Actions:    []string{ActionExecute},
+			Identifier:  k,
+			Text:        v,
+			Subtext:     k,
+			Icon:        config.Icon,
+			Preview:     fmt.Sprintf("niri msg action %s --help", k),
+			PreviewType: util.PreviewTypeCommand,
+			Provider:    Name,
+			Actions:     []string{ActionExecute},
 		}
 
 		if query != "" {
