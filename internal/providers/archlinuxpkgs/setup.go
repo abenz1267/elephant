@@ -50,6 +50,7 @@ const (
 	ActionVisitURL      = "visit_url"
 	ActionRefresh       = "refresh"
 	ActionRemove        = "remove"
+	ActionUpdate        = "update"
 	ActionShowInstalled = "show_installed"
 	ActionShowOutdated  = "show_outdated"
 	ActionShowAll       = "show_all"
@@ -59,6 +60,7 @@ type Config struct {
 	common.Config        `koanf:",squash"`
 	CommandInstall       string `koanf:"command_install" desc:"default command for AUR packages to install. supports %VALUE%." default:"yay -S %VALUE%"`
 	CommandRemove        string `koanf:"command_remove" desc:"default command to remove packages. supports %VALUE%." default:"sudo pacman -R %VALUE%"`
+	CommandUpdate        string `koanf:"command_update" desc:"default command to update outdated packages." default:"yay -Suy"`
 	AutoWrapWithTerminal bool   `koanf:"auto_wrap_with_terminal" desc:"automatically wraps the command with terminal" default:"true"`
 	ExplicitOnly         bool   `koanf:"explicit_only" desc:"when filtering installed packages, show only explicitly installed packages, not dependencies" default:"true"`
 }
@@ -134,6 +136,7 @@ func LoadConfig() {
 		},
 		CommandInstall:       fmt.Sprintf("%s -S %s", helper, "%VALUE%"),
 		CommandRemove:        fmt.Sprintf("%s -R %s", helper, "%VALUE%"),
+		CommandUpdate:        fmt.Sprintf("%s -Suy", helper),
 		AutoWrapWithTerminal: true,
 		ExplicitOnly: true,
 	}
@@ -227,6 +230,8 @@ func Activate(single bool, identifier, action string, query string, args string,
 		pkgcmd = config.CommandInstall
 	case ActionRemove:
 		pkgcmd = config.CommandRemove
+	case ActionUpdate:
+		pkgcmd = config.CommandUpdate
 	default:
 		slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
 		return
@@ -344,14 +349,22 @@ func HideFromProviderlist() bool {
 func State(provider string) *pb.ProviderStateResponse {
     actions := []string{ActionRefresh}
 
-    switch filter {
-    case Installed:
-        actions = append(actions, ActionShowAll, ActionShowOutdated)
-    case Outdated:
-        actions = append(actions, ActionShowInstalled, ActionShowAll)
-    default: // All
-        actions = append(actions, ActionShowInstalled, ActionShowOutdated)
-    }
+	outdatedIsEmpty := len(outdated) != 0
+
+	switch filter {
+	case Installed:
+		actions = append(actions, ActionShowAll)
+	case Outdated:
+		actions = append(actions, ActionShowInstalled, ActionShowAll)
+	default: // All
+		actions = append(actions, ActionShowInstalled)
+	}
+	if outdatedIsEmpty && filter != Outdated {
+		actions = append(actions, ActionShowOutdated)
+	}
+	if outdatedIsEmpty {
+		actions = append(actions, ActionUpdate)
+	}
 
     return &pb.ProviderStateResponse{
         Actions: actions,
@@ -490,16 +503,31 @@ func getOutdated() {
 
     aurCmd := exec.Command(detectHelper(), "-Qu", "--aur")
     aurOut, aurErr := aurCmd.CombinedOutput()
-    if aurErr != nil {
-        slog.Error(Name, "outdated", aurErr)
+	if aurErr != nil {
+		// yay -Qu --aur return 1 when no updates are required
+		if exitErr, ok := aurErr.(*exec.ExitError); ok && exitErr.ExitCode() != 1 {
+			slog.Error(Name, "outdated", offErr)
+        }
+    }
+
+	var installedSet map[string]struct{}
+    if config.ExplicitOnly {
+        installedSet = make(map[string]struct{}, len(installed))
+        for _, pkg := range installed {
+            installedSet[pkg] = struct{}{}
+        }
     }
 
     for _, out := range [][]byte{offOut, aurOut} {
         for line := range strings.Lines(string(out)) {
             fields := strings.Fields(line)
             if len(fields) > 0 {
-                outdated = append(outdated, fields[0])
-            }
-        }
+                name := fields[0]
+                _, inInstalled := installedSet[name]
+                if !config.ExplicitOnly || inInstalled {
+                    outdated = append(outdated, name)
+                }
+            }        
+		}
     }
 }

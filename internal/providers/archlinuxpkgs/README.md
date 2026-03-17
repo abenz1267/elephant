@@ -8,7 +8,7 @@ Find, install and delete packages. Including AUR.
 - find AUR packages
 - install packages
 - list installed packages (explicitly or not).
-- detect outdated packages.
+- detect and update outdated packages.
 - remove packages
 - clear all done items
 
