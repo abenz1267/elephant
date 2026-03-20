@@ -23,6 +23,7 @@ var (
 	filesMu       sync.RWMutex
 	watcherDirsMu sync.RWMutex
 	watcher       *fsnotify.Watcher
+	reinitMu      sync.Mutex // guards reinitializeWatcher to prevent concurrent reinits
 	regionLocale  = ""
 	langLocale    = ""
 	dirs          []string
@@ -50,6 +51,14 @@ func loadFiles() {
 		if err := fastwalk.Walk(&conf, root, walkFunction); err != nil {
 			slog.Error(Name, "walk", err)
 			continue
+		}
+	}
+
+	if mossIsActive() {
+		// With moss package manager, /usr is atomically replaced on package changes.
+		// Watch it directly so we can detect the swap and reinitialize inotify watches.
+		if err := watcher.Add("/usr"); err != nil {
+			slog.Warn(Name, "usr_watcher_add", err)
 		}
 	}
 
@@ -143,17 +152,20 @@ func addDirToWatcher(dir string, watchedDirs map[string]bool) {
 }
 
 func watchFiles() {
-	defer watcher.Close()
+	// Capture watcher locally so reinitializeWatcher can replace the global
+	// without affecting this goroutines event loop.
+	w := watcher
+	defer w.Close()
 
 	for {
 		select {
-		case event, ok := <-watcher.Events:
+		case event, ok := <-w.Events:
 			if !ok {
 				return
 			}
 			handleFileEvent(event)
 
-		case err, ok := <-watcher.Errors:
+		case err, ok := <-w.Errors:
 			if !ok {
 				return
 			}
@@ -172,6 +184,14 @@ func checkSubdirOfXDG(subdir string) bool {
 }
 
 func handleFileEvent(event fsnotify.Event) {
+	// moss replaces /usr atomically, which invalidates all inotify watches under it.
+	// Detect this and reinitialize.
+	if event.Name == "/usr" && (event.Op&fsnotify.Rename != 0 || event.Op&fsnotify.Remove != 0) {
+		slog.Info(Name, "usr_replaced", "reinitializing inotify watches")
+		reinitializeWatcher()
+		return
+	}
+
 	slog.Debug(Name, "file_system_event", event)
 	if filepath.Ext(event.Name) != ".desktop" {
 		// Handle directory creation to watch new subdirectories
@@ -333,4 +353,27 @@ func isSymlink(filename string) (string, bool) {
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+// mossIsActive checks whether the moss package manager is running by looking
+// for its state file. Used to decide if /usr needs direct monitoring.
+func mossIsActive() bool {
+	_, err := os.Stat("/.moss/db/state")
+	return err == nil
+}
+
+// reinitializeWatcher tears down the current watcher and rebuilds it from scratch.
+// Needed after moss atomically replaces /usr, which invalidates existing inotify watches.
+func reinitializeWatcher() {
+	reinitMu.Lock()
+	defer reinitMu.Unlock()
+
+	if watcher != nil {
+		watcher.Close()
+		watcher = nil
+	}
+
+	loadFiles()
+	handlers.ProviderUpdated <- Name
+	slog.Info(Name, "watcher_reinitialized", len(files))
 }
