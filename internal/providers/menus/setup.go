@@ -300,7 +300,12 @@ func HideFromProviderlist() bool {
 }
 
 func State(provider string) *pb.ProviderStateResponse {
-	menu := strings.Split(provider, ":")[1]
+	_, menu, found := strings.Cut(provider, ":")
+
+	if !found || menu == "" {
+		slog.Error("invalid provider format: expected `menus:your_menu`", "provider", provider)
+		return &pb.ProviderStateResponse{}
+	}
 
 	if val, ok := common.Menus[menu]; ok {
 		if val.Parent != "" {
@@ -310,6 +315,7 @@ func State(provider string) *pb.ProviderStateResponse {
 		}
 	}
 
+	slog.Error("menu source not found", "provider", provider, "menu", menu)
 	return &pb.ProviderStateResponse{}
 }
 
