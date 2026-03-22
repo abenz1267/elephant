@@ -228,6 +228,26 @@ func Activate(single bool, identifier, action string, query string, args string,
 	}
 }
 
+func getHaystack(entry common.Entry, menu *common.Menu) []string {
+	ret := []string{}
+	if len(menu.SearchPriority) > 0 {
+		for _, key := range menu.SearchPriority {
+			switch strings.ToLower(key) {
+			case "text":
+				ret = append(ret, entry.Text)
+			case "keywords":
+				ret = append(ret, entry.Keywords...)
+			case "subtext":
+				ret = append(ret, entry.Subtext)
+			}
+		}
+	} else {
+		ret = []string{entry.Text, entry.Subtext}
+		ret = append(ret, entry.Keywords...)
+	}
+	return ret
+}
+
 func Query(conn net.Conn, query string, single bool, exact bool, format uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
@@ -235,7 +255,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, format uint8) [
 
 	initialQuery := query
 
-	split := strings.Split(query, ":")
+	split := strings.SplitN(query, ":", 2)
 
 	if len(split) > 1 {
 		menu = split[0]
@@ -270,8 +290,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, format uint8) [
 				if v.SearchName {
 					me.Keywords = append(me.Keywords, me.Menu)
 				}
-
-				_, e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start, _ = calcScore(query, me, exact)
+				_, e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start, _ = calcScore(query, getHaystack(me, v), exact)
 			}
 
 			var usageScore int32
@@ -320,18 +339,15 @@ func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
 }
 
-func calcScore(q string, d common.Entry, exact bool) (string, int32, []int32, int32, bool) {
+func calcScore(query string, haystack []string, exact bool) (string, int32, []int32, int32, bool) {
 	var scoreRes int32
 	var posRes []int32
 	var startRes int32
 	var match string
 	var modifier int32
 
-	toSearch := []string{d.Text, d.Subtext}
-	toSearch = append(toSearch, d.Keywords...)
-
-	for k, v := range toSearch {
-		score, pos, start := common.FuzzyScore(q, v, exact)
+	for k, v := range haystack {
+		score, pos, start := common.FuzzyScore(query, v, exact)
 
 		if score > scoreRes {
 			scoreRes = score
