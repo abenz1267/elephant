@@ -2,13 +2,14 @@ package main
 
 import (
 	_ "embed"
+	"strconv"
 
 	"fmt"
 	"log/slog"
 	"net"
+	"os/exec"
 	"strings"
 	"sync"
-	"os/exec"
 
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
@@ -25,13 +26,16 @@ var (
 var readme string
 
 const (
-	ActionPlayPause   = "toggle_pause"
-	ActionNext        = "next"
-	ActionPrev        = "prev"
-	ActionVolUp       = "vol_up"
-	ActionVolDown     = "vol_down"
-	ActionSeekForward = "seek_forward"
-	ActionSeekBack    = "seek_back"
+	ActionPlayPause     = "toggle_pause"
+	ActionNext          = "next"
+	ActionPrev          = "prev"
+	ActionVolUp         = "vol_up"
+	ActionVolDown       = "vol_down"
+	ActionToggleMute    = "toggle_mute"
+	ActionSeekForward   = "seek_forward"
+	ActionSeekBack      = "seek_back"
+	ActionToggleShuffle = "toggle_shuffle"
+	ActionToggleLoop    = "toggle_loop"
 )
 
 var actions = []string{ActionPlayPause, ActionNext, ActionPrev, ActionVolUp, ActionVolDown, ActionSeekForward, ActionSeekBack}
@@ -92,10 +96,44 @@ func Activate(single bool, identifier, action string, query string, args string,
 		exec.Command("playerctl", "-p", identifier, "volume", volStep).Run()
 	case ActionVolDown:
 		exec.Command("playerctl", "-p", identifier, "volume", volStepD).Run()
+	case ActionToggleMute:
+		get_vol, err := exec.Command("playerctl", "-p", identifier, "volume").Output()
+		if err != nil {
+			slog.Error(Name, "activate", "Failed to get volume", "action", action)
+		}
+
+		vol, _ := strconv.ParseFloat(string(get_vol), 64)
+		
+		if vol == 0.0 {
+			vol = 1.0
+		} else {
+			vol = 0.0
+		}
+
+		exec.Command("playerctl", "-p", identifier, "volume", fmt.Sprintf("%g", vol))
 	case ActionSeekForward:
 		exec.Command("playerctl", "-p", identifier, "position", seekStep).Run()
 	case ActionSeekBack:
 		exec.Command("playerctl", "-p", identifier, "position", seekStepB).Run()
+	case ActionToggleShuffle:
+		exec.Command("playerctl", "-p", identifier, "shuffle", "Toggle").Run()
+	case ActionToggleLoop:
+		loop, err := exec.Command("playerctl", "-p", identifier, "loop").Output()
+		if err != nil {
+			slog.Error(Name, "activate", "Failed to get loop state", "action", action)
+		}
+
+		loop_str := string(loop)
+		switch loop_str {
+		case "none":
+			loop_str = "Track"
+		case "Track":
+			loop_str = "Playlist"
+		case "Playlist":
+			loop_str = "none"
+		}
+
+		exec.Command("playerctl", "-p", identifier, "loop", loop_str).Run()
 	default:
 		slog.Warn(Name, "activate", "unknown action", "action", action)
 	}
