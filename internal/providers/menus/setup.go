@@ -107,7 +107,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 			}
 		}
 
-		if submenu != "" {
+		if submenu != "" && action == "menus:open" {
 			handlers.ProviderUpdated <- fmt.Sprintf("%s:%s", Name, submenu)
 			return
 		}
