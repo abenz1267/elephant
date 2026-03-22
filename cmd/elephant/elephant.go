@@ -157,7 +157,6 @@ WantedBy=graphical-session.target
 				Aliases: []string{"g"},
 				Usage:   "functions to generate f.e. doc or config",
 				Action: func(ctx context.Context, cmd *cli.Command) error {
-					fmt.Println("SHIT")
 					return nil
 				},
 				Commands: []*cli.Command{
