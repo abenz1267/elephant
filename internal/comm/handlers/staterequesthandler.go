@@ -35,6 +35,10 @@ func (a *StateRequest) Handle(format uint8, cid uint32, conn net.Conn, data []by
 
 	p := req.Provider
 
+	if p == "menus" || p == "menus:" {
+		return
+	}
+
 	if strings.HasPrefix(req.Provider, "menus:") {
 		p = "menus"
 	}
