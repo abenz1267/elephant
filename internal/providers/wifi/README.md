@@ -2,7 +2,7 @@
 
 WiFi network management. Scan, connect, disconnect, and forget networks.
 
-To connect to a new secured network, type `#yourpassword` in the search bar before connecting.
+Connecting to a new secured network will open a terminal to prompt for the password.
 
 #### Requirements
 
@@ -19,9 +19,12 @@ One of the following utils/backend:
   - (e.g. Connecting, Disconnecting)
 - `error_time` int - Seconds to show error messages
   - (e.g. Connection failed, Password required)
+- `reopen_after_fail` bool - Reopen wifi menu after connection failure (default: `true`)
+- `reopen_after_connect` bool - Reopen wifi menu after successful connection (default: `false`)
+- `show_password_dots` bool - Show dots while typing password in terminal (default: `true`)
 - `subtext_format` string - Format string for the subtext displayed under each network
-  - `{lock}` - security icon: 🔓 (secured + saved), 🔒 (secured), 🌐 (open)
-  - `{status}` - connection status: `Connected`, `Saved`, or empty
-  - `{signal}` - signal strength percentage (e.g. `80%`)
-  - `{frequency}` - frequency band (e.g. `5 GHz`)
-  - `{security}` - security type (e.g. `WPA2`)
+  - `%LOCK%` - security icon: 🔓 (secured + saved), 🔒 (secured), 🌐 (open)
+  - `%STATUS%` - connection status: `Connected`, `Saved`, or empty
+  - `%SIGNAL%` - signal strength percentage (e.g. `80%`)
+  - `%FREQUENCY%` - frequency band (e.g. `5 GHz`)
+  - `%SECURITY%` - security type (e.g. `WPA2`)

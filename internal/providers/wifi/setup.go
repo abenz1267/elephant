@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -26,11 +29,14 @@ var (
 var readme string
 
 type Config struct {
-	common.Config `koanf:",squash"`
-	MessageTime   int    `koanf:"message_time" desc:"seconds to show status messages" default:"1"`
-	ErrorTime     int    `koanf:"error_time" desc:"seconds to show error messages" default:"3"`
-	Backend       string `koanf:"backend" desc:"wifi backend: auto, nm" default:"auto"`
-	SubtextFormat string `koanf:"subtext_format" desc:"subtext format. placeholders: {lock}, {status}, {signal}, {frequency}, {security}" default:"{lock}  {status}  {signal}  {frequency}  {security}"`
+	common.Config      `koanf:",squash"`
+	MessageTime        int    `koanf:"message_time" desc:"seconds to show status messages" default:"1"`
+	ErrorTime          int    `koanf:"error_time" desc:"seconds to show error messages" default:"3"`
+	Backend            string `koanf:"backend" desc:"wifi backend: auto, nm" default:"auto"`
+	SubtextFormat      string `koanf:"subtext_format" desc:"subtext format. placeholders: %LOCK%, %STATUS%, %SIGNAL%, %FREQUENCY%, %SECURITY%" default:"%LOCK%  %STATUS%  %SIGNAL%  %FREQUENCY%  %SECURITY%"`
+	ReopenAfterFail    bool   `koanf:"reopen_after_fail" desc:"reopen wifi menu after connection failure" default:"true"`
+	ReopenAfterConnect bool   `koanf:"reopen_after_connect" desc:"reopen wifi menu after successful connection" default:"false"`
+	ShowPasswordDots   bool   `koanf:"show_password_dots" desc:"show dots while typing password in terminal" default:"true"`
 }
 
 type Network struct {
@@ -73,10 +79,13 @@ func LoadConfig() {
 			Icon:     "network-wireless-symbolic",
 			MinScore: 20,
 		},
-		MessageTime:   1,
-		ErrorTime:     3,
-		Backend:       "auto",
-		SubtextFormat: "{lock}  {status}  {signal}  {frequency}  {security}",
+		MessageTime:        1,
+		ErrorTime:          3,
+		Backend:            "auto",
+		SubtextFormat:      "%LOCK%  %STATUS%  %SIGNAL%  %FREQUENCY%  %SECURITY%",
+		ReopenAfterFail:    true,
+		ReopenAfterConnect: false,
+		ShowPasswordDots:   true,
 	}
 
 	common.LoadConfig(Name, config)
@@ -123,7 +132,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 			slog.Error(Name, "activate", err)
 		}
 		on = true
-		backend.Scan()
+		backend.WaitForNetworks()
 	case ActionWifiOff:
 		handlers.ProviderUpdated <- "wifi:wifioff"
 		if err := backend.SetWifiEnabled(false); err != nil {
@@ -134,29 +143,19 @@ func Activate(single bool, identifier, action string, query string, args string,
 		time.Sleep(time.Duration(config.MessageTime) * time.Second)
 	case ActionScan:
 		handlers.ProviderUpdated <- "wifi:scan"
-		backend.Scan()
+		backend.WaitForNetworks()
 	case ActionConnect:
-		if args == "" && !selNetwork.Known && selNetwork.Security != "" {
-			handlers.ProviderUpdated <- "wifi:password_required"
-			time.Sleep(time.Duration(config.ErrorTime) * time.Second)
+		if !selNetwork.Known && selNetwork.Security != "" {
+			handlers.ProviderUpdated <- "wifi:connect"
+			go connectWithTerminal(identifier)
 			return
 		}
 
 		handlers.ProviderUpdated <- "wifi:connect"
 
-		password := args
-		if selNetwork.Known {
-			password = ""
-		}
-
-		wasKnown := selNetwork.Known
-
-		if err := backend.Connect(identifier, password); err != nil {
+		if err := backend.Connect(identifier, ""); err != nil {
 			handlers.ProviderUpdated <- "wifi:connect_failed"
 			slog.Error(Name, "activate", err)
-			if !wasKnown {
-				backend.Forget(identifier)
-			}
 			time.Sleep(time.Duration(config.ErrorTime) * time.Second)
 		} else {
 			time.Sleep(time.Duration(config.MessageTime) * time.Second)
@@ -334,11 +333,11 @@ func formatSubtext(n Network) string {
 	}
 
 	r := strings.NewReplacer(
-		"{lock}", lock,
-		"{status}", status,
-		"{signal}", signal,
-		"{frequency}", n.Frequency,
-		"{security}", n.Security,
+		"%LOCK%", lock,
+		"%STATUS%", status,
+		"%SIGNAL%", signal,
+		"%FREQUENCY%", n.Frequency,
+		"%SECURITY%", n.Security,
 	)
 
 	result := r.Replace(config.SubtextFormat)
@@ -359,4 +358,104 @@ func findNetwork(ssid string) *Network {
 	}
 
 	return nil
+}
+
+func connectWithTerminal(ssid string) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		slog.Error(Name, "activate", err)
+		return
+	}
+	defer r.Close()
+
+	dot := "●"
+	backspace := `printf '\b \b'`
+	if !config.ShowPasswordDots {
+		dot = ""
+		backspace = ""
+	}
+
+	repl := strings.NewReplacer(
+		"__DOT__", dot,
+		"__BACKSPACE__", backspace,
+		"__FD__", fmt.Sprintf("/proc/%d/fd/%d", os.Getpid(), w.Fd()),
+	)
+
+	script := repl.Replace(`
+		printf 'Password for %s: ' "$WIFI_SSID"
+		pw=""
+		bs=$(printf '\177')
+		while IFS= read -rsn1 c; do
+			[ -z "$c" ] && break
+			if [ "$c" = "$bs" ]; then
+				if [ -n "$pw" ]; then
+					pw="${pw%?}"
+					__BACKSPACE__
+				fi
+			else
+				pw="$pw$c"
+				printf '__DOT__'
+			fi
+		done
+		echo
+		echo "$pw" > __FD__`,
+	)
+
+	terminal := common.GetTerminal()
+	if terminal == "" {
+		w.Close()
+		slog.Error(Name, "activate", "no terminal found")
+		return
+	}
+
+	cmd := exec.Command(terminal, "-e", "bash", "-c", script)
+	cmd.Env = append(os.Environ(), "WIFI_SSID="+ssid) // Injected for sanitization
+	if err := cmd.Start(); err != nil {
+		w.Close()
+		slog.Error(Name, "activate", err)
+		return
+	}
+
+	cmd.Wait()
+	w.Close()
+
+	data, err := io.ReadAll(r)
+	if err != nil {
+		slog.Error(Name, "activate", err)
+		return
+	}
+
+	password := strings.TrimSpace(string(data))
+	if password == "" {
+		return
+	}
+
+	if err := backend.Connect(ssid, password); err != nil {
+		slog.Error(Name, "activate", err)
+		backend.Forget(ssid)
+
+		if config.ReopenAfterFail {
+			reopenWifiMenu()
+			for range int(config.ErrorTime * 4) {
+				handlers.ProviderUpdated <- "wifi:connect_failed"
+				time.Sleep(250 * time.Millisecond)
+			}
+			handlers.ProviderUpdated <- "wifi:reset"
+		}
+	} else {
+		if config.ReopenAfterConnect {
+			reopenWifiMenu()
+		}
+		time.Sleep(time.Duration(config.MessageTime) * time.Second)
+	}
+}
+
+func reopenWifiMenu() {
+	// "elephant menu wifi" doesnt seem to work
+	cmd := exec.Command("walker", "-m", "wifi")
+	if err := cmd.Start(); err != nil {
+		slog.Error(Name, "reopen", err)
+		return
+	}
+	go cmd.Wait()
 }

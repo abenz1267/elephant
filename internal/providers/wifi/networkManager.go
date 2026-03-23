@@ -138,12 +138,13 @@ func (b *NmcliBackend) Forget(ssid string) error {
 	return nil
 }
 
-func (b *NmcliBackend) Scan() {
-	for {
+func (b *NmcliBackend) WaitForNetworks() {
+	for range 10 {
 		out, err := exec.Command("nmcli", "-t", "-f", "SSID", "device", "wifi", "list", "--rescan", "yes").CombinedOutput()
 		if err == nil && strings.TrimSpace(string(out)) != "" {
 			return
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
+	slog.Warn(Name, "scan", "max retries reached")
 }

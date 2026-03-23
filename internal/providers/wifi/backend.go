@@ -11,7 +11,7 @@ type Backend interface {
 	Connect(ssid string, password string) error
 	Disconnect(ssid string) error
 	Forget(ssid string) error
-	Scan()
+	WaitForNetworks()
 }
 
 var backends = map[string]func() Backend{
