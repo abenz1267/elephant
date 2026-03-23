@@ -83,6 +83,10 @@ func init() {
 				p = "bluetooth"
 			}
 
+			if strings.HasPrefix(p, "wifi:") {
+				p = "wifi"
+			}
+
 			toDelete := []uint32{}
 
 			for k, v := range subs {
