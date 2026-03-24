@@ -24,7 +24,7 @@ var (
 type Config struct {
 	common.Config   `koanf:",squash"`
 	ClearAfter      int    `koanf:"clear_after" desc:"clipboard will be cleared after X seconds. 0 to disable." default:"5"`
-	CopyCommand     string `koanf:"copy_command" desc:"clipboard copy command to be executed. supports %VALUE%." default:"wl-copy -t 'x-kde-passwordManagerHint' --"`
+	CopyCommand     string `koanf:"copy_command" desc:"clipboard copy command to be executed. supports %VALUE%." default:"wl-copy --sensitive --"`
 	ClearCommand    string `koanf:"clear_command" desc:"clipboard clear command to be executed." default:"wl-copy --clear"`
 	AutoTypeSupport bool   `koanf:"autotype_support" desc:"enable autotype support" default:"false"`
 	AutoTypeCommand string `koanf:"autotype_command" desc:"copy command to be executed. supports %VALUE%." default:"wtype -- %VALUE%"`
@@ -44,7 +44,7 @@ func LoadConfig() {
 			MinScore: 20,
 		},
 		ClearAfter:      5,
-		CopyCommand:     "wl-copy -t 'x-kde-passwordManagerHint' --",
+		CopyCommand:     "wl-copy --sensitive --",
 		ClearCommand:    "wl-copy --clear",
 		AutoTypeSupport: false,
 		AutoTypeCommand: "wtype -- %VALUE%",

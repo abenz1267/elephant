@@ -100,7 +100,7 @@ func notifyAndClear() {
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
 	case ActionCopyPassword:
-		toRun := "wl-copy -t 'x-kde-passwordManagerHint' $(op item get %VALUE% --fields password --reveal)"
+		toRun := "wl-copy --sensitive $(op item get %VALUE% --fields password --reveal)"
 
 		cmd := common.ReplaceResultOrStdinCmd(toRun, identifier)
 
@@ -130,7 +130,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 			notifyAndClear()
 		}
 	case ActionCopy2FA:
-		toRun := "wl-copy -t 'x-kde-passwordManagerHint' $(op item get %VALUE% --otp)"
+		toRun := "wl-copy --sensitive $(op item get %VALUE% --otp)"
 
 		cmd := common.ReplaceResultOrStdinCmd(toRun, identifier)
 
