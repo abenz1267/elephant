@@ -1,10 +1,9 @@
 package main
 
-import (
-	"os/exec"
-)
+import "log/slog"
 
 type Backend interface {
+	Available() bool
 	CheckWifiState() bool
 	SetWifiEnabled(enabled bool) error
 	GetNetworks() []Network
@@ -14,23 +13,26 @@ type Backend interface {
 	WaitForNetworks()
 }
 
-var backends = map[string]func() Backend{
-	"nm": func() Backend { return &NmcliBackend{} },
-}
+var backends = map[string]Backend{}
 
 func detectBackend(preference string) Backend {
 	if preference != "auto" {
-		if fn, ok := backends[preference]; ok {
-			if p, err := exec.LookPath(preference); p != "" && err == nil {
-				return fn()
+		if b, ok := backends[preference]; ok {
+			if b.Available() {
+				slog.Info(Name, "detectBackend", preference)
+				return b
 			}
+			slog.Warn(Name, "detectBackend", preference+" not available, trying others")
 		}
-		return nil
 	}
 
-	for name, fn := range backends {
-		if p, err := exec.LookPath(name); p != "" && err == nil {
-			return fn()
+	for name, b := range backends {
+		if name == preference {
+			continue
+		}
+		if b.Available() {
+			slog.Info(Name, "detectBackend", name)
+			return b
 		}
 	}
 

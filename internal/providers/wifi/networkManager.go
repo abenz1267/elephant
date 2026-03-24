@@ -3,11 +3,21 @@ package main
 import (
 	"log/slog"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
 
+func init() {
+	backends["nm"] = &NmcliBackend{}
+}
+
 type NmcliBackend struct{}
+
+func (b *NmcliBackend) Available() bool {
+	p, err := exec.LookPath("nmcli")
+	return p != "" && err == nil
+}
 
 func (b *NmcliBackend) CheckWifiState() bool {
 	cmd := exec.Command("nmcli", "radio", "wifi")
@@ -27,7 +37,7 @@ func (b *NmcliBackend) SetWifiEnabled(enabled bool) error {
 
 	cmd := exec.Command("nmcli", "radio", "wifi", state)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		slog.Error(Name, "set wifi", string(out))
+		slog.Error(Name, "nmcli_SetWifiEnabled", string(out))
 		return err
 	}
 
@@ -41,7 +51,7 @@ func (b *NmcliBackend) GetNetworks() []Network {
 	cmd := exec.Command("nmcli", "-t", "-f", "NAME,UUID,TYPE", "connection", "show")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		slog.Error(Name, "get connections", err)
+		slog.Error(Name, "nmcli_GetNetworks", err)
 	}
 
 	for l := range strings.Lines(strings.TrimSpace(string(out))) {
@@ -49,7 +59,7 @@ func (b *NmcliBackend) GetNetworks() []Network {
 		if l == "" {
 			continue
 		}
-		fields := strings.SplitN(l, ":", 3)
+		fields := nmcliSplitFields(l, 3)
 		if len(fields) == 3 && fields[2] == "802-11-wireless" {
 			known[fields[0]] = fields[1]
 		}
@@ -58,7 +68,7 @@ func (b *NmcliBackend) GetNetworks() []Network {
 	cmd = exec.Command("nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,IN-USE,FREQ", "device", "wifi", "list")
 	out, err = cmd.CombinedOutput()
 	if err != nil {
-		slog.Error(Name, "get wifi list", err)
+		slog.Error(Name, "nmcli_GetNetworks", err)
 		return result
 	}
 
@@ -70,7 +80,7 @@ func (b *NmcliBackend) GetNetworks() []Network {
 			continue
 		}
 
-		fields := strings.SplitN(l, ":", 5)
+		fields := nmcliSplitFields(l, 5)
 		if len(fields) < 5 {
 			continue
 		}
@@ -85,12 +95,15 @@ func (b *NmcliBackend) GetNetworks() []Network {
 		}
 		seen[ssid] = struct{}{}
 
+		signal, _ := strconv.Atoi(strings.TrimSpace(fields[1]))
+		freq, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(fields[4]), " MHz")))
+
 		n := Network{
 			SSID:      ssid,
-			Signal:    fields[1],
+			Signal:    signal,
 			Security:  fields[2],
 			InUse:     strings.TrimSpace(fields[3]) == "*",
-			Frequency: freqBand(fields[4]),
+			Frequency: freq,
 		}
 
 		if _, ok := known[ssid]; ok {
@@ -111,7 +124,7 @@ func (b *NmcliBackend) Connect(ssid string, password string) error {
 	}
 
 	if out, err := cmd.CombinedOutput(); err != nil {
-		slog.Error(Name, "connect", string(out))
+		slog.Error(Name, "nmcli_Connect", string(out))
 		return err
 	}
 
@@ -121,7 +134,7 @@ func (b *NmcliBackend) Connect(ssid string, password string) error {
 func (b *NmcliBackend) Disconnect(ssid string) error {
 	cmd := exec.Command("nmcli", "connection", "down", ssid)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		slog.Error(Name, "disconnect", string(out))
+		slog.Error(Name, "nmcli_Disconnect", string(out))
 		return err
 	}
 
@@ -131,7 +144,7 @@ func (b *NmcliBackend) Disconnect(ssid string) error {
 func (b *NmcliBackend) Forget(ssid string) error {
 	cmd := exec.Command("nmcli", "connection", "delete", ssid)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		slog.Error(Name, "forget", string(out))
+		slog.Error(Name, "nmcli_Forget", string(out))
 		return err
 	}
 
@@ -139,12 +152,42 @@ func (b *NmcliBackend) Forget(ssid string) error {
 }
 
 func (b *NmcliBackend) WaitForNetworks() {
-	for range 10 {
+	maxTime := 5 //sec
+	delay := 500 //ms
+	for range int(maxTime * 1000 / delay) {
 		out, err := exec.Command("nmcli", "-t", "-f", "SSID", "device", "wifi", "list", "--rescan", "yes").CombinedOutput()
 		if err == nil && strings.TrimSpace(string(out)) != "" {
 			return
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Duration(delay) * time.Millisecond)
 	}
-	slog.Warn(Name, "scan", "max retries reached")
+	slog.Warn(Name, "nmcli_WaitForNetworks", "max retries reached")
+}
+
+// nmcliSplitFields splits an nmcli terse-mode line on unescaped colons.
+func nmcliSplitFields(line string, n int) []string {
+	var fields []string
+	var buf strings.Builder
+	escaped := false
+
+	for _, r := range line {
+		if escaped {
+			buf.WriteRune(r)
+			escaped = false
+			continue
+		}
+		if r == '\\' {
+			escaped = true
+			continue
+		}
+		if r == ':' && (n <= 0 || len(fields) < n-1) {
+			fields = append(fields, buf.String())
+			buf.Reset()
+			continue
+		}
+		buf.WriteRune(r)
+	}
+
+	fields = append(fields, buf.String())
+	return fields
 }
