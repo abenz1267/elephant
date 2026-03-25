@@ -30,8 +30,7 @@ type Config struct {
 	MessageTime         int    `koanf:"message_time" desc:"seconds to show status messages" default:"1"`
 	ErrorTime           int    `koanf:"error_time" desc:"seconds to show error messages" default:"3"`
 	Backend             string `koanf:"backend" desc:"wifi backend: auto, nm" default:"auto"`
-	PasswordPrompt      string `koanf:"password_prompt" desc:"password prompt method: auto, terminal, dmenu, custom" default:"dmenu"`
-	DmenuCommand        string `koanf:"dmenu_command" desc:"dmenu-compatible tool: auto, walker, rofi, wofi" default:"walker"`
+	PasswordPrompt      string `koanf:"password_prompt" desc:"password prompt method: auto, terminal, walker, rofi, wofi, custom" default:"walker"`
 	CustomPromptCommand string `koanf:"custom_prompt_command" desc:"custom command for 'custom' password prompt. use %PROMPT% as placeholder" default:""`
 	SubtextFormat       string `koanf:"subtext_format" desc:"subtext format. placeholders: %LOCK%, %STATUS%, %SIGNAL%, %FREQUENCY%, %SECURITY%" default:"%LOCK%  %STATUS%  %SIGNAL%  %FREQUENCY%  %SECURITY%"`
 	ReopenAfterFail     bool   `koanf:"reopen_after_fail" desc:"reopen wifi menu after connection failure" default:"true"`
@@ -87,8 +86,7 @@ func LoadConfig() {
 		MessageTime:        1,
 		ErrorTime:          3,
 		Backend:            "auto",
-		PasswordPrompt:     "dmenu",
-		DmenuCommand:       "walker",
+		PasswordPrompt:     "walker",
 		SubtextFormat:      "%LOCK%  %STATUS%  %SIGNAL%  %FREQUENCY%  %SECURITY%",
 		ReopenAfterFail:    true,
 		ReopenAfterConnect: false,
