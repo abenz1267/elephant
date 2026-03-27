@@ -88,8 +88,8 @@ func parseFile(path, l, ll string) (*DesktopFile, error) {
 		}
 	}
 
-	shouldShow := (len(f.NotShowIn) == 0 || !slices.Contains(f.NotShowIn, desktop)) &&
-		(len(f.OnlyShowIn) == 0 || slices.Contains(f.OnlyShowIn, desktop)) &&
+	shouldShow := (len(f.NotShowIn) == 0 || !containsAny(f.NotShowIn, desktops)) &&
+		(len(f.OnlyShowIn) == 0 || containsAny(f.OnlyShowIn, desktops)) &&
 		!f.Hidden && !f.NoDisplay
 
 	if shouldShow && f.Name == "" {
