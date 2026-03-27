@@ -13,14 +13,7 @@ import (
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
-var desktops = splitDesktops(os.Getenv("XDG_CURRENT_DESKTOP"))
-
-func splitDesktops(val string) []string {
-	if val == "" {
-		return nil
-	}
-	return strings.Split(val, ":")
-}
+var desktops = strings.Split(os.Getenv("XDG_CURRENT_DESKTOP"), ":")
 
 func containsAny(haystack, needles []string) bool {
 	for _, n := range needles {
