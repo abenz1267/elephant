@@ -70,7 +70,8 @@ func Setup() {
 		bins := []string{}
 
 		conf := fastwalk.Config{
-			Follow: true,
+			Follow:   true,
+			MaxDepth: 1,
 		}
 
 		for p := range strings.SplitSeq(os.Getenv("PATH"), ":") {
