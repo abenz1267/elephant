@@ -13,7 +13,16 @@ import (
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
 )
 
-var desktop = os.Getenv("XDG_CURRENT_DESKTOP")
+var desktops = strings.Split(os.Getenv("XDG_CURRENT_DESKTOP"), ":")
+
+func containsAny(haystack, needles []string) bool {
+	for _, n := range needles {
+		if slices.Contains(haystack, n) {
+			return true
+		}
+	}
+	return false
+}
 
 func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
@@ -25,7 +34,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 	}
 
 	for k, v := range files {
-		if len(v.NotShowIn) != 0 && slices.Contains(v.NotShowIn, desktop) || len(v.OnlyShowIn) != 0 && !slices.Contains(v.OnlyShowIn, desktop) || v.Hidden || v.NoDisplay {
+		if len(v.NotShowIn) != 0 && containsAny(v.NotShowIn, desktops) || len(v.OnlyShowIn) != 0 && !containsAny(v.OnlyShowIn, desktops) || v.Hidden || v.NoDisplay {
 			continue
 		}
 

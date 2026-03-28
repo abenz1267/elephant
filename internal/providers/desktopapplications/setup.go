@@ -104,11 +104,13 @@ func Setup() {
 	}
 
 	if config.WMIntegration {
-		switch os.Getenv("XDG_CURRENT_DESKTOP") {
-		case "niri":
-			wmi = Niri{}
-		case "Hyprland":
-			wmi = Hyprland{}
+		for _, d := range desktops {
+			switch d {
+			case "niri":
+				wmi = Niri{}
+			case "Hyprland":
+				wmi = Hyprland{}
+			}
 		}
 	}
 
