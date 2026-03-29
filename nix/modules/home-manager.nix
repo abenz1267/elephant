@@ -15,6 +15,7 @@ with lib; let
     "desktopapplications"
     "files"
     "menus"
+    "playerctl"
     "providerlist"
     "runner"
     "snippets"
