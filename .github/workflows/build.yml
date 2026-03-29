@@ -163,6 +163,11 @@ jobs:
         echo "Building dnfpackages plugin for linux/amd64..."
         GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/wireplumber-linux-amd64.so ./internal/providers/wireplumber
 
+    - name: Build playerctl plugin for linux/amd64
+      run: |
+        echo "Building dnfpackages plugin for linux/amd64..."
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/playerctl-linux-amd64.so ./internal/providers/playerctl
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -263,6 +268,9 @@ jobs:
 
         # Archive wireplumber plugin
         tar -czf wireplumber-linux-amd64.tar.gz wireplumber-linux-amd64.so
+
+        # Archive playerctl plugin
+        tar -czf playerctl-linux-amd64.tar.gz playerctl-linux-amd64.so
 
         echo "Build completed successfully!"
         echo "Created archives:"
