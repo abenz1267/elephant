@@ -49,8 +49,14 @@ var (
 	}
 )
 
+var MenusWg sync.WaitGroup
+
 func Load(setup bool) {
-	go common.LoadMenus()
+	MenusWg.Add(1)
+	go func() {
+		defer MenusWg.Done()
+		common.LoadMenus()
+	}()
 
 	cfg := common.GetElephantConfig()
 	ignored := cfg.IgnoredProviders

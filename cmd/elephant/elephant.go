@@ -124,6 +124,7 @@ WantedBy=graphical-session.target
 					common.LoadGlobalConfig()
 
 					providers.Load(false)
+					providers.MenusWg.Wait()
 
 					for _, v := range providers.Providers {
 						if *v.Name == "menus" {
