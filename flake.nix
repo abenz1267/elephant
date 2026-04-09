@@ -32,6 +32,9 @@
             protobuf
             protoc-gen-go
           ];
+          shellHook = ''
+            export GOROOT="${pkgs.go}/share/go"
+          '';
         };
       });
 
