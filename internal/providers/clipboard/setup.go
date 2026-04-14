@@ -670,7 +670,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	entries := []*pb.QueryResponse_Item{}
 
-	rows := getItemsByQuery(query, currentMode, config.MaxItems)
+	rows := getItemsByQuery(currentMode, config.MaxItems)
 
 	for k, row := range rows {
 		v := row.Item

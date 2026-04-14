@@ -15,7 +15,17 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var db *sql.DB
+var (
+	db     *sql.DB // writer connection (serialized)
+	readDB *sql.DB // persistent read-only connection for queries
+
+	stmtPut           *sql.Stmt
+	stmtGet           *sql.Stmt
+	stmtUpdateTime    *sql.Stmt
+	stmtDelete        *sql.Stmt
+	stmtUpdatePinned  *sql.Stmt
+	stmtUpdateContent *sql.Stmt
+)
 
 func openDB() error {
 	path := common.CacheFile("clipboard.db")
@@ -50,9 +60,54 @@ func openDB() error {
 		return fmt.Errorf("sql create index time: %v", err)
 	}
 
-	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_clipboard_pinned ON clipboard(pinned)`)
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_clipboard_pinned_time ON clipboard(pinned, time DESC)`)
 	if err != nil {
-		return fmt.Errorf("sql create index pinned: %v", err)
+		return fmt.Errorf("sql create index pinned_time: %v", err)
+	}
+
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_clipboard_img ON clipboard(img)`)
+	if err != nil {
+		return fmt.Errorf("sql create index img: %v", err)
+	}
+
+	// Superseded by composite index
+	db.Exec(`DROP INDEX IF EXISTS idx_clipboard_pinned`)
+
+	// Prepare write statements
+	stmtPut, err = db.Prepare("INSERT OR REPLACE INTO clipboard (hash, content, img, uri_list, time, state, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		return fmt.Errorf("prepare put: %v", err)
+	}
+
+	stmtGet, err = db.Prepare("SELECT content, img, uri_list, time, state, pinned FROM clipboard WHERE hash = ?")
+	if err != nil {
+		return fmt.Errorf("prepare get: %v", err)
+	}
+
+	stmtUpdateTime, err = db.Prepare("UPDATE clipboard SET time = ? WHERE hash = ?")
+	if err != nil {
+		return fmt.Errorf("prepare updateTime: %v", err)
+	}
+
+	stmtDelete, err = db.Prepare("DELETE FROM clipboard WHERE hash = ?")
+	if err != nil {
+		return fmt.Errorf("prepare delete: %v", err)
+	}
+
+	stmtUpdatePinned, err = db.Prepare("UPDATE clipboard SET pinned = ? WHERE hash = ?")
+	if err != nil {
+		return fmt.Errorf("prepare updatePinned: %v", err)
+	}
+
+	stmtUpdateContent, err = db.Prepare("UPDATE clipboard SET content = ? WHERE hash = ?")
+	if err != nil {
+		return fmt.Errorf("prepare updateContent: %v", err)
+	}
+
+	// Persistent read-only connection for query path (no per-call open/close)
+	readDB, err = sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory&_busy_timeout=5000&mode=ro")
+	if err != nil {
+		return fmt.Errorf("sql open read: %v", err)
 	}
 
 	return nil
@@ -69,17 +124,14 @@ func putItem(hash string, item *Item) {
 		pinned = 1
 	}
 
-	_, err := db.Exec(
-		"INSERT OR REPLACE INTO clipboard (hash, content, img, uri_list, time, state, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		hash, item.Content, item.Img, uriList, item.Time.Unix(), item.State, pinned,
-	)
+	_, err := stmtPut.Exec(hash, item.Content, item.Img, uriList, item.Time.Unix(), item.State, pinned)
 	if err != nil {
 		slog.Error(Name, "putItem", err)
 	}
 }
 
 func updateItemTime(hash string, t time.Time) {
-	_, err := db.Exec("UPDATE clipboard SET time = ? WHERE hash = ?", t.Unix(), hash)
+	_, err := stmtUpdateTime.Exec(t.Unix(), hash)
 	if err != nil {
 		slog.Error(Name, "updateItemTime", err)
 	}
@@ -90,9 +142,7 @@ func getItem(hash string) *Item {
 	var ts int64
 	var pinned int
 
-	err := db.QueryRow(
-		"SELECT content, img, uri_list, time, state, pinned FROM clipboard WHERE hash = ?", hash,
-	).Scan(&content, &img, &uriList, &ts, &state, &pinned)
+	err := stmtGet.QueryRow(hash).Scan(&content, &img, &uriList, &ts, &state, &pinned)
 	if err != nil {
 		return nil
 	}
@@ -117,38 +167,24 @@ type itemRow struct {
 	Item *Item
 }
 
-func getItemsByQuery(query string, mode string, limit int) []itemRow {
-	path := common.CacheFile("clipboard.db")
-	queryDB, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory&_busy_timeout=5000&mode=ro")
-	if err != nil {
-		slog.Error(Name, "open query db", err)
-		return nil
-	}
-	defer queryDB.Close()
-
-	var modeFilter string
+// getItemsByQuery returns items ordered by time DESC. Filtering by search
+// text is intentionally not done here — the caller applies fzf-style fuzzy
+// scoring in Go, which has different (broader) match semantics than SQL LIKE.
+func getItemsByQuery(mode string, limit int) []itemRow {
+	var where string
 	switch mode {
 	case ImagesOnly:
-		modeFilter = " AND img != ''"
+		where = " WHERE img != ''"
 	case TextOnly:
-		modeFilter = " AND img = ''"
+		where = " WHERE img = ''"
 	default:
-		modeFilter = ""
+		where = ""
 	}
 
-	var rows *sql.Rows
-	if query != "" {
-		likePattern := "%" + query + "%"
-		rows, err = queryDB.Query(
-			"SELECT hash, content, img, uri_list, time, state, pinned FROM clipboard WHERE content LIKE ?"+modeFilter+" ORDER BY time DESC LIMIT ?",
-			likePattern, limit,
-		)
-	} else {
-		rows, err = queryDB.Query(
-			"SELECT hash, content, img, uri_list, time, state, pinned FROM clipboard WHERE 1=1"+modeFilter+" ORDER BY time DESC LIMIT ?",
-			limit,
-		)
-	}
+	rows, err := readDB.Query(
+		"SELECT hash, content, img, uri_list, time, state, pinned FROM clipboard"+where+" ORDER BY time DESC LIMIT ?",
+		limit,
+	)
 	if err != nil {
 		slog.Error(Name, "getItemsByQuery", err)
 		return nil
@@ -188,7 +224,7 @@ func getItemsByQuery(query string, mode string, limit int) []itemRow {
 }
 
 func deleteItem(hash string) {
-	_, err := db.Exec("DELETE FROM clipboard WHERE hash = ?", hash)
+	_, err := stmtDelete.Exec(hash)
 	if err != nil {
 		slog.Error(Name, "deleteItem", err)
 	}
@@ -224,14 +260,14 @@ func updateItemPinned(hash string, pinned bool) {
 		val = 1
 	}
 
-	_, err := db.Exec("UPDATE clipboard SET pinned = ? WHERE hash = ?", val, hash)
+	_, err := stmtUpdatePinned.Exec(val, hash)
 	if err != nil {
 		slog.Error(Name, "updateItemPinned", err)
 	}
 }
 
 func updateItemContent(hash string, content string) {
-	_, err := db.Exec("UPDATE clipboard SET content = ? WHERE hash = ?", content, hash)
+	_, err := stmtUpdateContent.Exec(content, hash)
 	if err != nil {
 		slog.Error(Name, "updateItemContent", err)
 	}
@@ -244,66 +280,62 @@ func trimToMax(maxItems int) {
 		return
 	}
 
+	excess := count - maxItems
+
+	// Clean up image files before batch delete
 	rows, err := db.Query(
-		"SELECT hash, img FROM clipboard WHERE pinned = 0 ORDER BY time ASC LIMIT ?",
-		count-maxItems,
+		"SELECT img FROM clipboard WHERE pinned = 0 AND img != '' ORDER BY time ASC LIMIT ?",
+		excess,
 	)
 	if err != nil {
-		slog.Error(Name, "trimToMax query", err)
-		return
+		slog.Error(Name, "trimToMax img query", err)
+	} else {
+		for rows.Next() {
+			var img string
+			if err := rows.Scan(&img); err == nil && img != "" {
+				_ = os.Remove(img)
+			}
+		}
+		rows.Close()
 	}
 
-	type entry struct {
-		hash string
-		img  string
-	}
-	var toDelete []entry
-	for rows.Next() {
-		var e entry
-		if err := rows.Scan(&e.hash, &e.img); err == nil {
-			toDelete = append(toDelete, e)
-		}
-	}
-	rows.Close()
-
-	for _, e := range toDelete {
-		if e.img != "" {
-			_ = os.Remove(e.img)
-		}
-		deleteItem(e.hash)
+	// Batch delete oldest unpinned entries in a single statement
+	_, err = db.Exec(
+		"DELETE FROM clipboard WHERE hash IN (SELECT hash FROM clipboard WHERE pinned = 0 ORDER BY time ASC LIMIT ?)",
+		excess,
+	)
+	if err != nil {
+		slog.Error(Name, "trimToMax delete", err)
 	}
 }
 
 func cleanupOldEntries(olderThanMinutes int) int {
 	cutoff := time.Now().Add(-time.Duration(olderThanMinutes) * time.Minute).Unix()
 
-	rows, err := db.Query("SELECT hash, img FROM clipboard WHERE pinned = 0 AND time < ?", cutoff)
+	// Clean up image files before batch delete
+	rows, err := db.Query("SELECT img FROM clipboard WHERE pinned = 0 AND time < ? AND img != ''", cutoff)
 	if err != nil {
 		slog.Error(Name, "cleanupOldEntries query", err)
 		return 0
 	}
 
-	type entry struct {
-		hash string
-		img  string
-	}
-	var toDelete []entry
 	for rows.Next() {
-		var e entry
-		if err := rows.Scan(&e.hash, &e.img); err == nil {
-			toDelete = append(toDelete, e)
+		var img string
+		if err := rows.Scan(&img); err == nil && img != "" {
+			_ = os.Remove(img)
 		}
 	}
 	rows.Close()
 
-	for _, e := range toDelete {
-		if e.img != "" {
-			_ = os.Remove(e.img)
-		}
-		deleteItem(e.hash)
+	// Batch delete all old unpinned entries in a single statement
+	result, err := db.Exec("DELETE FROM clipboard WHERE pinned = 0 AND time < ?", cutoff)
+	if err != nil {
+		slog.Error(Name, "cleanupOldEntries delete", err)
+		return 0
 	}
 
-	return len(toDelete)
+	n, _ := result.RowsAffected()
+	return int(n)
 }
 
 func countByType() (bool, bool) {

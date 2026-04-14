@@ -102,7 +102,7 @@ func BenchmarkQueryBrowse(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				getItemsByQuery("", Combined, 256)
+				getItemsByQuery(Combined, 256)
 			}
 		})
 	}
@@ -116,8 +116,8 @@ func BenchmarkQuerySearch(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				rows := getItemsByQuery("number 42", Combined, 1000)
-				// Simulate fzf scoring on results like Query() does
+				rows := getItemsByQuery(Combined, 1000)
+				// Fuzzy scoring is now always done in Go (no SQL LIKE pre-filter)
 				for _, row := range rows {
 					common.FuzzyScore("number 42", row.Item.Content, false)
 				}
