@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"crypto/md5"
 	_ "embed"
-	"encoding/gob"
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
@@ -30,18 +29,15 @@ import (
 )
 
 var (
-	Name             = "clipboard"
-	NamePretty       = "Clipboard"
-	file             = common.CacheFile("clipboard.gob")
-	imgTypes         = make(map[string]string)
-	config           *Config
-	clipboardhistory = make(map[string]*Item)
-	mu               sync.Mutex
-	currentMode      = Combined
-	nextMode         = ActionImagesOnly
-	hasImg           = false
-	hasText          = false
-	hasLocalsend     bool
+	Name         = "clipboard"
+	NamePretty   = "Clipboard"
+	imgTypes     = make(map[string]string)
+	config       *Config
+	mu           sync.Mutex
+	currentMode  = Combined
+	hasImg       = false
+	hasText      = false
+	hasLocalsend bool
 )
 
 //go:embed README.md
@@ -53,10 +49,7 @@ var unicodedata string
 //go:embed data/symbols.xml
 var symbolsdata string
 
-var (
-	paused       bool
-	saveFileChan = make(chan struct{})
-)
+var paused bool
 
 const StateEditable = "editable"
 
@@ -99,10 +92,14 @@ func Setup() {
 		hasLocalsend = true
 	}
 
-	loadFromFile()
+	if err := openDB(); err != nil {
+		slog.Error(Name, "setup", err)
+		return
+	}
+
+	migrateGobToSQLite()
 
 	go handleChange()
-	go handleSaveToFile()
 
 	if config.IgnoreSymbols {
 		setupUnicodeSymbols()
@@ -112,15 +109,9 @@ func Setup() {
 		go cleanup()
 	}
 
-	for _, v := range clipboardhistory {
-		if v.Img != "" {
-			hasImg = true
-		} else {
-			hasText = true
-		}
-	}
+	hasText, hasImg = countByType()
 
-	slog.Info(Name, "history", len(clipboardhistory), "time", time.Since(start))
+	slog.Info(Name, "history", itemCount(), "time", time.Since(start))
 }
 
 func LoadConfig() {
@@ -161,19 +152,12 @@ func cleanup() {
 	for {
 		time.Sleep(time.Duration(config.AutoCleanup) * time.Minute)
 
-		i := 0
-
-		now := time.Now()
-
-		for k, v := range clipboardhistory {
-			if now.Sub(v.Time).Minutes() >= float64(config.AutoCleanup) {
-				delete(clipboardhistory, k)
-				i++
-			}
-		}
+		i := cleanupOldEntries(config.AutoCleanup)
 
 		if i != 0 {
-			saveToFile()
+			mu.Lock()
+			hasText, hasImg = countByType()
+			mu.Unlock()
 			slog.Info(Name, "cleanup", i)
 		}
 	}
@@ -253,48 +237,6 @@ func setupUnicodeSymbols() {
 	}
 }
 
-func loadFromFile() {
-	if common.FileExists(file) {
-		f, err := os.ReadFile(file)
-		if err != nil {
-			slog.Error("history", "load", err)
-		} else {
-			decoder := gob.NewDecoder(bytes.NewReader(f))
-
-			err = decoder.Decode(&clipboardhistory)
-			if err != nil {
-				slog.Error("history", "decoding", err)
-			}
-		}
-	}
-}
-
-func saveToFile() {
-	if len(clipboardhistory) > config.MaxItems {
-		trim()
-	}
-
-	var b bytes.Buffer
-	encoder := gob.NewEncoder(&b)
-
-	err := encoder.Encode(clipboardhistory)
-	if err != nil {
-		slog.Error(Name, "encode", err)
-		return
-	}
-
-	err = os.MkdirAll(filepath.Dir(file), 0o755)
-	if err != nil {
-		slog.Error(Name, "createdirs", err)
-		return
-	}
-
-	err = os.WriteFile(file, b.Bytes(), 0o600)
-	if err != nil {
-		slog.Error(Name, "writefile", err)
-	}
-}
-
 func handleChange() {
 	cmd := exec.Command("wl-paste", "--watch", "echo", "clipboard-changed")
 	stdout, err := cmd.StdoutPipe()
@@ -315,21 +257,19 @@ func handleChange() {
 
 		text, texterr := getClipboardText()
 		if texterr == nil {
-			mu.Lock()
 			ok := updateText(text)
 			if ok {
+				mu.Lock()
 				hasText = true
 				mu.Unlock()
 				continue
-			} else {
-				mu.Unlock()
 			}
 		}
 
 		img, imgerr := getClipboardImage()
 		if imgerr == nil {
-			mu.Lock()
 			updateImage(img)
+			mu.Lock()
 			hasImg = true
 			mu.Unlock()
 			continue
@@ -359,24 +299,6 @@ func getClipboardText() (string, error) {
 
 var ignoreMimetypes = []string{"x-kde-passwordManagerHint"}
 
-func handleSaveToFile() {
-	timer := time.NewTimer(time.Second * 5)
-	do := false
-
-	for {
-		select {
-		case <-saveFileChan:
-			timer.Reset(time.Second * 5)
-			do = true
-		case <-timer.C:
-			if do {
-				saveToFile()
-				do = false
-			}
-		}
-	}
-}
-
 func updateImage(out []byte) {
 	mt := getMimetypes()
 
@@ -393,8 +315,8 @@ func updateImage(out []byte) {
 	md5 := md5.Sum(out)
 	md5str := hex.EncodeToString(md5[:])
 
-	if val, ok := clipboardhistory[md5str]; ok {
-		val.Time = time.Now()
+	if existing := getItem(md5str); existing != nil {
+		updateItemTime(md5str, time.Now())
 	} else {
 		cmd := exec.Command("identify", "-format", "%m", "-")
 		cmd.Stdin = bytes.NewReader(out)
@@ -409,15 +331,14 @@ func updateImage(out []byte) {
 		ext = strings.TrimSpace(ext)
 
 		if file := saveImg(out, ext); file != "" {
-			clipboardhistory[md5str] = &Item{
+			putItem(md5str, &Item{
 				Img:   file,
 				Time:  time.Now(),
 				State: StateEditable,
-			}
+			})
+			trimToMax(config.MaxItems)
 		}
 	}
-
-	saveFileChan <- struct{}{}
 }
 
 // ... returns false if its an image from browser
@@ -472,47 +393,30 @@ func updateText(text string) bool {
 	md5 := md5.Sum(b)
 	md5str := hex.EncodeToString(md5[:])
 
-	if val, ok := clipboardhistory[md5str]; ok {
-		val.Time = time.Now()
+	if existing := getItem(md5str); existing != nil {
+		updateItemTime(md5str, time.Now())
 	} else {
 		if !utf8.Valid(b) {
 			slog.Error(Name, "updating", "string content contains invalid UTF-8")
 		}
 
 		if isURIList {
-			clipboardhistory[md5str] = &Item{
+			putItem(md5str, &Item{
 				URIList: uris,
 				Time:    time.Now(),
-			}
+			})
 		} else {
-			clipboardhistory[md5str] = &Item{
+			putItem(md5str, &Item{
 				Content: text,
 				Time:    time.Now(),
 				State:   StateEditable,
-			}
+			})
 		}
+
+		trimToMax(config.MaxItems)
 	}
 
-	saveFileChan <- struct{}{}
 	return true
-}
-
-func trim() {
-	oldest := ""
-	oldestTime := time.Now()
-
-	for k, v := range clipboardhistory {
-		if v.Time.Before(oldestTime) {
-			oldest = k
-			oldestTime = v.Time
-		}
-	}
-
-	if clipboardhistory[oldest].Img != "" {
-		_ = os.Remove(clipboardhistory[oldest].Img)
-	}
-
-	delete(clipboardhistory, oldest)
 }
 
 func saveImg(b []byte, ext string) string {
@@ -573,7 +477,10 @@ func Activate(single bool, identifier, action string, query string, args string,
 
 	switch action {
 	case ActionLocalsend:
-		item := clipboardhistory[identifier]
+		item := getItem(identifier)
+		if item == nil {
+			return
+		}
 
 		var path string
 
@@ -613,16 +520,13 @@ func Activate(single bool, identifier, action string, query string, args string,
 		paused = false
 	case ActionImagesOnly:
 		currentMode = ImagesOnly
-		nextMode = ActionTextOnly
 	case ActionTextOnly:
 		currentMode = TextOnly
-		nextMode = ActionCombined
 	case ActionCombined:
 		currentMode = Combined
-		nextMode = ActionImagesOnly
 	case ActionEdit:
-		item := clipboardhistory[identifier]
-		if item.State != StateEditable {
+		item := getItem(identifier)
+		if item == nil || item.State != StateEditable {
 			return
 		}
 
@@ -678,88 +582,54 @@ func Activate(single bool, identifier, action string, query string, args string,
 			cmd.Wait()
 
 			b, _ := os.ReadFile(tmpFile.Name())
-			item.Content = string(b)
-			saveToFile()
+			updateItemContent(identifier, string(b))
 		}
 	case ActionRemove:
-		mu.Lock()
-
-		if _, ok := clipboardhistory[identifier]; ok {
-			if clipboardhistory[identifier].Img != "" {
-				_ = os.Remove(clipboardhistory[identifier].Img)
-			}
-
-			delete(clipboardhistory, identifier)
-
-			hasText = false
-			hasImg = false
-
-			if len(clipboardhistory) != 0 {
-				for _, v := range clipboardhistory {
-					if v.Img != "" {
-						hasImg = true
-					} else {
-						hasText = true
-					}
-				}
-
-				if currentMode == ImagesOnly && !hasImg {
-					currentMode = Combined
-				}
-
-				if currentMode == TextOnly && !hasText {
-					currentMode = Combined
-				}
-			}
-
-			saveToFile()
+		item := getItem(identifier)
+		if item == nil {
+			return
 		}
 
+		if item.Img != "" {
+			_ = os.Remove(item.Img)
+		}
+
+		deleteItem(identifier)
+
+		mu.Lock()
+		hasText, hasImg = countByType()
+
+		if currentMode == ImagesOnly && !hasImg {
+			currentMode = Combined
+		}
+
+		if currentMode == TextOnly && !hasText {
+			currentMode = Combined
+		}
 		mu.Unlock()
 	case ActionUnpin:
-		mu.Lock()
-
-		if val, ok := clipboardhistory[identifier]; ok {
-			val.Pinned = false
-
-			saveToFile()
-		}
-
-		mu.Unlock()
+		updateItemPinned(identifier, false)
 	case ActionPin:
-		mu.Lock()
-
-		if val, ok := clipboardhistory[identifier]; ok {
-			val.Pinned = true
-
-			saveToFile()
-		}
-
-		mu.Unlock()
+		updateItemPinned(identifier, true)
 	case ActionRemoveAll:
-		mu.Lock()
+		imgs := deleteAllUnpinned()
 
-		for k, v := range clipboardhistory {
-			if v.Pinned {
-				continue
-			}
-
-			delete(clipboardhistory, k)
-
-			if v.Img != "" {
-				_ = os.Remove(v.Img)
-			}
+		for _, img := range imgs {
+			_ = os.Remove(img)
 		}
 
-		saveToFile()
-		hasImg = false
-		hasText = false
+		mu.Lock()
+		hasText, hasImg = countByType()
 		currentMode = Combined
 		mu.Unlock()
 	case ActionCopy:
+		item := getItem(identifier)
+		if item == nil {
+			return
+		}
+
 		cmd := exec.Command("sh", "-c", config.Command)
 
-		item := clipboardhistory[identifier]
 		if item.Img != "" {
 			f, _ := os.ReadFile(item.Img)
 			cmd.Stdin = bytes.NewReader(f)
@@ -791,19 +661,11 @@ func Activate(single bool, identifier, action string, query string, args string,
 }
 
 func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
-	entries := []*pb.QueryResponse_Item{}
+	rows := getItemsByQuery(currentMode, config.MaxItems)
+	entries := make([]*pb.QueryResponse_Item, 0, len(rows))
 
-	for k, v := range clipboardhistory {
-		switch currentMode {
-		case ImagesOnly:
-			if v.Img == "" {
-				continue
-			}
-		case TextOnly:
-			if v.Img != "" {
-				continue
-			}
-		}
+	for k, row := range rows {
+		v := row.Item
 
 		actions := []string{ActionCopy, ActionEdit, ActionRemove}
 
@@ -831,8 +693,8 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			isURIList = true
 			files := []string{}
 
-			for _, v := range v.URIList {
-				files = append(files, filepath.Base(v))
+			for _, u := range v.URIList {
+				files = append(files, filepath.Base(u))
 			}
 
 			content = strings.Join(files, ",")
@@ -843,7 +705,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 		}
 
 		e := &pb.QueryResponse_Item{
-			Identifier: k,
+			Identifier: row.Hash,
 			Text:       content,
 			Subtext:    v.Time.Format(time.RFC1123Z),
 			Type:       pb.QueryResponse_REGULAR,
@@ -884,24 +746,14 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 				entries = append(entries, e)
 			}
 		} else {
-			entries = append(entries, e)
-		}
-	}
-
-	if query == "" {
-		slices.SortStableFunc(entries, func(a, b *pb.QueryResponse_Item) int {
-			ta, _ := time.Parse(time.RFC1123Z, a.Subtext)
-			tb, _ := time.Parse(time.RFC1123Z, b.Subtext)
-
-			return ta.Compare(tb) * -1
-		})
-
-		for k, v := range entries {
-			if slices.Contains(v.State, "pinned") && config.PinnedOnTop {
-				entries[k].Score = int32(1_000_000_000 - k)
+			// Results are already sorted by time DESC from the database
+			if slices.Contains(state, "pinned") && config.PinnedOnTop {
+				e.Score = int32(1_000_000_000 - k)
 			} else {
-				entries[k].Score = int32(1_000_000 - k)
+				e.Score = int32(1_000_000 - k)
 			}
+
+			entries = append(entries, e)
 		}
 	}
 
@@ -929,15 +781,26 @@ func HideFromProviderlist() bool {
 	return config.HideFromProviderlist
 }
 
+func getNextMode() string {
+	switch currentMode {
+	case ImagesOnly:
+		return ActionTextOnly
+	case TextOnly:
+		return ActionCombined
+	default:
+		return ActionImagesOnly
+	}
+}
+
 func State(provider string) *pb.ProviderStateResponse {
 	states := []string{currentMode}
 	actions := []string{}
 
 	if hasImg && hasText {
-		actions = append(actions, nextMode)
+		actions = append(actions, getNextMode())
 	}
 
-	if len(clipboardhistory) == 0 {
+	if itemCount() == 0 {
 		actions = []string{}
 	} else {
 		actions = append(actions, ActionRemoveAll)
