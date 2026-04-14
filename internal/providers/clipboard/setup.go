@@ -33,10 +33,9 @@ var (
 	NamePretty   = "Clipboard"
 	imgTypes     = make(map[string]string)
 	config       *Config
-	mu           sync.Mutex
-	currentMode  = Combined
-	nextMode     = ActionImagesOnly
-	hasImg       = false
+	mu          sync.Mutex
+	currentMode = Combined
+	hasImg      = false
 	hasText      = false
 	hasLocalsend bool
 )
@@ -522,13 +521,10 @@ func Activate(single bool, identifier, action string, query string, args string,
 		paused = false
 	case ActionImagesOnly:
 		currentMode = ImagesOnly
-		nextMode = ActionTextOnly
 	case ActionTextOnly:
 		currentMode = TextOnly
-		nextMode = ActionCombined
 	case ActionCombined:
 		currentMode = Combined
-		nextMode = ActionImagesOnly
 	case ActionEdit:
 		item := getItem(identifier)
 		if item == nil || item.State != StateEditable {
@@ -624,8 +620,6 @@ func Activate(single bool, identifier, action string, query string, args string,
 		}
 
 		mu.Lock()
-		hasImg = false
-		hasText = false
 		hasText, hasImg = countByType()
 		currentMode = Combined
 		mu.Unlock()
@@ -788,12 +782,23 @@ func HideFromProviderlist() bool {
 	return config.HideFromProviderlist
 }
 
+func getNextMode() string {
+	switch currentMode {
+	case ImagesOnly:
+		return ActionTextOnly
+	case TextOnly:
+		return ActionCombined
+	default:
+		return ActionImagesOnly
+	}
+}
+
 func State(provider string) *pb.ProviderStateResponse {
 	states := []string{currentMode}
 	actions := []string{}
 
 	if hasImg && hasText {
-		actions = append(actions, nextMode)
+		actions = append(actions, getNextMode())
 	}
 
 	if itemCount() == 0 {
