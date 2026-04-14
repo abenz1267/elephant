@@ -33,9 +33,9 @@ var (
 	NamePretty   = "Clipboard"
 	imgTypes     = make(map[string]string)
 	config       *Config
-	mu          sync.Mutex
-	currentMode = Combined
-	hasImg      = false
+	mu           sync.Mutex
+	currentMode  = Combined
+	hasImg       = false
 	hasText      = false
 	hasLocalsend bool
 )
@@ -236,7 +236,6 @@ func setupUnicodeSymbols() {
 		mu.Unlock()
 	}
 }
-
 
 func handleChange() {
 	cmd := exec.Command("wl-paste", "--watch", "echo", "clipboard-changed")
