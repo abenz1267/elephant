@@ -25,6 +25,11 @@ var (
 	stmtDelete        *sql.Stmt
 	stmtUpdatePinned  *sql.Stmt
 	stmtUpdateContent *sql.Stmt
+
+	// Read-path prepared statements (on readDB)
+	stmtQueryCombined *sql.Stmt
+	stmtQueryImages   *sql.Stmt
+	stmtQueryText     *sql.Stmt
 )
 
 func openDB() error {
@@ -110,6 +115,24 @@ func openDB() error {
 		return fmt.Errorf("sql open read: %v", err)
 	}
 
+	// Prepare read-path statements (one per mode filter variant)
+	const queryCols = "SELECT hash, content, img, uri_list, time, state, pinned FROM clipboard"
+
+	stmtQueryCombined, err = readDB.Prepare(queryCols + " ORDER BY time DESC LIMIT ?")
+	if err != nil {
+		return fmt.Errorf("prepare queryCombined: %v", err)
+	}
+
+	stmtQueryImages, err = readDB.Prepare(queryCols + " WHERE img != '' ORDER BY time DESC LIMIT ?")
+	if err != nil {
+		return fmt.Errorf("prepare queryImages: %v", err)
+	}
+
+	stmtQueryText, err = readDB.Prepare(queryCols + " WHERE img = '' ORDER BY time DESC LIMIT ?")
+	if err != nil {
+		return fmt.Errorf("prepare queryText: %v", err)
+	}
+
 	return nil
 }
 
@@ -171,20 +194,17 @@ type itemRow struct {
 // text is intentionally not done here — the caller applies fzf-style fuzzy
 // scoring in Go, which has different (broader) match semantics than SQL LIKE.
 func getItemsByQuery(mode string, limit int) []itemRow {
-	var where string
+	var stmt *sql.Stmt
 	switch mode {
 	case ImagesOnly:
-		where = " WHERE img != ''"
+		stmt = stmtQueryImages
 	case TextOnly:
-		where = " WHERE img = ''"
+		stmt = stmtQueryText
 	default:
-		where = ""
+		stmt = stmtQueryCombined
 	}
 
-	rows, err := readDB.Query(
-		"SELECT hash, content, img, uri_list, time, state, pinned FROM clipboard"+where+" ORDER BY time DESC LIMIT ?",
-		limit,
-	)
+	rows, err := stmt.Query(limit)
 	if err != nil {
 		slog.Error(Name, "getItemsByQuery", err)
 		return nil
