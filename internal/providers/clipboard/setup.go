@@ -299,11 +299,13 @@ func handleChange() {
 	cmd := exec.Command("wl-paste", "--watch", "echo", "clipboard-changed")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Fatal("Error creating stdout pipe:", err)
+		slog.Error(Name, "handleChange", "failed to create stdout pipe", "error", err)
+		return
 	}
 
 	if err := cmd.Start(); err != nil {
-		log.Fatal("Error starting wl-paste watch:", err)
+		slog.Error(Name, "handleChange", "failed to start wl-paste watch", "error", err)
+		return
 	}
 
 	scanner := bufio.NewScanner(stdout)
