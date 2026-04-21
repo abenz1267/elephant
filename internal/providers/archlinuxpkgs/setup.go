@@ -118,7 +118,7 @@ func LoadConfig() {
 
 	config = &Config{
 		Config: common.Config{
-			Icon:     "applications-internet",
+			Icon:     "distributor-logo-archlinux",
 			MinScore: 20,
 		},
 		CommandInstall:       fmt.Sprintf("%s -S %s", helper, "%VALUE%"),
