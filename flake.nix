@@ -96,6 +96,7 @@
           excludedProviders = [
             "archlinuxpkgs"
             "dnfpackages"
+            "aptpackages"
           ];
 
           buildPhase = ''
