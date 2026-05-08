@@ -160,13 +160,18 @@ jobs:
 
     - name: Build wireplumber plugin for linux/amd64
       run: |
-        echo "Building dnfpackages plugin for linux/amd64..."
+        echo "Building wireplumber plugin for linux/amd64..."
         GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/wireplumber-linux-amd64.so ./internal/providers/wireplumber
 
     - name: Build playerctl plugin for linux/amd64
       run: |
-        echo "Building dnfpackages plugin for linux/amd64..."
+        echo "Building playerctl plugin for linux/amd64..."
         GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/playerctl-linux-amd64.so ./internal/providers/playerctl
+
+    - name: Build aptpackages plugin for linux/amd64
+      run: |
+        echo "Building aptpackages plugin for linux/amd64..."
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/aptpackages-linux-amd64.so ./internal/providers/aptpackages
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -271,6 +276,9 @@ jobs:
 
         # Archive playerctl plugin
         tar -czf playerctl-linux-amd64.tar.gz playerctl-linux-amd64.so
+
+        # Archive aptpackages plugin
+        tar -czf aptpackages-linux-amd64.tar.gz aptpackages-linux-amd64.so
 
         echo "Build completed successfully!"
         echo "Created archives:"
