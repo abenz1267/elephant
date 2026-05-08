@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unicode/utf8"
@@ -54,7 +55,7 @@ var unicodedata string
 var symbolsdata string
 
 var (
-	paused       bool
+	paused       atomic.Bool
 	saveFileChan = make(chan struct{})
 )
 
@@ -305,7 +306,7 @@ func handleChange() {
 	scanner := bufio.NewScanner(stdout)
 
 	for scanner.Scan() {
-		if paused {
+		if paused.Load() {
 			continue
 		}
 
@@ -604,9 +605,9 @@ func Activate(single bool, identifier, action string, query string, args string,
 			}()
 		}
 	case ActionPause:
-		paused = true
+		paused.Store(true)
 	case ActionUnpause:
-		paused = false
+		paused.Store(false)
 	case ActionImagesOnly:
 		currentMode = ImagesOnly
 		nextMode = ActionTextOnly
@@ -939,7 +940,7 @@ func State(provider string) *pb.ProviderStateResponse {
 		actions = append(actions, ActionRemoveAll)
 	}
 
-	if paused {
+	if paused.Load() {
 		states = append(states, "paused")
 		actions = append(actions, ActionUnpause)
 	} else {
