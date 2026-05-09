@@ -38,10 +38,8 @@ var (
 	config           *Config
 	clipboardhistory = make(map[string]*Item)
 	mu               sync.Mutex
-	currentMode      = Combined
-	nextMode         = ActionImagesOnly
-	hasImg           = false
-	hasText          = false
+	availableModes   = []string{}
+	currentMode      = ActionCombined
 	hasLocalsend     bool
 )
 
@@ -113,15 +111,32 @@ func Setup() {
 		go cleanup()
 	}
 
+	setupModes()
+
+	slog.Info(Name, "history", len(clipboardhistory), "time", time.Since(start))
+}
+
+func setupModes() {
+	availableModes = []string{}
+	availableModes = append(availableModes, ActionCombined)
+
 	for _, v := range clipboardhistory {
-		if v.Img != "" {
-			hasImg = true
-		} else {
-			hasText = true
+		if v.Pinned && !slices.Contains(availableModes, ActionPinnedOnly) {
+			availableModes = append(availableModes, ActionPinnedOnly)
+		}
+
+		if v.Img != "" && !slices.Contains(availableModes, ActionImagesOnly) {
+			availableModes = append(availableModes, ActionImagesOnly)
+		} else if !slices.Contains(availableModes, ActionTextOnly) {
+			availableModes = append(availableModes, ActionTextOnly)
+		}
+
+		if len(availableModes) == 4 {
+			break
 		}
 	}
 
-	slog.Info(Name, "history", len(clipboardhistory), "time", time.Since(start))
+	slices.Sort(availableModes)
 }
 
 func LoadConfig() {
@@ -317,7 +332,9 @@ func handleChange() {
 			mu.Lock()
 			ok := updateText(text)
 			if ok {
-				hasText = true
+				if !slices.Contains(availableModes, ActionTextOnly) {
+					availableModes = append(availableModes, ActionTextOnly)
+				}
 				mu.Unlock()
 				continue
 			} else {
@@ -329,7 +346,9 @@ func handleChange() {
 		if imgerr == nil {
 			mu.Lock()
 			updateImage(img)
-			hasImg = true
+			if !slices.Contains(availableModes, ActionImagesOnly) {
+				availableModes = append(availableModes, ActionImagesOnly)
+			}
 			mu.Unlock()
 			continue
 		}
@@ -558,11 +577,8 @@ const (
 	ActionRemoveAll  = "remove_all"
 	ActionImagesOnly = "show_images_only"
 	ActionTextOnly   = "show_text_only"
+	ActionPinnedOnly = "show_pinned_only"
 	ActionCombined   = "show_combined"
-
-	ImagesOnly = "images_only"
-	TextOnly   = "text_only"
-	Combined   = "combined"
 )
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
@@ -610,15 +626,8 @@ func Activate(single bool, identifier, action string, query string, args string,
 		paused.Store(true)
 	case ActionUnpause:
 		paused.Store(false)
-	case ActionImagesOnly:
-		currentMode = ImagesOnly
-		nextMode = ActionTextOnly
-	case ActionTextOnly:
-		currentMode = TextOnly
-		nextMode = ActionCombined
-	case ActionCombined:
-		currentMode = Combined
-		nextMode = ActionImagesOnly
+	case ActionImagesOnly, ActionTextOnly, ActionPinnedOnly, ActionCombined:
+		currentMode = action
 	case ActionEdit:
 		item := clipboardhistory[identifier]
 		if item.State != StateEditable {
@@ -690,24 +699,11 @@ func Activate(single bool, identifier, action string, query string, args string,
 
 			delete(clipboardhistory, identifier)
 
-			hasText = false
-			hasImg = false
-
 			if len(clipboardhistory) != 0 {
-				for _, v := range clipboardhistory {
-					if v.Img != "" {
-						hasImg = true
-					} else {
-						hasText = true
-					}
-				}
+				setupModes()
 
-				if currentMode == ImagesOnly && !hasImg {
-					currentMode = Combined
-				}
-
-				if currentMode == TextOnly && !hasText {
-					currentMode = Combined
+				if !slices.Contains(availableModes, currentMode) {
+					currentMode = ActionCombined
 				}
 			}
 
@@ -724,6 +720,8 @@ func Activate(single bool, identifier, action string, query string, args string,
 			saveToFile()
 		}
 
+		setupModes()
+
 		mu.Unlock()
 	case ActionPin:
 		mu.Lock()
@@ -732,6 +730,10 @@ func Activate(single bool, identifier, action string, query string, args string,
 			val.Pinned = true
 
 			saveToFile()
+		}
+
+		if !slices.Contains(availableModes, ActionPinnedOnly) {
+			availableModes = append(availableModes, ActionPinnedOnly)
 		}
 
 		mu.Unlock()
@@ -751,9 +753,8 @@ func Activate(single bool, identifier, action string, query string, args string,
 		}
 
 		saveToFile()
-		hasImg = false
-		hasText = false
-		currentMode = Combined
+		currentMode = ActionCombined
+		setupModes()
 		mu.Unlock()
 	case ActionCopy:
 		cmd := exec.Command("sh", "-c", config.Command)
@@ -794,22 +795,26 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 
 	for k, v := range clipboardhistory {
 		switch currentMode {
-		case ImagesOnly:
+		case ActionPinnedOnly:
+			if !v.Pinned {
+				continue
+			}
+		case ActionImagesOnly:
 			if v.Img == "" {
 				continue
 			}
-		case TextOnly:
+		case ActionTextOnly:
 			if v.Img != "" {
 				continue
 			}
 		}
 
-		actions := []string{ActionCopy, ActionEdit, ActionRemove}
+		actions := []string{ActionCopy, ActionEdit}
 
 		if v.Pinned {
 			actions = append(actions, ActionUnpin)
 		} else {
-			actions = append(actions, ActionPin)
+			actions = append(actions, ActionPin, ActionRemove)
 		}
 
 		if hasLocalsend {
@@ -932,8 +937,15 @@ func State(provider string) *pb.ProviderStateResponse {
 	states := []string{currentMode}
 	actions := []string{}
 
-	if hasImg && hasText {
-		actions = append(actions, nextMode)
+	if len(availableModes) > 2 {
+		i := slices.Index(availableModes, currentMode)
+		i = i + 1
+
+		if i == len(availableModes) {
+			i = 0
+		}
+
+		actions = append(actions, availableModes[i])
 	}
 
 	if len(clipboardhistory) == 0 {
