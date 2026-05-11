@@ -75,6 +75,10 @@ func Setup() {
 		}
 
 		for p := range strings.SplitSeq(os.Getenv("PATH"), ":") {
+			if _, err := os.Stat(p); err != nil {
+				continue
+			}
+			
 			walkFn := func(path string, d fs.DirEntry, err error) error {
 				info, serr := os.Stat(path)
 				if info == nil || serr != nil {
