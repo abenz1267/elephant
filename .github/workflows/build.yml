@@ -2,10 +2,10 @@ name: Build Elephant
 
 on:
   push:
-    branches: [ main, develop ]
-    tags: [ 'v*' ]
+    branches: [main, develop]
+    tags: ["v*"]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: write
@@ -18,305 +18,304 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ env.GO_VERSION }}
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
-    - name: Install cross-compilation tools
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu libwayland-dev
+      - name: Install cross-compilation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu libwayland-dev
 
-    - name: Create build directory
-      run: mkdir -p build
+      - name: Create build directory
+        run: mkdir -p build
 
-    - name: Download Go modules
-      run: go mod download
+      - name: Download Go modules
+        run: go mod download
 
-    - name: Build elephant for linux/amd64
-      run: |
-        echo "Building elephant for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -o build/elephant-linux-amd64 ./cmd/elephant/elephant.go
+      - name: Build elephant for linux/amd64
+        run: |
+          echo "Building elephant for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -o build/elephant-linux-amd64 ./cmd/elephant/elephant.go
 
-    - name: Build desktopapplications plugin for linux/amd64
-      run: |
-        echo "Building desktopapplications plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/desktopapplications-linux-amd64.so ./internal/providers/desktopapplications
+      - name: Build desktopapplications plugin for linux/amd64
+        run: |
+          echo "Building desktopapplications plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/desktopapplications-linux-amd64.so ./internal/providers/desktopapplications
 
-    - name: Build files plugin for linux/amd64
-      run: |
-        echo "Building files plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/files-linux-amd64.so ./internal/providers/files
+      - name: Build files plugin for linux/amd64
+        run: |
+          echo "Building files plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/files-linux-amd64.so ./internal/providers/files
 
+      - name: Build clipboard plugin for linux/amd64
+        run: |
+          echo "Building clipboard plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/clipboard-linux-amd64.so ./internal/providers/clipboard
 
-    - name: Build clipboard plugin for linux/amd64
-      run: |
-        echo "Building clipboard plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/clipboard-linux-amd64.so ./internal/providers/clipboard
+      - name: Build runner plugin for linux/amd64
+        run: |
+          echo "Building runner plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/runner-linux-amd64.so ./internal/providers/runner
 
+      - name: Build symbols plugin for linux/amd64
+        run: |
+          echo "Building symbols plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/symbols-linux-amd64.so ./internal/providers/symbols
 
-    - name: Build runner plugin for linux/amd64
-      run: |
-        echo "Building runner plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/runner-linux-amd64.so ./internal/providers/runner
+      - name: Build calc plugin for linux/amd64
+        run: |
+          echo "Building calc plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/calc-linux-amd64.so ./internal/providers/calc
 
+      - name: Build providerlist plugin for linux/amd64
+        run: |
+          echo "Building providerlist plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/providerlist-linux-amd64.so ./internal/providers/providerlist
 
-    - name: Build symbols plugin for linux/amd64
-      run: |
-        echo "Building symbols plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/symbols-linux-amd64.so ./internal/providers/symbols
+      - name: Build menus plugin for linux/amd64
+        run: |
+          echo "Building menus plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/menus-linux-amd64.so ./internal/providers/menus
 
+      - name: Build websearch plugin for linux/amd64
+        run: |
+          echo "Building websearch plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/websearch-linux-amd64.so ./internal/providers/websearch
 
-    - name: Build calc plugin for linux/amd64
-      run: |
-        echo "Building calc plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/calc-linux-amd64.so ./internal/providers/calc
+      - name: Build archlinuxpkgs plugin for linux/amd64
+        run: |
+          echo "Building archlinuxpkgs plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/archlinuxpkgs-linux-amd64.so ./internal/providers/archlinuxpkgs
 
+      - name: Build todo plugin for linux/amd64
+        run: |
+          echo "Building todo plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/todo-linux-amd64.so ./internal/providers/todo
 
-    - name: Build providerlist plugin for linux/amd64
-      run: |
-        echo "Building providerlist plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/providerlist-linux-amd64.so ./internal/providers/providerlist
+      - name: Build unicode plugin for linux/amd64
+        run: |
+          echo "Building unicode plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/unicode-linux-amd64.so ./internal/providers/unicode
 
+      - name: Build bluetooth plugin for linux/amd64
+        run: |
+          echo "Building bluetooth plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/bluetooth-linux-amd64.so ./internal/providers/bluetooth
 
-    - name: Build menus plugin for linux/amd64
-      run: |
-        echo "Building menus plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/menus-linux-amd64.so ./internal/providers/menus
+      - name: Build windows plugin for linux/amd64
+        run: |
+          echo "Building windows plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/windows-linux-amd64.so ./internal/providers/windows
 
+      - name: Build snippets plugin for linux/amd64
+        run: |
+          echo "Building snippets plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/snippets-linux-amd64.so ./internal/providers/snippets
 
-    - name: Build websearch plugin for linux/amd64
-      run: |
-        echo "Building websearch plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/websearch-linux-amd64.so ./internal/providers/websearch
+      - name: Build nirisessions plugin for linux/amd64
+        run: |
+          echo "Building nirisessions plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/nirisessions-linux-amd64.so ./internal/providers/nirisessions
 
+      - name: Build niriactions plugin for linux/amd64
+        run: |
+          echo "Building niriactions plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/niriactions-linux-amd64.so ./internal/providers/niriactions
 
-    - name: Build archlinuxpkgs plugin for linux/amd64
-      run: |
-        echo "Building archlinuxpkgs plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/archlinuxpkgs-linux-amd64.so ./internal/providers/archlinuxpkgs
+      - name: Build bookmarks plugin for linux/amd64
+        run: |
+          echo "Building bookmarks plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/bookmarks-linux-amd64.so ./internal/providers/bookmarks
 
+      - name: Build 1password plugin for linux/amd64
+        run: |
+          echo "Building 1password plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/1password-linux-amd64.so ./internal/providers/1password
 
-    - name: Build todo plugin for linux/amd64
-      run: |
-        echo "Building todo plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/todo-linux-amd64.so ./internal/providers/todo
+      - name: Build bitwarden plugin for linux/amd64
+        run: |
+          echo "Building bitwarden plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/bitwarden-linux-amd64.so ./internal/providers/bitwarden
 
-    - name: Build unicode plugin for linux/amd64
-      run: |
-        echo "Building unicode plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/unicode-linux-amd64.so ./internal/providers/unicode
+      - name: Build dnfpackages plugin for linux/amd64
+        run: |
+          echo "Building dnfpackages plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/dnfpackages-linux-amd64.so ./internal/providers/dnfpackages
 
-    - name: Build bluetooth plugin for linux/amd64
-      run: |
-        echo "Building bluetooth plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/bluetooth-linux-amd64.so ./internal/providers/bluetooth
+      - name: Build wireplumber plugin for linux/amd64
+        run: |
+          echo "Building wireplumber plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/wireplumber-linux-amd64.so ./internal/providers/wireplumber
 
-    - name: Build windows plugin for linux/amd64
-      run: |
-        echo "Building windows plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/windows-linux-amd64.so ./internal/providers/windows
+      - name: Build playerctl plugin for linux/amd64
+        run: |
+          echo "Building playerctl plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/playerctl-linux-amd64.so ./internal/providers/playerctl
 
-    - name: Build snippets plugin for linux/amd64
-      run: |
-        echo "Building snippets plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/snippets-linux-amd64.so ./internal/providers/snippets
+      - name: Build aptpackages plugin for linux/amd64
+        run: |
+          echo "Building aptpackages plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/aptpackages-linux-amd64.so ./internal/providers/aptpackages
 
-    - name: Build nirisessions plugin for linux/amd64
-      run: |
-        echo "Building nirisessions plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/nirisessions-linux-amd64.so ./internal/providers/nirisessions
+      - name: Build protonpass plugin for linux/amd64
+        run: |
+          echo "Building protonpass plugin for linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/protonpass-linux-amd64.so ./internal/providers/protonpass
 
-    - name: Build niriactions plugin for linux/amd64
-      run: |
-        echo "Building niriactions plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/niriactions-linux-amd64.so ./internal/providers/niriactions
-
-    - name: Build bookmarks plugin for linux/amd64
-      run: |
-        echo "Building bookmarks plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/bookmarks-linux-amd64.so ./internal/providers/bookmarks
-
-    - name: Build 1password plugin for linux/amd64
-      run: |
-        echo "Building 1password plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/1password-linux-amd64.so ./internal/providers/1password
-
-    - name: Build bitwarden plugin for linux/amd64
-      run: |
-        echo "Building bitwarden plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/bitwarden-linux-amd64.so ./internal/providers/bitwarden
-
-    - name: Build dnfpackages plugin for linux/amd64
-      run: |
-        echo "Building dnfpackages plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/dnfpackages-linux-amd64.so ./internal/providers/dnfpackages
-
-    - name: Build wireplumber plugin for linux/amd64
-      run: |
-        echo "Building wireplumber plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/wireplumber-linux-amd64.so ./internal/providers/wireplumber
-
-    - name: Build playerctl plugin for linux/amd64
-      run: |
-        echo "Building playerctl plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/playerctl-linux-amd64.so ./internal/providers/playerctl
-
-    - name: Build aptpackages plugin for linux/amd64
-      run: |
-        echo "Building aptpackages plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/aptpackages-linux-amd64.so ./internal/providers/aptpackages
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-artifacts
-        path: build/
-        retention-days: 7
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: build/
+          retention-days: 7
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Get version
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: build-artifacts
-        path: build/
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: build/
 
-    - name: Create archives
-      run: |
-        echo "Creating archives..."
-        cd build
+      - name: Create archives
+        run: |
+          echo "Creating archives..."
+          cd build
 
-        # Archive main elephant binaries
-        tar -czf elephant-linux-amd64.tar.gz elephant-linux-amd64
+          # Archive main elephant binaries
+          tar -czf elephant-linux-amd64.tar.gz elephant-linux-amd64
 
-        # Archive desktopapplications plugin
-        tar -czf desktopapplications-linux-amd64.tar.gz desktopapplications-linux-amd64.so
+          # Archive desktopapplications plugin
+          tar -czf desktopapplications-linux-amd64.tar.gz desktopapplications-linux-amd64.so
 
-        # Archive files plugin
-        tar -czf files-linux-amd64.tar.gz files-linux-amd64.so
+          # Archive files plugin
+          tar -czf files-linux-amd64.tar.gz files-linux-amd64.so
 
-        # Archive clipboard plugin
-        tar -czf clipboard-linux-amd64.tar.gz clipboard-linux-amd64.so
+          # Archive clipboard plugin
+          tar -czf clipboard-linux-amd64.tar.gz clipboard-linux-amd64.so
 
-        # Archive runner plugin
-        tar -czf runner-linux-amd64.tar.gz runner-linux-amd64.so
+          # Archive runner plugin
+          tar -czf runner-linux-amd64.tar.gz runner-linux-amd64.so
 
-        # Archive symbols plugin
-        tar -czf symbols-linux-amd64.tar.gz symbols-linux-amd64.so
+          # Archive symbols plugin
+          tar -czf symbols-linux-amd64.tar.gz symbols-linux-amd64.so
 
-        # Archive calc plugin
-        tar -czf calc-linux-amd64.tar.gz calc-linux-amd64.so
+          # Archive calc plugin
+          tar -czf calc-linux-amd64.tar.gz calc-linux-amd64.so
 
-        # Archive providerlist plugin
-        tar -czf providerlist-linux-amd64.tar.gz providerlist-linux-amd64.so
+          # Archive providerlist plugin
+          tar -czf providerlist-linux-amd64.tar.gz providerlist-linux-amd64.so
 
-        # Archive menus plugin
-        tar -czf menus-linux-amd64.tar.gz menus-linux-amd64.so
+          # Archive menus plugin
+          tar -czf menus-linux-amd64.tar.gz menus-linux-amd64.so
 
-        # Archive websearch plugin
-        tar -czf websearch-linux-amd64.tar.gz websearch-linux-amd64.so
+          # Archive websearch plugin
+          tar -czf websearch-linux-amd64.tar.gz websearch-linux-amd64.so
 
-        # Archive archlinuxpkgs plugin
-        tar -czf archlinuxpkgs-linux-amd64.tar.gz archlinuxpkgs-linux-amd64.so
+          # Archive archlinuxpkgs plugin
+          tar -czf archlinuxpkgs-linux-amd64.tar.gz archlinuxpkgs-linux-amd64.so
 
-        # Archive todo plugin
-        tar -czf todo-linux-amd64.tar.gz todo-linux-amd64.so
+          # Archive todo plugin
+          tar -czf todo-linux-amd64.tar.gz todo-linux-amd64.so
 
-        # Archive unicode plugin
-        tar -czf unicode-linux-amd64.tar.gz unicode-linux-amd64.so
+          # Archive unicode plugin
+          tar -czf unicode-linux-amd64.tar.gz unicode-linux-amd64.so
 
-        # Archive bluetooth plugin
-        tar -czf bluetooth-linux-amd64.tar.gz bluetooth-linux-amd64.so
+          # Archive bluetooth plugin
+          tar -czf bluetooth-linux-amd64.tar.gz bluetooth-linux-amd64.so
 
-        # Archive windows plugin
-        tar -czf windows-linux-amd64.tar.gz windows-linux-amd64.so
+          # Archive windows plugin
+          tar -czf windows-linux-amd64.tar.gz windows-linux-amd64.so
 
-        # Archive snippets plugin
-        tar -czf snippets-linux-amd64.tar.gz snippets-linux-amd64.so
+          # Archive snippets plugin
+          tar -czf snippets-linux-amd64.tar.gz snippets-linux-amd64.so
 
-        # Archive nirisessions plugin
-        tar -czf nirisessions-linux-amd64.tar.gz nirisessions-linux-amd64.so
+          # Archive nirisessions plugin
+          tar -czf nirisessions-linux-amd64.tar.gz nirisessions-linux-amd64.so
 
-        # Archive niriactions plugin
-        tar -czf niriactions-linux-amd64.tar.gz niriactions-linux-amd64.so
+          # Archive niriactions plugin
+          tar -czf niriactions-linux-amd64.tar.gz niriactions-linux-amd64.so
 
-        # Archive bookmarks plugin
-        tar -czf bookmarks-linux-amd64.tar.gz bookmarks-linux-amd64.so
+          # Archive bookmarks plugin
+          tar -czf bookmarks-linux-amd64.tar.gz bookmarks-linux-amd64.so
 
-        # Archive 1password plugin
-        tar -czf 1password-linux-amd64.tar.gz 1password-linux-amd64.so
+          # Archive 1password plugin
+          tar -czf 1password-linux-amd64.tar.gz 1password-linux-amd64.so
 
-        # Archive dnfpackages plugin
-        tar -czf dnfpackages-linux-amd64.tar.gz dnfpackages-linux-amd64.so
+          # Archive dnfpackages plugin
+          tar -czf dnfpackages-linux-amd64.tar.gz dnfpackages-linux-amd64.so
 
-        # Archive bitwarden plugin
-        tar -czf bitwarden-linux-amd64.tar.gz bitwarden-linux-amd64.so
+          # Archive bitwarden plugin
+          tar -czf bitwarden-linux-amd64.tar.gz bitwarden-linux-amd64.so
 
-        # Archive wireplumber plugin
-        tar -czf wireplumber-linux-amd64.tar.gz wireplumber-linux-amd64.so
+          # Archive wireplumber plugin
+          tar -czf wireplumber-linux-amd64.tar.gz wireplumber-linux-amd64.so
 
-        # Archive playerctl plugin
-        tar -czf playerctl-linux-amd64.tar.gz playerctl-linux-amd64.so
+          # Archive playerctl plugin
+          tar -czf playerctl-linux-amd64.tar.gz playerctl-linux-amd64.so
 
-        # Archive aptpackages plugin
-        tar -czf aptpackages-linux-amd64.tar.gz aptpackages-linux-amd64.so
+          # Archive aptpackages plugin
+          tar -czf aptpackages-linux-amd64.tar.gz aptpackages-linux-amd64.so
 
-        echo "Build completed successfully!"
-        echo "Created archives:"
-        ls -la *.tar.gz
+          # Archive protonpass plugin
+          tar -czf protonpass-linux-amd64.tar.gz protonpass-linux-amd64.so
 
-    - name: Generate changelog
-      run: |
-        # Get previous tag
-        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "Build completed successfully!"
+          echo "Created archives:"
+          ls -la *.tar.gz
 
-        # Generate changelog
-        echo "# Changes in ${{ steps.version.outputs.VERSION }}" > CHANGELOG.md
-        echo "" >> CHANGELOG.md
+      - name: Generate changelog
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
-        if [ -n "$PREV_TAG" ]; then
-          echo "## Commits since $PREV_TAG:" >> CHANGELOG.md
-          git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD >> CHANGELOG.md
-        else
-          echo "## All commits:" >> CHANGELOG.md
-          git log --pretty=format:"- %s (%h)" >> CHANGELOG.md
-        fi
-
-        if [ -f "BREAKING.md" ]; then
+          # Generate changelog
+          echo "# Changes in ${{ steps.version.outputs.VERSION }}" > CHANGELOG.md
           echo "" >> CHANGELOG.md
-          echo "## ⚠️ Breaking Changes" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          cat BREAKING.md >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-        fi
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ steps.version.outputs.VERSION }}
-        name: Release ${{ steps.version.outputs.VERSION }}
-        body_path: CHANGELOG.md
-        draft: false
-        prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'rc') }}
-        files: build/*.tar.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if [ -n "$PREV_TAG" ]; then
+            echo "## Commits since $PREV_TAG:" >> CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD >> CHANGELOG.md
+          else
+            echo "## All commits:" >> CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" >> CHANGELOG.md
+          fi
+
+          if [ -f "BREAKING.md" ]; then
+            echo "" >> CHANGELOG.md
+            echo "## ⚠️ Breaking Changes" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            cat BREAKING.md >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: Release ${{ steps.version.outputs.VERSION }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'rc') }}
+          files: build/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
