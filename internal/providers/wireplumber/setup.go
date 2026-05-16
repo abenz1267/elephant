@@ -86,8 +86,11 @@ func Available() bool {
 }
 
 func PrintDoc(write bool) {
-	fmt.Println(readme)
-	fmt.Println()
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
+
 	util.PrintConfig(Config{}, Name, write)
 }
 
