@@ -286,7 +286,11 @@ in {
       description = "Elephant launcher backend";
       after = ["graphical-session.target"];
       partOf = ["graphical-session.target"];
-      wantedBy = ["default.target"];
+      wantedBy = ["graphical-session.target"];
+
+      unitConfig = {
+        ConditionEnvironment = "WAYLAND_DISPLAY";
+      };
 
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
