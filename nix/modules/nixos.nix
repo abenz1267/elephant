@@ -282,35 +282,16 @@ in {
             cfg.provider.menus.lua))
       ];
 
-    systemd.services.elephant = mkIf cfg.installService {
+    systemd.user.services.elephant = mkIf cfg.installService {
       description = "Elephant launcher backend";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target"];
+      after = ["graphical-session.target"];
+      partOf = ["graphical-session.target"];
+      wantedBy = ["default.target"];
 
       serviceConfig = {
-        Type = "simple";
-        User = cfg.user;
-        Group = cfg.group;
         ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
         Restart = "on-failure";
         RestartSec = 1;
-
-        # Security settings
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadWritePaths = [
-          "/var/lib/elephant"
-          "/tmp"
-        ];
-
-        # Clean up socket on stop
-        ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
-      };
-
-      environment = {
-        HOME = "/var/lib/elephant";
       };
     };
   };
