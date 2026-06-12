@@ -163,12 +163,22 @@ jobs:
         echo "Building dnfpackages plugin for linux/amd64..."
         GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/wireplumber-linux-amd64.so ./internal/providers/wireplumber
 
-    - name: Build playerctl plugin for linux/amd64
-      run: |
-        echo "Building dnfpackages plugin for linux/amd64..."
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/playerctl-linux-amd64.so ./internal/providers/playerctl
+- name: Build playerctl plugin for linux/amd64
+  run: |
+    echo "Building dnfpackages plugin for linux/amd64..."
+    GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/playerctl-linux-amd64.so ./internal/providers/playerctl
 
-    - name: Upload build artifacts
+- name: Build systempackage plugin for linux/amd64
+  run: |
+    echo "Building systempackage plugin for linux/amd64..."
+    GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/systempackage-linux-amd64.so ./internal/providers/systempackage
+
+- name: Build systempower plugin for linux/amd64
+  run: |
+    echo "Building systempower plugin for linux/amd64..."
+    GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -buildmode=plugin -o build/systempower-linux-amd64.so ./internal/providers/systempower
+
+- name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
@@ -269,10 +279,16 @@ jobs:
         # Archive wireplumber plugin
         tar -czf wireplumber-linux-amd64.tar.gz wireplumber-linux-amd64.so
 
-        # Archive playerctl plugin
-        tar -czf playerctl-linux-amd64.tar.gz playerctl-linux-amd64.so
+# Archive playerctl plugin
+tar -czf playerctl-linux-amd64.tar.gz playerctl-linux-amd64.so
 
-        echo "Build completed successfully!"
+# Archive systempackage plugin
+tar -czf systempackage-linux-amd64.tar.gz systempackage-linux-amd64.so
+
+# Archive systempower plugin
+tar -czf systempower-linux-amd64.tar.gz systempower-linux-amd64.so
+
+echo "Build completed successfully!"
         echo "Created archives:"
         ls -la *.tar.gz
 
