@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"crypto/md5"
 	_ "embed"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"log/slog"
@@ -18,6 +16,7 @@ import (
 	"github.com/abenz1267/elephant/v2/internal/util"
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
+	"github.com/cespare/xxhash/v2"
 	"github.com/djherbis/times"
 	"github.com/fsnotify/fsnotify"
 )
@@ -167,11 +166,10 @@ func index() {
 		if info, err := times.Stat(path); err == nil {
 			diff := start.Sub(info.ChangeTime())
 
-			md5 := md5.Sum([]byte(path))
-			md5str := hex.EncodeToString(md5[:])
+			id := fmt.Sprintf("%x", xxhash.Sum64String(path))
 
 			f := File{
-				Identifier: md5str,
+				Identifier: id,
 				Path:       path,
 				Changed:    time.Time{},
 			}
@@ -209,11 +207,10 @@ outer:
 			if info, err := times.Stat(path); err == nil {
 				diff := start.Sub(info.ChangeTime())
 
-				md5 := md5.Sum([]byte(path))
-				md5str := hex.EncodeToString(md5[:])
+				id := fmt.Sprintf("%x", xxhash.Sum64String(path))
 
 				f := File{
-					Identifier: md5str,
+					Identifier: id,
 					Path:       path,
 					Changed:    time.Time{},
 				}
@@ -308,15 +305,14 @@ func handleRegular(regularChan chan string) {
 								}
 							}
 
-							md5 := md5.Sum([]byte(path))
-							md5str := hex.EncodeToString(md5[:])
+							id := fmt.Sprintf("%x", xxhash.Sum64String(path))
 
-							if val := getFile(md5str); val != nil {
+							if val := getFile(id); val != nil {
 								val.Changed = info.ChangeTime()
 								putFile(*val)
 							} else {
 								putFile(File{
-									Identifier: md5str,
+									Identifier: id,
 									Path:       path,
 									Changed:    info.ChangeTime(),
 								})
