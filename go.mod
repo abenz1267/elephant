@@ -20,6 +20,7 @@ require (
 	github.com/air-verse/air v1.63.4 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect

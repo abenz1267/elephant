@@ -12,7 +12,15 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var db *sql.DB
+var (
+	db          *sql.DB
+	readDB      *sql.DB
+	putFileStmt *sql.Stmt
+	getFileStmt *sql.Stmt
+	delFileStmt *sql.Stmt
+)
+
+const dbPragmas = "_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory&_busy_timeout=5000"
 
 func openDB() error {
 	path := common.CacheFile("files.db")
@@ -33,7 +41,9 @@ func openDB() error {
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	db, err = sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory&_busy_timeout=5000")
+	dsn := path + "?" + dbPragmas
+
+	db, err = sql.Open("sqlite3", dsn)
 	if err != nil {
 		return fmt.Errorf("sql open: %v", err)
 	}
@@ -61,6 +71,28 @@ func openDB() error {
 		return fmt.Errorf("sql create index changed: %v", err)
 	}
 
+	putFileStmt, err = db.Prepare("INSERT OR REPLACE INTO files (identifier, path, changed) VALUES (?, ?, ?)")
+	if err != nil {
+		return fmt.Errorf("prepare put: %v", err)
+	}
+
+	getFileStmt, err = db.Prepare("SELECT identifier, path, changed FROM files WHERE identifier = ?")
+	if err != nil {
+		return fmt.Errorf("prepare get: %v", err)
+	}
+
+	delFileStmt, err = db.Prepare("DELETE FROM files WHERE path LIKE ?")
+	if err != nil {
+		return fmt.Errorf("prepare delete: %v", err)
+	}
+
+	readDB, err = sql.Open("sqlite3", dsn)
+	if err != nil {
+		return fmt.Errorf("sql open read: %v", err)
+	}
+
+	readDB.SetMaxOpenConns(1)
+
 	return nil
 }
 
@@ -71,10 +103,7 @@ func putFileBatch(files []File) error {
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.Prepare("INSERT OR REPLACE INTO files (identifier, path, changed) VALUES (?, ?, ?)")
-	if err != nil {
-		return err
-	}
+	stmt := tx.Stmt(putFileStmt)
 	defer stmt.Close()
 
 	for _, f := range files {
@@ -104,8 +133,7 @@ func putFile(f File) {
 		changedUnix = f.Changed.Unix()
 	}
 
-	_, err := db.Exec("INSERT OR REPLACE INTO files (identifier, path, changed) VALUES (?, ?, ?)",
-		f.Identifier, f.Path, changedUnix)
+	_, err := putFileStmt.Exec(f.Identifier, f.Path, changedUnix)
 	if err != nil {
 		slog.Error(Name, "put", err)
 	}
@@ -115,8 +143,7 @@ func getFile(identifier string) *File {
 	var f File
 	var changedUnix int64
 
-	err := db.QueryRow("SELECT identifier, path, changed FROM files WHERE identifier = ?", identifier).
-		Scan(&f.Identifier, &f.Path, &changedUnix)
+	err := getFileStmt.QueryRow(identifier).Scan(&f.Identifier, &f.Path, &changedUnix)
 	if err != nil {
 		return nil
 	}
@@ -131,21 +158,14 @@ func getFile(identifier string) *File {
 func getFilesByQuery(query string, _ bool) []File {
 	var result []File
 
-	path := common.CacheFile("files.db")
-	queryDB, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory&_busy_timeout=5000")
-	if err != nil {
-		slog.Error(Name, "open query db", err)
-		return nil
-	}
-	defer queryDB.Close()
-
 	var rows *sql.Rows
+	var err error
 
 	if query != "" {
 		likePattern := "%" + query + "%"
-		rows, err = queryDB.Query("SELECT identifier, path, changed FROM files WHERE path LIKE ? ORDER BY changed DESC LIMIT 1000", likePattern)
+		rows, err = readDB.Query("SELECT identifier, path, changed FROM files WHERE path LIKE ? ORDER BY changed DESC LIMIT 1000", likePattern)
 	} else {
-		rows, err = queryDB.Query("SELECT identifier, path, changed FROM files WHERE path NOT LIKE '%/' ORDER BY changed DESC LIMIT 100")
+		rows, err = readDB.Query("SELECT identifier, path, changed FROM files WHERE path NOT LIKE '%/' ORDER BY changed DESC LIMIT 100")
 	}
 
 	if err != nil {
@@ -173,7 +193,7 @@ func getFilesByQuery(query string, _ bool) []File {
 }
 
 func deleteFileByPath(path string) {
-	_, err := db.Exec("DELETE FROM files WHERE path LIKE ?", path+"%")
+	_, err := delFileStmt.Exec(path + "%")
 	if err != nil {
 		slog.Error(Name, "delete", err)
 	}
