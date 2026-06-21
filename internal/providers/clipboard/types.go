@@ -48,15 +48,18 @@ type Item struct {
 }
 
 type Config struct {
-	common.Config  `koanf:",squash"`
-	MaxItems       int    `koanf:"max_items" desc:"max amount of clipboard history items" default:"100"`
-	OCR            bool   `koanf:"ocr" desc:"extract text from images via tesseract" default:"false"`
-	ImageEditorCmd string `koanf:"image_editor_cmd" desc:"editor to use for images. use '%FILE%' as placeholder for file path." default:""`
-	TextEditorCmd  string `koanf:"text_editor_cmd" desc:"editor to use for text, otherwise default for mimetype. use '%FILE%' as placeholder for file path." default:""`
-	Command        string `koanf:"command" desc:"default command to be executed" default:"wl-copy"`
-	IgnoreSymbols  bool   `koanf:"ignore_symbols" desc:"ignores symbols/unicode" default:"true"`
-	PinnedOnTop    bool   `koanf:"pinned_on_top" desc:"put pinned items on top" default:"false"`
-	AutoCleanup    int    `koanf:"auto_cleanup" desc:"will automatically cleanup entries entries older than X minutes" default:"0"`
+	common.Config   `koanf:",squash"`
+	MaxItems        int    `koanf:"max_items" desc:"max amount of clipboard history items" default:"100"`
+	OCR             bool   `koanf:"ocr" desc:"extract text from images via tesseract" default:"false"`
+	ImageEditorCmd  string `koanf:"image_editor_cmd" desc:"editor to use for images. use '%FILE%' as placeholder for file path." default:""`
+	TextEditorCmd   string `koanf:"text_editor_cmd" desc:"editor to use for text, otherwise default for mimetype. use '%FILE%' as placeholder for file path." default:""`
+	Command         string `koanf:"command" desc:"default command to be executed" default:"wl-copy"`
+	IgnoreSymbols   bool   `koanf:"ignore_symbols" desc:"ignores symbols/unicode" default:"true"`
+	PinnedOnTop     bool   `koanf:"pinned_on_top" desc:"put pinned items on top" default:"false"`
+	AutoCleanup     int    `koanf:"auto_cleanup" desc:"will automatically cleanup entries entries older than X minutes" default:"0"`
+	AutoTypeSupport bool   `koanf:"autotype_support" desc:"enable autotype support" default:"false"`
+	AutoTypeCommand string `koanf:"autotype_command" desc:"command to type text. supports %VALUE% placeholder." default:"wtype -- %VALUE%"`
+	AutoTypeDelay   int    `koanf:"autotype_delay" desc:"delay in ms before typing starts. 0 to disable." default:"500"`
 }
 
 var symbols = make(map[string]struct{})
@@ -71,6 +74,7 @@ const (
 	ActionEdit       = "edit"
 	ActionRemove     = "remove"
 	ActionRemoveAll  = "remove_all"
+	ActionAutoType    = "autotype"
 	ActionImagesOnly = "show_images_only"
 	ActionTextOnly   = "show_text_only"
 	ActionPinnedOnly = "show_pinned_only"

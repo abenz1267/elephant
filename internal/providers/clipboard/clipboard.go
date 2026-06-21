@@ -248,6 +248,10 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			actions = append(actions, ActionLocalsend)
 		}
 
+		if config.AutoTypeSupport {
+			actions = append(actions, ActionAutoType)
+		}
+
 		state := []string{}
 
 		if v.Pinned {
@@ -542,6 +546,28 @@ func Activate(single bool, identifier, action string, query string, args string,
 				cmd.Wait()
 			}()
 		}
+	case ActionAutoType:
+		item := clipboardhistory[identifier]
+
+		if item.Content == "" {
+			slog.Debug(Name, "autotype", "empty content, skipping")
+			return
+		}
+
+		if config.AutoTypeDelay > 0 {
+			time.Sleep(time.Duration(config.AutoTypeDelay) * time.Millisecond)
+		}
+
+		cmd := common.ReplaceResultOrStdinCmd(config.AutoTypeCommand, item.Content)
+		err := cmd.Start()
+		if err != nil {
+			slog.Error(Name, "autotype", err)
+			return
+		}
+
+		go func() {
+			cmd.Wait()
+		}()
 	default:
 		slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
 		return
