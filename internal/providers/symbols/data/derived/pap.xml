@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE ldml SYSTEM "../../common/dtd/ldml.dtd">
+<!-- Copyright © 1991-2026 Unicode, Inc.
+For terms of use, see http://www.unicode.org/copyright.html
+SPDX-License-Identifier: Unicode-3.0
+CLDR data files are interpreted according to the LDML specification (http://unicode.org/reports/tr35/)
+
+Derived short names and annotations, using GenerateDerivedAnnotations.java. See warnings in /annotations/ file.
+-->
+<ldml>
+	<identity>
+		<version number="$Revision$"/>
+		<language type="pap"/>
+	</identity>
+	<annotations>
+		<annotation cp="🇦🇫">bandera</annotation>
+		<annotation cp="🇦🇫" type="tts">bandera: Afghanistan</annotation>
+		<annotation cp="🇦🇬">bandera</annotation>
+		<annotation cp="🇦🇬" type="tts">bandera: Antigua &amp; Barbuda</annotation>
+		<annotation cp="🇦🇮">bandera</annotation>
+		<annotation cp="🇦🇮" type="tts">bandera: Anguilla</annotation>
+		<annotation cp="🇦🇱">bandera</annotation>
+		<annotation cp="🇦🇱" type="tts">bandera: Albania</annotation>
+		<annotation cp="🇦🇴">bandera</annotation>
+		<annotation cp="🇦🇴" type="tts">bandera: Angola</annotation>
+		<annotation cp="🇦🇷">bandera</annotation>
+		<annotation cp="🇦🇷" type="tts">bandera: Argentina</annotation>
+		<annotation cp="🇦🇹">bandera</annotation>
+		<annotation cp="🇦🇹" type="tts">bandera: Austria</annotation>
+		<annotation cp="🇦🇺">bandera</annotation>
+		<annotation cp="🇦🇺" type="tts">bandera: Australia</annotation>
+		<annotation cp="🇦🇼">bandera</annotation>
+		<annotation cp="🇦🇼" type="tts">bandera: Aruba</annotation>
+		<annotation cp="🇧🇦">bandera</annotation>
+		<annotation cp="🇧🇦" type="tts">bandera: Bosnia i Herzegowina</annotation>
+		<annotation cp="🇧🇧">bandera</annotation>
+		<annotation cp="🇧🇧" type="tts">bandera: Barbados</annotation>
+		<annotation cp="🇧🇪">bandera</annotation>
+		<annotation cp="🇧🇪" type="tts">bandera: Bèlgika</annotation>
+		<annotation cp="🇧🇬">bandera</annotation>
+		<annotation cp="🇧🇬" type="tts">bandera: Bulgaria</annotation>
+		<annotation cp="🇧🇱">bandera</annotation>
+		<annotation cp="🇧🇱" type="tts">bandera: Saint Bathélemy</annotation>
+		<annotation cp="🇧🇲">bandera</annotation>
+		<annotation cp="🇧🇲" type="tts">bandera: Bermuda</annotation>
+		<annotation cp="🇧🇴">bandera</annotation>
+		<annotation cp="🇧🇴" type="tts">bandera: Bolivia</annotation>
+		<annotation cp="🇧🇶">bandera</annotation>
+		<annotation cp="🇧🇶" type="tts">bandera: Antia Hulandes</annotation>
+		<annotation cp="🇧🇷">bandera</annotation>
+		<annotation cp="🇧🇷" type="tts">bandera: Brazil</annotation>
+		<annotation cp="🇧🇸">bandera</annotation>
+		<annotation cp="🇧🇸" type="tts">bandera: Bahamas</annotation>
+		<annotation cp="🇧🇻">bandera</annotation>
+		<annotation cp="🇧🇻" type="tts">bandera: Isla Bouvet</annotation>
+		<annotation cp="🇧🇼">bandera</annotation>
+		<annotation cp="🇧🇼" type="tts">bandera: Botswana</annotation>
+		<annotation cp="🇧🇾">bandera</annotation>
+		<annotation cp="🇧🇾" type="tts">bandera: Belarus</annotation>
+		<annotation cp="🇧🇿">bandera</annotation>
+		<annotation cp="🇧🇿" type="tts">bandera: Belize</annotation>
+		<annotation cp="🇨🇦">bandera</annotation>
+		<annotation cp="🇨🇦" type="tts">bandera: Canada</annotation>
+		<annotation cp="🇨🇩">bandera</annotation>
+		<annotation cp="🇨🇩" type="tts">bandera: Congo - Kinshasa</annotation>
+		<annotation cp="🇨🇫">bandera</annotation>
+		<annotation cp="🇨🇫" type="tts">bandera: Repúblika Sentroafrikano</annotation>
+		<annotation cp="🇨🇬">bandera</annotation>
+		<annotation cp="🇨🇬" type="tts">bandera: Congo - Brazzaville</annotation>
+		<annotation cp="🇨🇭">bandera</annotation>
+		<annotation cp="🇨🇭" type="tts">bandera: Suisa</annotation>
+		<annotation cp="🇨🇮">bandera</annotation>
+		<annotation cp="🇨🇮" type="tts">bandera: Côte d’Ivoire</annotation>
+		<annotation cp="🇨🇱">bandera</annotation>
+		<annotation cp="🇨🇱" type="tts">bandera: Chile</annotation>
+		<annotation cp="🇨🇲">bandera</annotation>
+		<annotation cp="🇨🇲" type="tts">bandera: Camerun</annotation>
+		<annotation cp="🇨🇳">bandera</annotation>
+		<annotation cp="🇨🇳" type="tts">bandera: China</annotation>
+		<annotation cp="🇨🇴">bandera</annotation>
+		<annotation cp="🇨🇴" type="tts">bandera: Colombia</annotation>
+		<annotation cp="🇨🇷">bandera</annotation>
+		<annotation cp="🇨🇷" type="tts">bandera: Costa Rica</annotation>
+		<annotation cp="🇨🇺">bandera</annotation>
+		<annotation cp="🇨🇺" type="tts">bandera: Cuba</annotation>
+		<annotation cp="🇨🇻">bandera</annotation>
+		<annotation cp="🇨🇻" type="tts">bandera: Kabo Verde</annotation>
+		<annotation cp="🇨🇼">bandera</annotation>
+		<annotation cp="🇨🇼" type="tts">bandera: Kòrsou</annotation>
+		<annotation cp="🇨🇿">bandera</annotation>
+		<annotation cp="🇨🇿" type="tts">bandera: Cheko</annotation>
+		<annotation cp="🇩🇪">bandera</annotation>
+		<annotation cp="🇩🇪" type="tts">bandera: Alemania</annotation>
+		<annotation cp="🇩🇰">bandera</annotation>
+		<annotation cp="🇩🇰" type="tts">bandera: Dinamarka</annotation>
+		<annotation cp="🇩🇲">bandera</annotation>
+		<annotation cp="🇩🇲" type="tts">bandera: Dominica</annotation>
+		<annotation cp="🇩🇴">bandera</annotation>
+		<annotation cp="🇩🇴" type="tts">bandera: Repúblika Dominikano</annotation>
+		<annotation cp="🇩🇿">bandera</annotation>
+		<annotation cp="🇩🇿" type="tts">bandera: Algeria</annotation>
+		<annotation cp="🇪🇨">bandera</annotation>
+		<annotation cp="🇪🇨" type="tts">bandera: Ecuador</annotation>
+		<annotation cp="🇪🇪">bandera</annotation>
+		<annotation cp="🇪🇪" type="tts">bandera: Estonia</annotation>
+		<annotation cp="🇪🇬">bandera</annotation>
+		<annotation cp="🇪🇬" type="tts">bandera: Egipto</annotation>
+		<annotation cp="🇪🇭">bandera</annotation>
+		<annotation cp="🇪🇭" type="tts">bandera: Western Sahara</annotation>
+		<annotation cp="🇪🇷">bandera</annotation>
+		<annotation cp="🇪🇷" type="tts">bandera: Eritrea</annotation>
+		<annotation cp="🇪🇸">bandera</annotation>
+		<annotation cp="🇪🇸" type="tts">bandera: Spaña</annotation>
+		<annotation cp="🇪🇹">bandera</annotation>
+		<annotation cp="🇪🇹" type="tts">bandera: Etiopia</annotation>
+		<annotation cp="🇪🇺">bandera</annotation>
+		<annotation cp="🇪🇺" type="tts">bandera: Union Europeo</annotation>
+		<annotation cp="🇫🇮">bandera</annotation>
+		<annotation cp="🇫🇮" type="tts">bandera: Finlandia</annotation>
+		<annotation cp="🇫🇯">bandera</annotation>
+		<annotation cp="🇫🇯" type="tts">bandera: Fiji</annotation>
+		<annotation cp="🇫🇰">bandera</annotation>
+		<annotation cp="🇫🇰" type="tts">bandera: Islanan Falkland</annotation>
+		<annotation cp="🇫🇲">bandera</annotation>
+		<annotation cp="🇫🇲" type="tts">bandera: Micronesia</annotation>
+		<annotation cp="🇫🇷">bandera</annotation>
+		<annotation cp="🇫🇷" type="tts">bandera: Fransia</annotation>
+		<annotation cp="🇬🇧">bandera</annotation>
+		<annotation cp="🇬🇧" type="tts">bandera: Gran Bretaña</annotation>
+		<annotation cp="🇬🇩">bandera</annotation>
+		<annotation cp="🇬🇩" type="tts">bandera: Grenada</annotation>
+		<annotation cp="🇬🇫">bandera</annotation>
+		<annotation cp="🇬🇫" type="tts">bandera: Guyana Franses</annotation>
+		<annotation cp="🇬🇭">bandera</annotation>
+		<annotation cp="🇬🇭" type="tts">bandera: Ghana</annotation>
+		<annotation cp="🇬🇱">bandera</annotation>
+		<annotation cp="🇬🇱" type="tts">bandera: Grunlandia</annotation>
+		<annotation cp="🇬🇲">bandera</annotation>
+		<annotation cp="🇬🇲" type="tts">bandera: Gambia</annotation>
+		<annotation cp="🇬🇳">bandera</annotation>
+		<annotation cp="🇬🇳" type="tts">bandera: Guinea</annotation>
+		<annotation cp="🇬🇵">bandera</annotation>
+		<annotation cp="🇬🇵" type="tts">bandera: Guadeloupe</annotation>
+		<annotation cp="🇬🇶">bandera</annotation>
+		<annotation cp="🇬🇶" type="tts">bandera: Guinea Ekuatorial</annotation>
+		<annotation cp="🇬🇷">bandera</annotation>
+		<annotation cp="🇬🇷" type="tts">bandera: Gresia</annotation>
+		<annotation cp="🇬🇹">bandera</annotation>
+		<annotation cp="🇬🇹" type="tts">bandera: Guatemala</annotation>
+		<annotation cp="🇬🇺">bandera</annotation>
+		<annotation cp="🇬🇺" type="tts">bandera: Guam</annotation>
+		<annotation cp="🇬🇼">bandera</annotation>
+		<annotation cp="🇬🇼" type="tts">bandera: Guinea-Bissau</annotation>
+		<annotation cp="🇬🇾">bandera</annotation>
+		<annotation cp="🇬🇾" type="tts">bandera: Guyana</annotation>
+		<annotation cp="🇭🇰">bandera</annotation>
+		<annotation cp="🇭🇰" type="tts">bandera: Hong Kong</annotation>
+		<annotation cp="🇭🇳">bandera</annotation>
+		<annotation cp="🇭🇳" type="tts">bandera: Honduras</annotation>
+		<annotation cp="🇭🇷">bandera</annotation>
+		<annotation cp="🇭🇷" type="tts">bandera: Kroasia</annotation>
+		<annotation cp="🇭🇹">bandera</annotation>
+		<annotation cp="🇭🇹" type="tts">bandera: Haiti</annotation>
+		<annotation cp="🇭🇺">bandera</annotation>
+		<annotation cp="🇭🇺" type="tts">bandera: Hungria</annotation>
+		<annotation cp="🇮🇩">bandera</annotation>
+		<annotation cp="🇮🇩" type="tts">bandera: Indonesia</annotation>
+		<annotation cp="🇮🇪">bandera</annotation>
+		<annotation cp="🇮🇪" type="tts">bandera: Irlanda</annotation>
+		<annotation cp="🇮🇱">bandera</annotation>
+		<annotation cp="🇮🇱" type="tts">bandera: Israel</annotation>
+		<annotation cp="🇮🇳">bandera</annotation>
+		<annotation cp="🇮🇳" type="tts">bandera: India</annotation>
+		<annotation cp="🇮🇶">bandera</annotation>
+		<annotation cp="🇮🇶" type="tts">bandera: Irak</annotation>
+		<annotation cp="🇮🇷">bandera</annotation>
+		<annotation cp="🇮🇷" type="tts">bandera: Iran</annotation>
+		<annotation cp="🇮🇸">bandera</annotation>
+		<annotation cp="🇮🇸" type="tts">bandera: Islandia</annotation>
+		<annotation cp="🇮🇹">bandera</annotation>
+		<annotation cp="🇮🇹" type="tts">bandera: Italia</annotation>
+		<annotation cp="🇯🇲">bandera</annotation>
+		<annotation cp="🇯🇲" type="tts">bandera: Jamaica</annotation>
+		<annotation cp="🇯🇵">bandera</annotation>
+		<annotation cp="🇯🇵" type="tts">bandera: Hapon</annotation>
+		<annotation cp="🇰🇪">bandera</annotation>
+		<annotation cp="🇰🇪" type="tts">bandera: Kenya</annotation>
+		<annotation cp="🇰🇭">bandera</annotation>
+		<annotation cp="🇰🇭" type="tts">bandera: Cambodia</annotation>
+		<annotation cp="🇰🇲">bandera</annotation>
+		<annotation cp="🇰🇲" type="tts">bandera: Comóros</annotation>
+		<annotation cp="🇰🇳">bandera</annotation>
+		<annotation cp="🇰🇳" type="tts">bandera: St. Kitts i Nevis</annotation>
+		<annotation cp="🇰🇵">bandera</annotation>
+		<annotation cp="🇰🇵" type="tts">bandera: Nort Korea</annotation>
+		<annotation cp="🇰🇷">bandera</annotation>
+		<annotation cp="🇰🇷" type="tts">bandera: Surkorea</annotation>
+		<annotation cp="🇰🇾">bandera</annotation>
+		<annotation cp="🇰🇾" type="tts">bandera: Islanan Caiman</annotation>
+		<annotation cp="🇱🇨">bandera</annotation>
+		<annotation cp="🇱🇨" type="tts">bandera: Sint Lucia</annotation>
+		<annotation cp="🇱🇮">bandera</annotation>
+		<annotation cp="🇱🇮" type="tts">bandera: Liechtenstein</annotation>
+		<annotation cp="🇱🇰">bandera</annotation>
+		<annotation cp="🇱🇰" type="tts">bandera: Sri Lanka</annotation>
+		<annotation cp="🇱🇷">bandera</annotation>
+		<annotation cp="🇱🇷" type="tts">bandera: Liberia</annotation>
+		<annotation cp="🇱🇺">bandera</annotation>
+		<annotation cp="🇱🇺" type="tts">bandera: Luxemburg</annotation>
+		<annotation cp="🇲🇦">bandera</annotation>
+		<annotation cp="🇲🇦" type="tts">bandera: Morocco</annotation>
+		<annotation cp="🇲🇨">bandera</annotation>
+		<annotation cp="🇲🇨" type="tts">bandera: Monaco</annotation>
+		<annotation cp="🇲🇩">bandera</annotation>
+		<annotation cp="🇲🇩" type="tts">bandera: Moldavia</annotation>
+		<annotation cp="🇲🇪">bandera</annotation>
+		<annotation cp="🇲🇪" type="tts">bandera: Montenegro</annotation>
+		<annotation cp="🇲🇫">bandera</annotation>
+		<annotation cp="🇲🇫" type="tts">bandera: Saint Martin</annotation>
+		<annotation cp="🇲🇬">bandera</annotation>
+		<annotation cp="🇲🇬" type="tts">bandera: Madagascar</annotation>
+		<annotation cp="🇲🇱">bandera</annotation>
+		<annotation cp="🇲🇱" type="tts">bandera: Mali</annotation>
+		<annotation cp="🇲🇳">bandera</annotation>
+		<annotation cp="🇲🇳" type="tts">bandera: Mongolia</annotation>
+		<annotation cp="🇲🇴">bandera</annotation>
+		<annotation cp="🇲🇴" type="tts">bandera: Macao</annotation>
+		<annotation cp="🇲🇶">bandera</annotation>
+		<annotation cp="🇲🇶" type="tts">bandera: Martinique</annotation>
+		<annotation cp="🇲🇸">bandera</annotation>
+		<annotation cp="🇲🇸" type="tts">bandera: Montserrat</annotation>
+		<annotation cp="🇲🇹">bandera</annotation>
+		<annotation cp="🇲🇹" type="tts">bandera: Malta</annotation>
+		<annotation cp="🇲🇻">bandera</annotation>
+		<annotation cp="🇲🇻" type="tts">bandera: Maldives</annotation>
+		<annotation cp="🇲🇼">bandera</annotation>
+		<annotation cp="🇲🇼" type="tts">bandera: Malawi</annotation>
+		<annotation cp="🇲🇽">bandera</annotation>
+		<annotation cp="🇲🇽" type="tts">bandera: México</annotation>
+		<annotation cp="🇲🇿">bandera</annotation>
+		<annotation cp="🇲🇿" type="tts">bandera: Mozambique</annotation>
+		<annotation cp="🇳🇪">bandera</annotation>
+		<annotation cp="🇳🇪" type="tts">bandera: Niger</annotation>
+		<annotation cp="🇳🇬">bandera</annotation>
+		<annotation cp="🇳🇬" type="tts">bandera: Nigeria</annotation>
+		<annotation cp="🇳🇮">bandera</annotation>
+		<annotation cp="🇳🇮" type="tts">bandera: Nicaragua</annotation>
+		<annotation cp="🇳🇱">bandera</annotation>
+		<annotation cp="🇳🇱" type="tts">bandera: Hulanda</annotation>
+		<annotation cp="🇳🇴">bandera</annotation>
+		<annotation cp="🇳🇴" type="tts">bandera: Noruega</annotation>
+		<annotation cp="🇳🇵">bandera</annotation>
+		<annotation cp="🇳🇵" type="tts">bandera: Nepal</annotation>
+		<annotation cp="🇵🇦">bandera</annotation>
+		<annotation cp="🇵🇦" type="tts">bandera: Panamá</annotation>
+		<annotation cp="🇵🇪">bandera</annotation>
+		<annotation cp="🇵🇪" type="tts">bandera: Perú</annotation>
+		<annotation cp="🇵🇫">bandera</annotation>
+		<annotation cp="🇵🇫" type="tts">bandera: Polinesia Franses</annotation>
+		<annotation cp="🇵🇭">bandera</annotation>
+		<annotation cp="🇵🇭" type="tts">bandera: Filipinas</annotation>
+		<annotation cp="🇵🇱">bandera</annotation>
+		<annotation cp="🇵🇱" type="tts">bandera: Polonia</annotation>
+		<annotation cp="🇵🇲">bandera</annotation>
+		<annotation cp="🇵🇲" type="tts">bandera: St. Pierre &amp; Miquelon</annotation>
+		<annotation cp="🇵🇷">bandera</annotation>
+		<annotation cp="🇵🇷" type="tts">bandera: Puerto Rico</annotation>
+		<annotation cp="🇵🇹">bandera</annotation>
+		<annotation cp="🇵🇹" type="tts">bandera: Portugal</annotation>
+		<annotation cp="🇵🇾">bandera</annotation>
+		<annotation cp="🇵🇾" type="tts">bandera: Paraguay</annotation>
+		<annotation cp="🇶🇦">bandera</annotation>
+		<annotation cp="🇶🇦" type="tts">bandera: Qatar</annotation>
+		<annotation cp="🇷🇴">bandera</annotation>
+		<annotation cp="🇷🇴" type="tts">bandera: Romania</annotation>
+		<annotation cp="🇷🇸">bandera</annotation>
+		<annotation cp="🇷🇸" type="tts">bandera: Servia</annotation>
+		<annotation cp="🇷🇺">bandera</annotation>
+		<annotation cp="🇷🇺" type="tts">bandera: Rusia</annotation>
+		<annotation cp="🇷🇼">bandera</annotation>
+		<annotation cp="🇷🇼" type="tts">bandera: Rwanda</annotation>
+		<annotation cp="🇸🇨">bandera</annotation>
+		<annotation cp="🇸🇨" type="tts">bandera: Seychelles</annotation>
+		<annotation cp="🇸🇩">bandera</annotation>
+		<annotation cp="🇸🇩" type="tts">bandera: Sudan</annotation>
+		<annotation cp="🇸🇪">bandera</annotation>
+		<annotation cp="🇸🇪" type="tts">bandera: Suesia</annotation>
+		<annotation cp="🇸🇬">bandera</annotation>
+		<annotation cp="🇸🇬" type="tts">bandera: Singapore</annotation>
+		<annotation cp="🇸🇭">bandera</annotation>
+		<annotation cp="🇸🇭" type="tts">bandera: Sint Helena</annotation>
+		<annotation cp="🇸🇮">bandera</annotation>
+		<annotation cp="🇸🇮" type="tts">bandera: Slovenia</annotation>
+		<annotation cp="🇸🇰">bandera</annotation>
+		<annotation cp="🇸🇰" type="tts">bandera: Slovakia</annotation>
+		<annotation cp="🇸🇱">bandera</annotation>
+		<annotation cp="🇸🇱" type="tts">bandera: Sierra Leone</annotation>
+		<annotation cp="🇸🇲">bandera</annotation>
+		<annotation cp="🇸🇲" type="tts">bandera: San Marino</annotation>
+		<annotation cp="🇸🇳">bandera</annotation>
+		<annotation cp="🇸🇳" type="tts">bandera: Senegal</annotation>
+		<annotation cp="🇸🇴">bandera</annotation>
+		<annotation cp="🇸🇴" type="tts">bandera: Somalia</annotation>
+		<annotation cp="🇸🇷">bandera</annotation>
+		<annotation cp="🇸🇷" type="tts">bandera: Surinam</annotation>
+		<annotation cp="🇸🇻">bandera</annotation>
+		<annotation cp="🇸🇻" type="tts">bandera: El Salvador</annotation>
+		<annotation cp="🇸🇽">bandera</annotation>
+		<annotation cp="🇸🇽" type="tts">bandera: Sint Maarten</annotation>
+		<annotation cp="🇹🇨">bandera</annotation>
+		<annotation cp="🇹🇨" type="tts">bandera: Turks i Caicos</annotation>
+		<annotation cp="🇹🇩">bandera</annotation>
+		<annotation cp="🇹🇩" type="tts">bandera: Chad</annotation>
+		<annotation cp="🇹🇭">bandera</annotation>
+		<annotation cp="🇹🇭" type="tts">bandera: Tailandia</annotation>
+		<annotation cp="🇹🇷">bandera</annotation>
+		<annotation cp="🇹🇷" type="tts">bandera: Turkia</annotation>
+		<annotation cp="🇹🇹">bandera</annotation>
+		<annotation cp="🇹🇹" type="tts">bandera: Trinidad i Tobago</annotation>
+		<annotation cp="🇹🇼">bandera</annotation>
+		<annotation cp="🇹🇼" type="tts">bandera: Taiwan</annotation>
+		<annotation cp="🇺🇦">bandera</annotation>
+		<annotation cp="🇺🇦" type="tts">bandera: Ukrania</annotation>
+		<annotation cp="🇺🇬">bandera</annotation>
+		<annotation cp="🇺🇬" type="tts">bandera: Uganda</annotation>
+		<annotation cp="🇺🇳">bandera</annotation>
+		<annotation cp="🇺🇳" type="tts">bandera: Nashonnan Uní</annotation>
+		<annotation cp="🇺🇸">bandera</annotation>
+		<annotation cp="🇺🇸" type="tts">bandera: Merka</annotation>
+		<annotation cp="🇺🇾">bandera</annotation>
+		<annotation cp="🇺🇾" type="tts">bandera: Uruguay</annotation>
+		<annotation cp="🇻🇨">bandera</annotation>
+		<annotation cp="🇻🇨" type="tts">bandera: Sint Vicent i Grenadines</annotation>
+		<annotation cp="🇻🇪">bandera</annotation>
+		<annotation cp="🇻🇪" type="tts">bandera: Venezuela</annotation>
+		<annotation cp="🇻🇬">bandera</annotation>
+		<annotation cp="🇻🇬" type="tts">bandera: Virgin Islands (Britániko)</annotation>
+		<annotation cp="🇻🇮">bandera</annotation>
+		<annotation cp="🇻🇮" type="tts">bandera: Virgin Islands (Merikano)</annotation>
+		<annotation cp="🇻🇳">bandera</annotation>
+		<annotation cp="🇻🇳" type="tts">bandera: Vietnam</annotation>
+		<annotation cp="🇿🇦">bandera</annotation>
+		<annotation cp="🇿🇦" type="tts">bandera: Suráfrika</annotation>
+		<annotation cp="🇿🇲">bandera</annotation>
+		<annotation cp="🇿🇲" type="tts">bandera: Zambia</annotation>
+		<annotation cp="🇿🇼">bandera</annotation>
+		<annotation cp="🇿🇼" type="tts">bandera: Zimbabwe</annotation>
+	</annotations>
+</ldml>

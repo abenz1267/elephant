@@ -77,52 +77,56 @@ func parseVariations() {
 }
 
 func parse() {
-	file, err := files.ReadFile(fmt.Sprintf("data/%s.xml", config.Locale))
-	if err != nil {
-		slog.Error(Name, "parsing", err)
-		return
-	}
+	paths := []string{fmt.Sprintf("data/%s.xml", config.Locale), fmt.Sprintf("data/derived/%s.xml", config.Locale)}
 
-	var ldml LDML
+	for _, v := range paths {
+		file, err := files.ReadFile(v)
+		if err != nil {
+			slog.Error(Name, "parsing", err)
+			return
+		}
 
-	err = xml.Unmarshal(file, &ldml)
-	if err != nil {
-		panic(err)
-	}
+		var ldml LDML
 
-	for _, v := range ldml.Annotations.Annotation {
-		md5 := md5.Sum([]byte(v.CP))
-		md5str := hex.EncodeToString(md5[:])
+		err = xml.Unmarshal(file, &ldml)
+		if err != nil {
+			panic(err)
+		}
 
-		if val, ok := symbols[md5str]; !ok {
-			if _, ok := variations[v.CP]; ok {
-				v.CP = v.CP + "\uFE0F"
-			}
+		for _, v := range ldml.Annotations.Annotation {
+			md5 := md5.Sum([]byte(v.CP))
+			md5str := hex.EncodeToString(md5[:])
 
-			s := &Symbol{
-				CP:         v.CP,
-				Searchable: []string{},
-			}
+			if val, ok := symbols[md5str]; !ok {
+				if _, ok := variations[v.CP]; ok {
+					v.CP = v.CP + "\uFE0F"
+				}
 
-			if v.Type == "" {
-				s.Searchable = append(s.Searchable, strings.Split(v.Text, "|")...)
+				s := &Symbol{
+					CP:         v.CP,
+					Searchable: []string{},
+				}
+
+				if v.Type == "" {
+					s.Searchable = append(s.Searchable, strings.Split(v.Text, "|")...)
+				} else {
+					s.Searchable = append(s.Searchable, v.Text)
+				}
+
+				symbols[md5str] = s
 			} else {
-				s.Searchable = append(s.Searchable, v.Text)
-			}
-
-			symbols[md5str] = s
-		} else {
-			if v.Type == "" {
-				val.Searchable = append(val.Searchable, strings.Split(v.Text, "|")...)
-			} else {
-				val.Searchable = append(val.Searchable, v.Text)
+				if v.Type == "" {
+					val.Searchable = append(val.Searchable, strings.Split(v.Text, "|")...)
+				} else {
+					val.Searchable = append(val.Searchable, v.Text)
+				}
 			}
 		}
-	}
 
-	for _, v := range symbols {
-		for n, m := range v.Searchable {
-			v.Searchable[n] = strings.TrimSpace(m)
+		for _, v := range symbols {
+			for n, m := range v.Searchable {
+				v.Searchable[n] = strings.TrimSpace(m)
+			}
 		}
 	}
 }
