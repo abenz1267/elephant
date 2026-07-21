@@ -122,6 +122,13 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 					state = append(state, "unpinned")
 				}
 
+				if v.XFlatpak != "" {
+					state = append(state, "flatpak")
+				}
+				if v.XSnapInstanceName != "" {
+					state = append(state, "snap")
+				}
+
 				pinsMu.RLock()
 				if slices.Contains(pins, k) {
 					a = append(a, ActionUnpin)
@@ -247,6 +254,13 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 
 						if usageScore != 0 {
 							state = append(state, "history")
+						}
+
+						if v.XFlatpak != "" {
+							state = append(state, "flatpak")
+						}
+						if v.XSnapInstanceName != "" {
+							state = append(state, "snap")
 						}
 
 						pinsMu.RLock()
