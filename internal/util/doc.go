@@ -94,7 +94,11 @@ func PrintConfig(c any, name string, write bool) {
 		}
 
 		file := filepath.Join(dir, fmt.Sprintf("%s.toml", name))
-
+		err = os.MkdirAll(dir, 0o755)
+		if err != nil {
+			slog.Error("printconfig", "create config dir", err)
+			return
+		}
 		err = os.WriteFile(file, b, 0o644)
 		if err != nil {
 			slog.Error("printconfig", "write config", err)
