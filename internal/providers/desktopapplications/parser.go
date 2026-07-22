@@ -12,22 +12,24 @@ import (
 )
 
 type Data struct {
-	NoDisplay      bool
-	Hidden         bool
-	Terminal       bool
-	Action         string
-	Exec           string
-	Name           string
-	Comment        string
-	Path           string
-	Parent         string
-	GenericName    string
-	StartupWMClass string
-	Icon           string
-	Categories     []string
-	OnlyShowIn     []string
-	NotShowIn      []string
-	Keywords       []string
+	NoDisplay         bool
+	Hidden            bool
+	Terminal          bool
+	Action            string
+	Exec              string
+	Name              string
+	Comment           string
+	Path              string
+	Parent            string
+	GenericName       string
+	StartupWMClass    string
+	Icon              string
+	Categories        []string
+	OnlyShowIn        []string
+	NotShowIn         []string
+	Keywords          []string
+	XFlatpak          string
+	XSnapInstanceName string
 }
 
 func parseFile(path, l, ll string) (*DesktopFile, error) {
@@ -170,6 +172,10 @@ func parseData(in []byte, l, ll string) Data {
 			}
 
 			res.Exec = exec
+		case bytes.HasPrefix(line, []byte("X-Flatpak=")):
+			res.XFlatpak = string(bytes.TrimPrefix(line, []byte("X-Flatpak=")))
+		case bytes.HasPrefix(line, []byte("X-SnapInstanceName=")):
+			res.XSnapInstanceName = string(bytes.TrimPrefix(line, []byte("X-SnapInstanceName=")))
 		case bytes.Contains(line, []byte("[Desktop Action ")):
 			res.Action = string(bytes.TrimPrefix(line, []byte("[Desktop Action ")))
 			res.Action = strings.TrimSuffix(res.Action, "]")
