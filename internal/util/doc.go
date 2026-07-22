@@ -82,7 +82,14 @@ func PrintConfig(c any, name string, write bool) {
 			return
 		}
 
-		b, err := toml.Marshal(k.Raw())
+		raw := k.Raw()
+		for key, val := range raw {
+			if v, ok := val.([]any); ok && len(v) == 0 {
+				delete(raw, key)
+			}
+		}
+
+		b, err := toml.Marshal(raw)
 		if err != nil {
 			slog.Error("printconfig", "marshall config", err)
 			return
