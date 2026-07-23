@@ -65,6 +65,9 @@ func Activate(single bool, identifier, action string, query string, args string,
 }
 
 func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 
@@ -96,17 +99,21 @@ func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _
 						Field: "text",
 					}
 
-					e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, runes, e.Text, exact)
+					score, bestPositions, start := common.FuzzyScore(runes, e.Text, exact, slab)
+					e.Score = score
+					e.Fuzzyinfo.Start = start
 
 					for _, v := range v.Keywords {
-						score, positions, start := common.FuzzyScore(query, runes, v, exact)
+						score, positions, start := common.FuzzyScore(runes, v, exact, slab)
 
 						if score > e.Score {
 							e.Score = score
-							e.Fuzzyinfo.Positions = positions
+							bestPositions = positions
 							e.Fuzzyinfo.Start = start
 						}
 					}
+
+					e.Fuzzyinfo.Positions = common.FuzzyPositionsToInt32(bestPositions)
 				}
 
 				if e.Score > config.MinScore || query == "" {
@@ -132,7 +139,10 @@ func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _
 					Field: "text",
 				}
 
-				e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, runes, e.Text, exact)
+				score, positions, start := common.FuzzyScore(runes, e.Text, exact, slab)
+				e.Score = score
+				e.Fuzzyinfo.Positions = common.FuzzyPositionsToInt32(positions)
+				e.Fuzzyinfo.Start = start
 			}
 
 			if e.Score > config.MinScore || query == "" {

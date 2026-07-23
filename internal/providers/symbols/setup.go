@@ -131,22 +131,25 @@ func Activate(single bool, identifier, action string, query string, args string,
 }
 
 func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 
 	for k, v := range symbols {
 		field := "subtext"
-		var positions []int32
+		var positions *[]int
 		var fs int32
 		var score int32
 
 		if query != "" {
 			var bestScore int32
-			var bestPos []int32
+			var bestPos *[]int
 			var bestStart int32
 
 			for _, m := range v.Searchable {
-				score, positions, start := common.FuzzyScore(query, runes, m, exact)
+				score, positions, start := common.FuzzyScore(runes, m, exact, slab)
 
 				if score > bestScore {
 					bestScore = score
@@ -187,7 +190,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 				Fuzzyinfo: &pb.QueryResponse_Item_FuzzyInfo{
 					Start:     fs,
 					Field:     field,
-					Positions: positions,
+					Positions: common.FuzzyPositionsToInt32(positions),
 				},
 				Type: pb.QueryResponse_REGULAR,
 			})

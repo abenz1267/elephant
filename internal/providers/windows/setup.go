@@ -51,7 +51,7 @@ var (
 )
 
 type WorkspaceHandler interface {
-	GetWorkspaces(query string, exact bool) []*pb.QueryResponse_Item
+	GetWorkspaces(query string, runes []rune, slab *common.FuzzySlab, exact bool) []*pb.QueryResponse_Item
 	Focus(workspace string)
 }
 
@@ -127,6 +127,9 @@ func Activate(single bool, identifier, action string, query string, args string,
 }
 
 func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	start := time.Now()
 
 	entries := []*pb.QueryResponse_Item{}
@@ -150,7 +153,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 		mu.RUnlock()
 
 		if query != "" {
-			matched, score, pos, start, ok := calcScore(query, runes, window, exact)
+			matched, score, pos, start, ok := calcScore(runes, slab, window, exact)
 
 			if ok {
 				field := "text"
@@ -163,7 +166,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 				e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
 					Start:     start,
 					Field:     field,
-					Positions: pos,
+					Positions: common.FuzzyPositionsToInt32(pos),
 				}
 			}
 		}
@@ -179,7 +182,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 		return entries
 	}
 
-	entries = append(entries, workspaceHandler.GetWorkspaces(query, exact)...)
+	entries = append(entries, workspaceHandler.GetWorkspaces(query, runes, slab, exact)...)
 
 	slog.Debug(Name, "query", time.Since(start))
 
@@ -198,16 +201,16 @@ func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
 }
 
-func calcScore(q string, runes []rune, d *wlr.Window, exact bool) (string, int32, []int32, int32, bool) {
+func calcScore(runes []rune, slab *common.FuzzySlab, d *wlr.Window, exact bool) (string, int32, *[]int, int32, bool) {
 	var scoreRes int32
-	var posRes []int32
+	var posRes *[]int
 	var startRes int32
 	var match string
 
 	toSearch := []string{d.Title, d.AppID}
 
 	for _, v := range toSearch {
-		score, pos, start := common.FuzzyScore(q, runes, v, exact)
+		score, pos, start := common.FuzzyScore(runes, v, exact, slab)
 
 		if score > scoreRes {
 			scoreRes = score
@@ -226,16 +229,16 @@ func calcScore(q string, runes []rune, d *wlr.Window, exact bool) (string, int32
 	return match, scoreRes, posRes, startRes, true
 }
 
-func calcScoreWorkspace(q string, runes []rune, name string, subtext string, exact bool) (string, int32, []int32, int32, bool) {
+func calcScoreWorkspace(runes []rune, slab *common.FuzzySlab, name string, subtext string, exact bool) (string, int32, *[]int, int32, bool) {
 	var scoreRes int32
-	var posRes []int32
+	var posRes *[]int
 	var startRes int32
 	var match string
 
 	toSearch := []string{name, subtext}
 
 	for _, v := range toSearch {
-		score, pos, start := common.FuzzyScore(q, runes, v, exact)
+		score, pos, start := common.FuzzyScore(runes, v, exact, slab)
 
 		if score > scoreRes {
 			scoreRes = score

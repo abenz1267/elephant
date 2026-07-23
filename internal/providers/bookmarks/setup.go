@@ -641,6 +641,9 @@ func importBrowserBookmarks() {
 }
 
 func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	if isGit && config.r == nil {
 		common.SetupGit(Name, config)
 		loadBookmarks()
@@ -674,7 +677,10 @@ func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _
 			}
 
 			if query != "" {
-				_, e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start, _ = calcScore(query, runes, b, exact)
+				_, score, positions, start, _ := calcScore(runes, slab, b, exact)
+				e.Score = score
+				e.Fuzzyinfo.Positions = common.FuzzyPositionsToInt32(positions)
+				e.Fuzzyinfo.Start = start
 			}
 
 			if config.History && e.Score > config.MinScore || query == "" && config.HistoryWhenEmpty {
@@ -784,9 +790,9 @@ func State(provider string) *pb.ProviderStateResponse {
 	}
 }
 
-func calcScore(q string, runes []rune, d Bookmark, exact bool) (string, int32, []int32, int32, bool) {
+func calcScore(runes []rune, slab *common.FuzzySlab, d Bookmark, exact bool) (string, int32, *[]int, int32, bool) {
 	var scoreRes int32
-	var posRes []int32
+	var posRes *[]int
 	var startRes int32
 	var match string
 	var modifier int32
@@ -794,7 +800,7 @@ func calcScore(q string, runes []rune, d Bookmark, exact bool) (string, int32, [
 	toSearch := []string{d.Description, d.URL, d.Category}
 
 	for k, v := range toSearch {
-		score, pos, start := common.FuzzyScore(q, runes, v, exact)
+		score, pos, start := common.FuzzyScore(runes, v, exact, slab)
 
 		if score > scoreRes {
 			scoreRes = score

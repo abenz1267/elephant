@@ -25,6 +25,9 @@ func containsAny(haystack, needles []string) bool {
 }
 
 func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	start := time.Now()
 	entries := make([]*pb.QueryResponse_Item, 0, len(files)*2) // Estimate for entries + action
 
@@ -62,13 +65,13 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 		var match string
 		var ok bool
 		var score int32
-		var positions []int32
+		var positions *[]int
 		var fs int32
 		field := "text"
 		subtext := v.GenericName
 
 		if query != "" {
-			match, score, positions, fs, ok = calcScore(query, runes, &v.Data, exact)
+			match, score, positions, fs, ok = calcScore(runes, slab, &v.Data, exact)
 
 			if ok && match != v.Name {
 				subtext = match
@@ -164,7 +167,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 					Fuzzyinfo: &pb.QueryResponse_Item_FuzzyInfo{
 						Start:     fs,
 						Field:     field,
-						Positions: positions,
+						Positions: common.FuzzyPositionsToInt32(positions),
 					},
 				})
 			}
@@ -198,13 +201,13 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 				var match string
 				var ok bool
 				var score int32
-				var positions []int32
+				var positions *[]int
 				var fs int32
 				field := "text"
 				subtext := v.Name
 
 				if query != "" {
-					match, score, positions, fs, ok = calcScore(query, runes, &a, exact)
+					match, score, positions, fs, ok = calcScore(runes, slab, &a, exact)
 
 					if ok && match != a.Name {
 						subtext = match
@@ -296,7 +299,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 							Fuzzyinfo: &pb.QueryResponse_Item_FuzzyInfo{
 								Start:     fs,
 								Field:     field,
-								Positions: positions,
+								Positions: common.FuzzyPositionsToInt32(positions),
 							},
 						})
 					}
@@ -311,9 +314,9 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 	return entries
 }
 
-func calcScore(q string, runes []rune, d *Data, exact bool) (string, int32, []int32, int32, bool) {
+func calcScore(runes []rune, slab *common.FuzzySlab, d *Data, exact bool) (string, int32, *[]int, int32, bool) {
 	var scoreRes int32
-	var posRes []int32
+	var posRes *[]int
 	var startRes int32
 	var match string
 	var modifier int32
@@ -324,7 +327,7 @@ func calcScore(q string, runes []rune, d *Data, exact bool) (string, int32, []in
 	}
 
 	for k, v := range toSearch {
-		score, pos, start := common.FuzzyScore(q, runes, v, exact)
+		score, pos, start := common.FuzzyScore(runes, v, exact, slab)
 
 		if score > scoreRes {
 			scoreRes = score

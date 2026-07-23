@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"slices"
 
+	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
-	"github.com/junegunn/fzf/src/algo"
 )
 
 type NiriWorkspace struct {
@@ -44,7 +44,7 @@ func (n NiriWorkspaceHandler) Focus(workspace string) {
 	}
 }
 
-func (n NiriWorkspaceHandler) GetWorkspaces(query string, exact bool) []*pb.QueryResponse_Item {
+func (n NiriWorkspaceHandler) GetWorkspaces(query string, runes []rune, slab *common.FuzzySlab, exact bool) []*pb.QueryResponse_Item {
 	entries := []*pb.QueryResponse_Item{}
 
 	cmd := exec.Command("niri", "msg", "-j", "windows")
@@ -154,7 +154,7 @@ func (n NiriWorkspaceHandler) GetWorkspaces(query string, exact bool) []*pb.Quer
 		}
 
 		if query != "" {
-			matched, score, pos, start, ok := calcScoreWorkspace(query, algo.NormalizeRunes([]rune(query)), text, subtext, exact)
+			matched, score, pos, start, ok := calcScoreWorkspace(runes, slab, text, subtext, exact)
 
 			if ok {
 				field := "text"
@@ -167,7 +167,7 @@ func (n NiriWorkspaceHandler) GetWorkspaces(query string, exact bool) []*pb.Quer
 				e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
 					Start:     start,
 					Field:     field,
-					Positions: pos,
+					Positions: common.FuzzyPositionsToInt32(pos),
 				}
 			}
 		}

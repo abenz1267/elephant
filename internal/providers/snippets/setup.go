@@ -100,6 +100,9 @@ func Activate(single bool, identifier, action string, query string, args string,
 }
 
 func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	start := time.Now()
 
 	entries := []*pb.QueryResponse_Item{}
@@ -127,14 +130,14 @@ func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _
 		if query != "" {
 			e.Score = 0
 
-			score, positions, start, found := calcScore(query, runes, v, exact)
+			score, positions, start, found := calcScore(runes, slab, v, exact)
 
 			if found {
 				e.Score = score
 				e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
 					Start:     start,
 					Field:     "text",
-					Positions: positions,
+					Positions: common.FuzzyPositionsToInt32(positions),
 				}
 			}
 		}
@@ -149,16 +152,16 @@ func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _
 	return entries
 }
 
-func calcScore(q string, runes []rune, d Snippet, exact bool) (int32, []int32, int32, bool) {
+func calcScore(runes []rune, slab *common.FuzzySlab, d Snippet, exact bool) (int32, *[]int, int32, bool) {
 	var scoreRes int32
-	var posRes []int32
+	var posRes *[]int
 	var startRes int32
 
 	toSearch := []string{d.Name}
 	toSearch = append(toSearch, d.Keywords...)
 
 	for _, v := range toSearch {
-		score, pos, start := common.FuzzyScore(q, runes, v, exact)
+		score, pos, start := common.FuzzyScore(runes, v, exact, slab)
 
 		if score > scoreRes {
 			scoreRes = score

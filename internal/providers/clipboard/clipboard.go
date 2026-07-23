@@ -215,6 +215,9 @@ func updateText(text string) bool {
 }
 
 func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -302,12 +305,12 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 		}
 
 		if query != "" {
-			score, pos, start := common.FuzzyScore(query, runes, v.Content, exact)
+			score, pos, start := common.FuzzyScore(runes, v.Content, exact, slab)
 
 			e.Score = score
 			e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
 				Field:     "text",
-				Positions: pos,
+				Positions: common.FuzzyPositionsToInt32(pos),
 				Start:     start,
 			}
 

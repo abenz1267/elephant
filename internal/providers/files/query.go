@@ -12,6 +12,9 @@ import (
 )
 
 func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	start := time.Now()
 
 	entries := []*pb.QueryResponse_Item{}
@@ -48,12 +51,12 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 		}
 
 		if query != "" {
-			score, pos, start := common.FuzzyScore(query, runes, v.Path, exact)
+			score, pos, start := common.FuzzyScore(runes, v.Path, exact, slab)
 			entry.Score = score
 			entry.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
 				Start:     start,
 				Field:     "text",
-				Positions: pos,
+				Positions: common.FuzzyPositionsToInt32(pos),
 			}
 		}
 

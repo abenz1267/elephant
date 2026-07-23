@@ -127,11 +127,14 @@ func Activate(single bool, identifier, action string, query string, args string,
 }
 
 func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 
 	for k, v := range symbols {
-		score, positions, start := common.FuzzyScore(query, runes, k, exact)
+		score, positions, start := common.FuzzyScore(runes, k, exact, slab)
 
 		var usageScore int32
 		if config.History {
@@ -159,7 +162,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 				Fuzzyinfo: &pb.QueryResponse_Item_FuzzyInfo{
 					Start:     start,
 					Field:     "text",
-					Positions: positions,
+					Positions: common.FuzzyPositionsToInt32(positions),
 				},
 				Type: pb.QueryResponse_REGULAR,
 			})

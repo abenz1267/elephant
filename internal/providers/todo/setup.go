@@ -529,6 +529,9 @@ func loadItems() {
 }
 
 func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+	slab := common.AcquireFuzzySlab()
+	defer common.ReleaseFuzzySlab(slab)
+
 	if isGit && config.r == nil {
 		common.SetupGit(Name, config)
 		loadItems()
@@ -604,7 +607,10 @@ func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _
 			e := itemToEntry(urgent, i, v)
 
 			if query != "" {
-				e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, runes, e.Text, exact)
+				score, positions, start := common.FuzzyScore(runes, e.Text, exact, slab)
+				e.Score = score
+				e.Fuzzyinfo.Positions = common.FuzzyPositionsToInt32(positions)
+				e.Fuzzyinfo.Start = start
 			}
 
 			if slices.Contains(e.State, StateActive) && query == "" {
