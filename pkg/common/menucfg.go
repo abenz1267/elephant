@@ -54,6 +54,7 @@ type Menu struct {
 	MinScore             int32             `toml:"min_score" desc:"minimum score for items to be displayed" default:"depends on provider"`
 	Parent               string            `toml:"parent" desc:"defines the parent menu" default:""`
 	SubMenu              string            `toml:"submenu" desc:"defines submenu to trigger on activation" default:""`
+	HideNamePrettyPrefix bool              `toml:"hide_name_pretty_prefix" desc:"if true, dont prefix with name_pretty in global context" default:"false"`
 
 	// internal
 	LuaString string

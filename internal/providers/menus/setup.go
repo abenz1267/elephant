@@ -221,7 +221,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 		}
 
 		if slices.Contains(menu.AsyncActions, action) {
-			updated := itemToEntry(format, query, conn, menu.Actions, menu.NamePretty, single, menu.Icon, &e)
+			updated := itemToEntry(format, query, conn, menu.Actions, menu.NamePretty, single, menu.Icon, menu.HideNamePrettyPrefix, &e)
 			handlers.UpdateItem(format, query, conn, updated)
 
 		}
@@ -276,7 +276,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, format uint8) [
 				continue
 			}
 
-			e := itemToEntry(format, query, conn, v.Actions, v.NamePretty, single, v.Icon, &v.Entries[k])
+			e := itemToEntry(format, query, conn, v.Actions, v.NamePretty, single, v.Icon, v.HideNamePrettyPrefix, &v.Entries[k])
 
 			if v.FixedOrder {
 				e.Score = 1_000_000 - int32(k)
@@ -367,7 +367,7 @@ func calcScore(query string, haystack []string, exact bool) (string, int32, []in
 	return match, scoreRes, posRes, startRes, true
 }
 
-func itemToEntry(format uint8, query string, conn net.Conn, menuActions map[string]string, namePretty string, single bool, icon string, me *common.Entry) *pb.QueryResponse_Item {
+func itemToEntry(format uint8, query string, conn net.Conn, menuActions map[string]string, namePretty string, single bool, icon string, hideNamePrettyPrefix bool, me *common.Entry) *pb.QueryResponse_Item {
 	if me.Icon != "" {
 		icon = me.Icon
 	}
@@ -377,7 +377,7 @@ func itemToEntry(format uint8, query string, conn net.Conn, menuActions map[stri
 	if !single {
 		if sub == "" {
 			sub = namePretty
-		} else {
+		} else if !hideNamePrettyPrefix {
 			sub = fmt.Sprintf("%s: %s", namePretty, sub)
 		}
 	}
