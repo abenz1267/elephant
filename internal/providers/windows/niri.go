@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
+	"github.com/junegunn/fzf/src/algo"
 )
 
 type NiriWorkspace struct {
@@ -153,7 +154,7 @@ func (n NiriWorkspaceHandler) GetWorkspaces(query string, exact bool) []*pb.Quer
 		}
 
 		if query != "" {
-			matched, score, pos, start, ok := calcScoreWorkspace(query, text, subtext, exact)
+			matched, score, pos, start, ok := calcScoreWorkspace(query, algo.NormalizeRunes([]rune(query)), text, subtext, exact)
 
 			if ok {
 				field := "text"

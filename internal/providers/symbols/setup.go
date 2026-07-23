@@ -130,7 +130,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 	}
 }
 
-func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 
@@ -146,7 +146,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 			var bestStart int32
 
 			for _, m := range v.Searchable {
-				score, positions, start := common.FuzzyScore(query, m, exact)
+				score, positions, start := common.FuzzyScore(query, runes, m, exact)
 
 				if score > bestScore {
 					bestScore = score

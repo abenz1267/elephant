@@ -528,7 +528,7 @@ func loadItems() {
 	loaded = true
 }
 
-func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	if isGit && config.r == nil {
 		common.SetupGit(Name, config)
 		loadItems()
@@ -604,7 +604,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			e := itemToEntry(urgent, i, v)
 
 			if query != "" {
-				e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, e.Text, exact)
+				e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, runes, e.Text, exact)
 			}
 
 			if slices.Contains(e.State, StateActive) && query == "" {

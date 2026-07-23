@@ -1,8 +1,6 @@
 package common
 
 import (
-	"strings"
-
 	"github.com/junegunn/fzf/src/algo"
 	"github.com/junegunn/fzf/src/util"
 )
@@ -11,17 +9,15 @@ func init() {
 	algo.Init("default")
 }
 
-func FuzzyScore(input, target string, exact bool) (int32, []int32, int32) {
+func FuzzyScore(input string, runes []rune, target string, exact bool) (int32, []int32, int32) {
 	chars := util.ToChars([]byte(target))
 
 	var res algo.Result
 	var pos *[]int
 
 	if exact {
-		runes := algo.NormalizeRunes([]rune(input))
 		res, pos = algo.ExactMatchNaive(true, true, true, &chars, runes, true, nil)
 	} else {
-		runes := algo.NormalizeRunes([]rune(strings.ToLower(input)))
 		res, pos = algo.FuzzyMatchV2(false, true, true, &chars, runes, true, nil)
 	}
 

@@ -17,6 +17,7 @@ import (
 	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/pkg/common/history"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
+	"github.com/junegunn/fzf/src/algo"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -141,6 +142,14 @@ func (h *QueryRequest) Handle(format uint8, cid uint32, conn net.Conn, data []by
 
 	entries := []*pb.QueryResponse_Item{}
 
+	var runes []rune
+
+	if req.Exactsearch {
+		runes = algo.NormalizeRunes([]rune(req.Query))
+	} else {
+		runes = algo.NormalizeRunes([]rune(strings.ToLower(req.Query)))
+	}
+
 	for _, v := range req.Providers {
 		query := req.Query
 
@@ -153,7 +162,7 @@ func (h *QueryRequest) Handle(format uint8, cid uint32, conn net.Conn, data []by
 		go func(text string, wg *sync.WaitGroup) {
 			defer wg.Done()
 			if p, ok := providers.Providers[v]; ok {
-				res := p.Query(conn, text, len(req.Providers) == 1, req.Exactsearch, format)
+				res := p.Query(conn, text, runes, len(req.Providers) == 1, req.Exactsearch, format)
 
 				mut.Lock()
 				entries = append(entries, res...)

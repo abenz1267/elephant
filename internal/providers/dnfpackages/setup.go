@@ -187,7 +187,7 @@ func refreshAllPackages() {
 	allPackages, _ = refreshPackages(false)
 }
 
-func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	startTime := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 
@@ -231,7 +231,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		}
 
 		if query != "" {
-			score, positions, start := common.FuzzyScore(query, entry.Text, exact)
+			score, positions, start := common.FuzzyScore(query, runes, entry.Text, exact)
 
 			entry.Score = score
 			entry.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{

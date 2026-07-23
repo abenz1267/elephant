@@ -199,7 +199,7 @@ func saveToHistory(query, result string) {
 	saveHist()
 }
 
-func Query(conn net.Conn, query string, single bool, _ bool, format uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, single bool, _ bool, format uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 
 	entries := []*pb.QueryResponse_Item{}

@@ -128,7 +128,8 @@ func Activate(single bool, identifier, action string, query string, args string,
 
 		// Fetch the password on-demand rather than reading it from cache.
 		// We pass --share-id so the command is unambiguous across vaults.
-		cmd := exec.Command("pass-cli", "item", "view",
+		cmd := exec.Command(
+			"pass-cli", "item", "view",
 			"--share-id", item.ShareID,
 			"--item-id", identifier,
 			"--field", "password",
@@ -178,7 +179,8 @@ func Activate(single bool, identifier, action string, query string, args string,
 			return
 		}
 
-		cmd := exec.Command("pass-cli", "item", "totp",
+		cmd := exec.Command(
+			"pass-cli", "item", "totp",
 			"--share-id", item.ShareID,
 			"--item-id", identifier,
 			"--output", "json",
@@ -216,7 +218,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 	}
 }
 
-func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 
 	entries := []*pb.QueryResponse_Item{}
@@ -255,7 +257,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 		}
 
 		if query != "" {
-			score, positions, startPos := common.FuzzyScore(query, v.Title, exact)
+			score, positions, startPos := common.FuzzyScore(query, runes, v.Title, exact)
 
 			e.Score = score
 			e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{

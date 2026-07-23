@@ -248,7 +248,7 @@ func getHaystack(entry common.Entry, menu *common.Menu) []string {
 	return ret
 }
 
-func Query(conn net.Conn, query string, single bool, exact bool, format uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, format uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 	menu := ""
@@ -290,7 +290,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, format uint8) [
 				if v.SearchName {
 					me.Keywords = append(me.Keywords, me.Menu)
 				}
-				_, e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start, _ = calcScore(query, getHaystack(me, v), exact)
+				_, e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start, _ = calcScore(query, runes, getHaystack(me, v), exact)
 			}
 
 			var usageScore int32
@@ -339,7 +339,7 @@ func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
 }
 
-func calcScore(query string, haystack []string, exact bool) (string, int32, []int32, int32, bool) {
+func calcScore(query string, runes []rune, haystack []string, exact bool) (string, int32, []int32, int32, bool) {
 	var scoreRes int32
 	var posRes []int32
 	var startRes int32
@@ -347,7 +347,7 @@ func calcScore(query string, haystack []string, exact bool) (string, int32, []in
 	var modifier int32
 
 	for k, v := range haystack {
-		score, pos, start := common.FuzzyScore(query, v, exact)
+		score, pos, start := common.FuzzyScore(query, runes, v, exact)
 
 		if score > scoreRes {
 			scoreRes = score

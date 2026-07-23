@@ -126,12 +126,12 @@ func Activate(single bool, identifier, action string, query string, args string,
 	}
 }
 
-func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 
 	for k, v := range symbols {
-		score, positions, start := common.FuzzyScore(query, k, exact)
+		score, positions, start := common.FuzzyScore(query, runes, k, exact)
 
 		var usageScore int32
 		if config.History {

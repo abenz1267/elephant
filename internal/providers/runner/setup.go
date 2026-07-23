@@ -78,7 +78,7 @@ func Setup() {
 			if _, err := os.Stat(p); err != nil {
 				continue
 			}
-			
+
 			walkFn := func(path string, d fs.DirEntry, err error) error {
 				info, serr := os.Stat(path)
 				if info == nil || serr != nil {
@@ -205,7 +205,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 	}
 }
 
-func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	entries := []*pb.QueryResponse_Item{}
 
 	for _, v := range items {
@@ -225,8 +225,8 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 			var positions []int32
 			var start int32
 
-			score, positions, start = common.FuzzyScore(query, v.Bin, exact)
-			s2, p2, ss2 := common.FuzzyScore(query, v.Alias, exact)
+			score, positions, start = common.FuzzyScore(query, runes, v.Bin, exact)
+			s2, p2, ss2 := common.FuzzyScore(query, runes, v.Alias, exact)
 
 			if s2 > score {
 				e.Text = v.Alias

@@ -244,7 +244,7 @@ quit
 	}
 }
 
-func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 
@@ -299,7 +299,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 		}
 
 		if query != "" {
-			score, pos, start := common.FuzzyScore(query, v.Name, exact)
+			score, pos, start := common.FuzzyScore(query, runes, v.Name, exact)
 
 			e.Score = score
 			e.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{

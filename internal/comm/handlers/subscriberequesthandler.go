@@ -15,6 +15,7 @@ import (
 
 	"github.com/abenz1267/elephant/v2/internal/providers"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
+	"github.com/junegunn/fzf/src/algo"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -134,7 +135,7 @@ func watch(format uint8, s *sub, conn net.Conn) {
 			return
 		}
 
-		res := p.Query(conn, s.query, true, false, format)
+		res := p.Query(conn, s.query, algo.NormalizeRunes([]rune(s.query)), true, false, format)
 
 		slices.SortFunc(res, sortEntries)
 

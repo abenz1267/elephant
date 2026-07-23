@@ -126,7 +126,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 	}
 }
 
-func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 
 	entries := []*pb.QueryResponse_Item{}
@@ -150,7 +150,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 		mu.RUnlock()
 
 		if query != "" {
-			matched, score, pos, start, ok := calcScore(query, window, exact)
+			matched, score, pos, start, ok := calcScore(query, runes, window, exact)
 
 			if ok {
 				field := "text"
@@ -198,7 +198,7 @@ func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
 }
 
-func calcScore(q string, d *wlr.Window, exact bool) (string, int32, []int32, int32, bool) {
+func calcScore(q string, runes []rune, d *wlr.Window, exact bool) (string, int32, []int32, int32, bool) {
 	var scoreRes int32
 	var posRes []int32
 	var startRes int32
@@ -207,7 +207,7 @@ func calcScore(q string, d *wlr.Window, exact bool) (string, int32, []int32, int
 	toSearch := []string{d.Title, d.AppID}
 
 	for _, v := range toSearch {
-		score, pos, start := common.FuzzyScore(q, v, exact)
+		score, pos, start := common.FuzzyScore(q, runes, v, exact)
 
 		if score > scoreRes {
 			scoreRes = score
@@ -226,7 +226,7 @@ func calcScore(q string, d *wlr.Window, exact bool) (string, int32, []int32, int
 	return match, scoreRes, posRes, startRes, true
 }
 
-func calcScoreWorkspace(q string, name string, subtext string, exact bool) (string, int32, []int32, int32, bool) {
+func calcScoreWorkspace(q string, runes []rune, name string, subtext string, exact bool) (string, int32, []int32, int32, bool) {
 	var scoreRes int32
 	var posRes []int32
 	var startRes int32
@@ -235,7 +235,7 @@ func calcScoreWorkspace(q string, name string, subtext string, exact bool) (stri
 	toSearch := []string{name, subtext}
 
 	for _, v := range toSearch {
-		score, pos, start := common.FuzzyScore(q, v, exact)
+		score, pos, start := common.FuzzyScore(q, runes, v, exact)
 
 		if score > scoreRes {
 			scoreRes = score

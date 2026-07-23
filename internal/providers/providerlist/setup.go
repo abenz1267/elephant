@@ -64,7 +64,7 @@ func PrintDoc(write bool) {
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 }
 
-func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, single bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := []*pb.QueryResponse_Item{}
 
@@ -96,10 +96,10 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 						Field: "text",
 					}
 
-					e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, e.Text, exact)
+					e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, runes, e.Text, exact)
 
 					for _, v := range v.Keywords {
-						score, positions, start := common.FuzzyScore(query, v, exact)
+						score, positions, start := common.FuzzyScore(query, runes, v, exact)
 
 						if score > e.Score {
 							e.Score = score
@@ -132,7 +132,7 @@ func Query(conn net.Conn, query string, single bool, exact bool, _ uint8) []*pb.
 					Field: "text",
 				}
 
-				e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, e.Text, exact)
+				e.Score, e.Fuzzyinfo.Positions, e.Fuzzyinfo.Start = common.FuzzyScore(query, runes, e.Text, exact)
 			}
 
 			if e.Score > config.MinScore || query == "" {

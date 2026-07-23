@@ -24,7 +24,7 @@ func containsAny(haystack, needles []string) bool {
 	return false
 }
 
-func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	start := time.Now()
 	entries := make([]*pb.QueryResponse_Item, 0, len(files)*2) // Estimate for entries + action
 
@@ -68,7 +68,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 		subtext := v.GenericName
 
 		if query != "" {
-			match, score, positions, fs, ok = calcScore(query, &v.Data, exact)
+			match, score, positions, fs, ok = calcScore(query, runes, &v.Data, exact)
 
 			if ok && match != v.Name {
 				subtext = match
@@ -204,7 +204,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 				subtext := v.Name
 
 				if query != "" {
-					match, score, positions, fs, ok = calcScore(query, &a, exact)
+					match, score, positions, fs, ok = calcScore(query, runes, &a, exact)
 
 					if ok && match != a.Name {
 						subtext = match
@@ -311,7 +311,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 	return entries
 }
 
-func calcScore(q string, d *Data, exact bool) (string, int32, []int32, int32, bool) {
+func calcScore(q string, runes []rune, d *Data, exact bool) (string, int32, []int32, int32, bool) {
 	var scoreRes int32
 	var posRes []int32
 	var startRes int32
@@ -324,7 +324,7 @@ func calcScore(q string, d *Data, exact bool) (string, int32, []int32, int32, bo
 	}
 
 	for k, v := range toSearch {
-		score, pos, start := common.FuzzyScore(q, v, exact)
+		score, pos, start := common.FuzzyScore(q, runes, v, exact)
 
 		if score > scoreRes {
 			scoreRes = score

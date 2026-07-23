@@ -135,7 +135,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 	handlers.UpdateItem(format, query, conn, getEntryForPlayer(identifier))
 }
 
-func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	entries := []*pb.QueryResponse_Item{}
 
 	players, err := exec.Command("playerctl", "-l").Output()
@@ -157,7 +157,7 @@ func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.Query
 		}
 
 		if query != "" {
-			match, score, positions, start, found := calcScore(query, entry.Text, entry.Subtext, exact)
+			match, score, positions, start, found := calcScore(query, runes, entry.Text, entry.Subtext, exact)
 
 			if found {
 				field := "subtext"
@@ -239,7 +239,7 @@ func State(provider string) *pb.ProviderStateResponse {
 	return &pb.ProviderStateResponse{}
 }
 
-func calcScore(query, text, subtext string, exact bool) (string, int32, []int32, int32, bool) {
+func calcScore(query string, runes []rune, text, subtext string, exact bool) (string, int32, []int32, int32, bool) {
 	var scoreRes int32
 	var posRes []int32
 	var startRes int32
@@ -249,7 +249,7 @@ func calcScore(query, text, subtext string, exact bool) (string, int32, []int32,
 	toSearch := []string{text, subtext}
 
 	for k, v := range toSearch {
-		score, pos, start := common.FuzzyScore(query, v, exact)
+		score, pos, start := common.FuzzyScore(query, runes, v, exact)
 
 		if score > scoreRes {
 			scoreRes = score
