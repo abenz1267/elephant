@@ -452,6 +452,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 		}
 	case ActionRemove:
 		mu.Lock()
+		defer mu.Unlock()
 
 		if _, ok := clipboardhistory[identifier]; ok {
 			if clipboardhistory[identifier].Img != "" {
@@ -468,38 +469,35 @@ func Activate(single bool, identifier, action string, query string, args string,
 				}
 			}
 
-			saveToFile()
+			saveToFileLocked()
 		}
-
-		mu.Unlock()
 	case ActionUnpin:
 		mu.Lock()
+		defer mu.Unlock()
 
 		if val, ok := clipboardhistory[identifier]; ok {
 			val.Pinned = false
 
-			saveToFile()
+			saveToFileLocked()
 		}
 
 		setupModes()
-
-		mu.Unlock()
 	case ActionPin:
 		mu.Lock()
+		defer mu.Unlock()
 
 		if val, ok := clipboardhistory[identifier]; ok {
 			val.Pinned = true
 
-			saveToFile()
+			saveToFileLocked()
 		}
 
 		if !slices.Contains(availableModes, ActionPinnedOnly) {
 			availableModes = append(availableModes, ActionPinnedOnly)
 		}
-
-		mu.Unlock()
 	case ActionRemoveAll:
 		mu.Lock()
+		defer mu.Unlock()
 
 		for k, v := range clipboardhistory {
 			if v.Pinned {
@@ -513,10 +511,9 @@ func Activate(single bool, identifier, action string, query string, args string,
 			}
 		}
 
-		saveToFile()
+		saveToFileLocked()
 		currentMode = ActionCombined
 		setupModes()
-		mu.Unlock()
 	case ActionCopy:
 		cmd := exec.Command("sh", "-c", config.Command)
 
