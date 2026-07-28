@@ -18,6 +18,7 @@ type Package struct {
 	Repository     string
 	Version        string
 	Installed      bool
+	Outdated       bool
 	FullInfo       string
 	URL            string
 	URLPath        string
