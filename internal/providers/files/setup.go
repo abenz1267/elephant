@@ -44,7 +44,7 @@ type Config struct {
 	IgnorePreviews []IgnoredPreview `koanf:"ignore_previews" desc:"paths will not have a preview" default:""`
 	IgnoreWatching []string         `koanf:"ignore_watching" desc:"paths will not be watched" default:""`
 	SearchDirs     []string         `koanf:"search_dirs" desc:"directories to search for files" default:"$HOME"`
-	FdFlags        []string         `koanf:"fd_flags" desc:"flags for fd" default:"['--ignore-vcs', '--type,' ,'file', '--type,' 'directory']"`
+	FdFlags        []string         `koanf:"fd_flags" desc:"flags for fd" default:"['--ignore-vcs', '--type', 'file', '--type', 'directory']"`
 	WatchBuffer    int              `koanf:"watch_buffer" desc:"time in millisecnds elephant will gather changed paths before processing them" default:"2000"`
 	WatchDirs      []string         `koanf:"watch_dirs" desc:"watch these dirs, even if watch = false" default:"[]"`
 	Watch          bool             `koanf:"watch" desc:"watch indexed directories" default:"false"`
