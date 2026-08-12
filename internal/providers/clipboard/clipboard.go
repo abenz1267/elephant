@@ -465,7 +465,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 				}
 			}
 
-			saveToFile()
+			saveToFileLocked()
 		}
 
 		mu.Unlock()
@@ -475,7 +475,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 		if val, ok := clipboardhistory[identifier]; ok {
 			val.Pinned = false
 
-			saveToFile()
+			saveToFileLocked()
 		}
 
 		setupModes()
@@ -487,7 +487,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 		if val, ok := clipboardhistory[identifier]; ok {
 			val.Pinned = true
 
-			saveToFile()
+			saveToFileLocked()
 		}
 
 		if !slices.Contains(availableModes, ActionPinnedOnly) {
@@ -510,7 +510,7 @@ func Activate(single bool, identifier, action string, query string, args string,
 			}
 		}
 
-		saveToFile()
+		saveToFileLocked()
 		currentMode = ActionCombined
 		setupModes()
 		mu.Unlock()
