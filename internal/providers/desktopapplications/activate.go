@@ -26,10 +26,13 @@ const (
 	ActionUnpin       = "unpin"
 	ActionStart       = "start"
 	ActionNewInstance = "new_instance"
+	ActionEdit        = "edit"
 )
 
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
+	case ActionEdit:
+		edit(identifier)
 	case ActionPinUp:
 		movePin(identifier, false)
 	case ActionPinDown:
@@ -119,6 +122,74 @@ func Activate(single bool, identifier, action string, query string, args string,
 	default:
 		slog.Error(Name, "activate", fmt.Sprintf("unknown action: %s", action))
 		return
+	}
+}
+
+func edit(identifier string) {
+	parts := strings.Split(identifier, ":")
+	file := files[parts[0]].SourceFile
+	home, _ := os.UserHomeDir()
+	toEdit := file
+	isUser := strings.HasPrefix(file, home)
+
+	var originalData []byte
+
+	if !isUser {
+		original, err := os.ReadFile(file)
+		if err != nil {
+			slog.Error(Name, "edit", "couldn't read original file content")
+			return
+		}
+
+		originalData = original
+
+		tmpFile, err := os.CreateTemp("", "*.desktop")
+		if err != nil {
+			slog.Error(Name, "edit", err)
+			return
+		}
+
+		_, err = tmpFile.Write([]byte(original))
+		if err != nil {
+			slog.Error(Name, "edit", "couldnt copy file content")
+			return
+		}
+
+		toEdit = tmpFile.Name()
+	}
+
+	run := fmt.Sprintf("xdg-open file://%s", toEdit)
+
+	if common.ForceTerminalForFile(toEdit) {
+		run = common.WrapWithTerminal(run)
+	}
+
+	cmd := exec.Command("sh", "-c", run)
+	err := cmd.Run()
+	if err != nil {
+		slog.Error(Name, "openedit", err)
+		return
+	}
+
+	if !isUser {
+		data, err := os.ReadFile(toEdit)
+		if err != nil {
+			slog.Error(Name, "edit", "couldn't read temp file")
+		}
+
+		if bytes.Equal(data, originalData) {
+			return
+		}
+
+		target, err := os.Create(filepath.Join(home, ".local", "share", "applications", parts[0]))
+		if err != nil {
+			slog.Error(Name, "edit", "couldn't create target desktop file")
+		}
+
+		_, err = target.Write(data)
+		if err != nil {
+			slog.Error(Name, "edit", "couldn't write target desktop file")
+		}
 	}
 }
 

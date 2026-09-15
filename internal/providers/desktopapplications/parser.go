@@ -20,6 +20,7 @@ type Data struct {
 	Name              string
 	Comment           string
 	Path              string
+	SourceFile        string
 	Parent            string
 	GenericName       string
 	StartupWMClass    string
@@ -50,6 +51,7 @@ func parseFile(path, l, ll string) (*DesktopFile, error) {
 
 		if i == 0 {
 			f.Data = data
+			f.SourceFile = path
 
 			if f.Icon == "" {
 				f.Icon = config.IconPlaceholder

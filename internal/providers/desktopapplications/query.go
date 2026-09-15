@@ -43,7 +43,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 
 		// check generic
 		if k == alias {
-			actions := []string{ActionStart}
+			actions := []string{ActionStart, ActionEdit}
 
 			if config.WindowIntegration {
 				actions = append(actions, ActionNewInstance)
@@ -109,7 +109,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 		if score != 0 || usageScore != 0 || config.ShowActions && config.ShowGeneric || !config.ShowActions || (config.ShowActions && len(v.Actions) == 0) || query == "" {
 			if score >= config.MinScore || query == "" {
 				state := []string{}
-				a := []string{ActionStart}
+				a := []string{ActionStart, ActionEdit}
 
 				if config.WindowIntegration {
 					a = append(a, ActionNewInstance)
@@ -178,7 +178,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 			for _, a := range v.Actions {
 				identifier := fmt.Sprintf("%s:%s", k, a.Action)
 
-				actions := []string{ActionStart}
+				actions := []string{ActionStart, ActionEdit}
 
 				if config.WindowIntegration && !config.WindowIntegrationIgnoreActions {
 					actions = append(actions, ActionNewInstance)
