@@ -79,7 +79,7 @@
         };
 
         # Providers package - builds all providers with same Go toolchain
-        elephant-providers = pkgs.buildGo125Module rec {
+        elephant-providers = pkgs.buildGo126Module rec {
           pname = "elephant-providers";
           version = lib.trim (builtins.readFile ./cmd/elephant/version.txt);
 
