@@ -42,7 +42,7 @@
         default = self.packages.${pkgs.stdenv.system}.elephant-with-providers;
 
         # Main elephant binary
-        elephant = pkgs.buildGo125Module {
+        elephant = pkgs.buildGo126Module {
           pname = "elephant";
           version = lib.trim (builtins.readFile ./cmd/elephant/version.txt);
 
