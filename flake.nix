@@ -42,7 +42,7 @@
         default = self.packages.${pkgs.stdenv.system}.elephant-with-providers;
 
         # Main elephant binary
-        elephant = pkgs.buildGo125Module {
+        elephant = pkgs.buildGo126Module {
           pname = "elephant";
           version = lib.trim (builtins.readFile ./cmd/elephant/version.txt);
 
@@ -79,7 +79,7 @@
         };
 
         # Providers package - builds all providers with same Go toolchain
-        elephant-providers = pkgs.buildGo125Module rec {
+        elephant-providers = pkgs.buildGo126Module rec {
           pname = "elephant-providers";
           version = lib.trim (builtins.readFile ./cmd/elephant/version.txt);
 
