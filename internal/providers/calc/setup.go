@@ -239,7 +239,7 @@ func Query(conn net.Conn, query string, runes []rune, single bool, _ bool, forma
 
 		if config.Async {
 			go func() {
-				cmd := exec.Command("qalc", "-t", query)
+				cmd := exec.Command("qalc", "-t", "-s", "digit grouping 2", query)
 
 				out, err := cmd.Output()
 				if err == nil {
@@ -258,7 +258,7 @@ func Query(conn net.Conn, query string, runes []rune, single bool, _ bool, forma
 
 			entries = append(entries, e)
 		} else {
-			cmd := exec.Command("qalc", "-t", query)
+			cmd := exec.Command("qalc", "-t", "-s", "digit grouping 2", query)
 
 			out, err := cmd.Output()
 			if err == nil {
