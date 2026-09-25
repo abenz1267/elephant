@@ -62,6 +62,20 @@ func loadFiles() {
 		}
 	}
 
+	for _, dir := range nixProfilesDirs {
+		if _, err := os.Stat(dir); err != nil {
+			continue
+		}
+		// On Nix, `nixos-rebuild`/home-manager switch builds a new /nix/store
+		// closure and atomically swaps a profile symlink, repointing the
+		// applications dir at fresh inodes and invalidating existing watches
+		// (same problem as moss replacing /usr). The profiles dir gains a new
+		// generation link on every switch, so watch it to detect the swap.
+		if err := watcher.Add(dir); err != nil {
+			slog.Warn(Name, "nix_watcher_add", err)
+		}
+	}
+
 	fileCount := len(files)
 	slog.Info(Name, "files", fileCount, "time", time.Since(start))
 
@@ -190,6 +204,17 @@ func handleFileEvent(event fsnotify.Event) {
 		slog.Info(Name, "usr_replaced", "reinitializing inotify watches")
 		reinitializeWatcher()
 		return
+	}
+
+	// A Nix profile switch creates a new generation link inside a profiles dir
+	// and swaps the profile symlink, invalidating watches under the old
+	// /nix/store closure. Reinitialize when a watched profiles dir changes.
+	for _, dir := range nixProfilesDirs {
+		if strings.HasPrefix(event.Name, dir+"/") && event.Op&(fsnotify.Create|fsnotify.Rename) != 0 {
+			slog.Info(Name, "nix_profile_changed", "reinitializing inotify watches")
+			reinitializeWatcher()
+			return
+		}
 	}
 
 	slog.Debug(Name, "file_system_event", event)
@@ -360,6 +385,17 @@ func fileExists(path string) bool {
 func mossIsActive() bool {
 	_, err := os.Stat("/.moss/db/state")
 	return err == nil
+}
+
+// nixProfilesDirs are the directories Nix rewrites on every generation change:
+// a new generation link is created and the profile symlink swapped, which is
+// our signal that the atomically-swapped applications dir needs a rescan (same
+// problem as moss replacing /usr). The system path covers NixOS and
+// home-manager run as a NixOS module; the per-user path covers standalone
+// home-manager. Only the ones that exist are watched.
+var nixProfilesDirs = []string{
+	"/nix/var/nix/profiles",
+	filepath.Join(xdg.StateHome, "nix", "profiles"),
 }
 
 // reinitializeWatcher tears down the current watcher and rebuilds it from scratch.
