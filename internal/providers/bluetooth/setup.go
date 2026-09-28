@@ -191,19 +191,22 @@ quit
 	slog.Debug(Name, "activate", out)
 
 	if action == ActionPowerOn || action == ActionPowerOff {
-		checkPowerState()
+		if err := checkPowerState(); err != nil {
+			slog.Error(Name, "checkPowerState", err)
+		}
+
 		return
 	}
 
 	if added || removed {
-		for {
+		for range 3 {
 			found := make(map[string]struct{})
-			time.Sleep(1 * time.Second)
 
 			cmd = exec.Command("bluetoothctl", "devices", "Paired")
 			out, err = cmd.CombinedOutput()
 			if err != nil {
 				slog.Error(Name, "get devices", err)
+				return
 			}
 
 			for v := range strings.Lines(strings.TrimSpace(string(out))) {
@@ -215,18 +218,20 @@ quit
 			if _, ok := found[identifier]; removed && !ok || added && ok {
 				break
 			}
+
+			time.Sleep(1 * time.Second)
 		}
 	}
 
 	if connect || disconnect {
 	outer:
-		for {
-			time.Sleep(1 * time.Second)
-
+		for range 3 {
 			cmd := exec.Command("bluetoothctl", "info", identifier)
+
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				slog.Error(Name, "get info", err)
+				return
 			}
 
 			for l := range strings.Lines(string(out)) {
@@ -240,6 +245,8 @@ quit
 					}
 				}
 			}
+
+			time.Sleep(1 * time.Second)
 		}
 	}
 }
