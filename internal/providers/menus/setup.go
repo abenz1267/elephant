@@ -380,10 +380,10 @@ func itemToEntry(format uint8, query string, conn net.Conn, menuActions map[stri
 
 	sub := me.Subtext
 
-	if !single {
+	if !single && !hideNamePrettyPrefix {
 		if sub == "" {
 			sub = namePretty
-		} else if !hideNamePrettyPrefix {
+		} else {
 			sub = fmt.Sprintf("%s: %s", namePretty, sub)
 		}
 	}

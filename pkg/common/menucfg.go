@@ -512,6 +512,10 @@ func createLuaMenu(path string) {
 		m.NamePretty = string(val.(lua.LString))
 	}
 
+	if val := state.GetGlobal("HideNamePrettyPrefix"); val != lua.LNil {
+		m.HideNamePrettyPrefix = bool(val.(lua.LBool))
+	}
+
 	if val := state.GetGlobal("HideFromProviderlist"); val != lua.LNil {
 		m.HideFromProviderlist = bool(val.(lua.LBool))
 	}
