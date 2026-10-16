@@ -70,12 +70,15 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 		field := "text"
 		subtext := v.GenericName
 
+		if config.Subtext == "generic_name" && subtext == v.Name {
+			subtext = ""
+		}
+
 		if query != "" {
 			match, score, positions, fs, ok = calcScore(runes, slab, &v.Data, exact)
 
 			if ok && match != v.Name {
-				subtext = match
-				field = "subtext"
+				field, subtext, positions = matchField(match, subtext, positions)
 			}
 		}
 
@@ -210,8 +213,7 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 					match, score, positions, fs, ok = calcScore(runes, slab, &a, exact)
 
 					if ok && match != a.Name {
-						subtext = match
-						field = "subtext"
+						field, subtext, positions = matchField(match, subtext, positions)
 					}
 
 					if config.ActionMinScore > 0 {
@@ -314,6 +316,62 @@ func Query(conn net.Conn, query string, runes []rune, _ bool, exact bool, _ uint
 	return entries
 }
 
+// matchField returns the fuzzy info field, subtext and positions for a match
+// on a field other than the name. With subtext = "match" the matched field
+// replaces the subtext. Otherwise positions are only kept when they point
+// into the subtext that is shown.
+func matchField(match, subtext string, positions *[]int) (string, string, *[]int) {
+	if config.Subtext != "generic_name" {
+		return "subtext", match, positions
+	}
+
+	if match == subtext {
+		return "subtext", subtext, positions
+	}
+
+	return "text", subtext, nil
+}
+
+type searchField int
+
+const (
+	fieldName searchField = iota
+	fieldExec
+	fieldParent
+	fieldGenericName
+	fieldKeywords
+	fieldComment
+)
+
+var (
+	searchFieldNames = map[string]searchField{
+		"name":         fieldName,
+		"exec":         fieldExec,
+		"parent":       fieldParent,
+		"generic_name": fieldGenericName,
+		"keywords":     fieldKeywords,
+		"comment":      fieldComment,
+	}
+	searchFields = []searchField{}
+)
+
+func (d *Data) searchValue(f searchField) string {
+	switch f {
+	case fieldExec:
+		return d.Exec
+	case fieldParent:
+		return d.Parent
+	case fieldGenericName:
+		return d.GenericName
+	case fieldKeywords:
+		return strings.Join(d.Keywords, ",")
+	case fieldComment:
+		return d.Comment
+	default:
+		return d.Name
+	}
+}
+
 func calcScore(runes []rune, slab *common.FuzzySlab, d *Data, exact bool) (string, int32, *[]int, int32, bool) {
 	var scoreRes int32
 	var posRes *[]int
@@ -321,9 +379,22 @@ func calcScore(runes []rune, slab *common.FuzzySlab, d *Data, exact bool) (strin
 	var match string
 	var modifier int32
 
-	toSearch := []string{d.Name}
-	if !config.OnlySearchTitle {
-		toSearch = []string{d.Name, d.Exec, d.Parent, d.GenericName, strings.Join(d.Keywords, ","), d.Comment}
+	// a field's position in search_fields is its modifier, so every keyword
+	// gets the same one when they are matched separately.
+	toSearch := make([]string, 0, len(searchFields)+len(d.Keywords))
+	modifiers := make([]int32, 0, cap(toSearch))
+
+	for k, f := range searchFields {
+		if f == fieldKeywords && config.SplitKeywords {
+			for _, keyword := range d.Keywords {
+				toSearch = append(toSearch, keyword)
+				modifiers = append(modifiers, int32(k))
+			}
+			continue
+		}
+
+		toSearch = append(toSearch, d.searchValue(f))
+		modifiers = append(modifiers, int32(k))
 	}
 
 	for k, v := range toSearch {
@@ -334,7 +405,7 @@ func calcScore(runes []rune, slab *common.FuzzySlab, d *Data, exact bool) (strin
 			posRes = pos
 			startRes = start
 			match = v
-			modifier = int32(k)
+			modifier = modifiers[k]
 		}
 	}
 

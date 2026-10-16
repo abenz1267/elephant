@@ -52,7 +52,10 @@ type Config struct {
 	ShowActionsWithoutQuery        bool              `koanf:"show_actions_without_query" desc:"show application actions, if the search query is empty" default:"false"`
 	History                        bool              `koanf:"history" desc:"make use of history for sorting" default:"true"`
 	HistoryWhenEmpty               bool              `koanf:"history_when_empty" desc:"consider history when query is empty" default:"false"`
-	OnlySearchTitle                bool              `koanf:"only_search_title" desc:"ignore keywords, comments etc from desktop file when searching" default:"false"`
+	OnlySearchTitle                bool              `koanf:"only_search_title" desc:"ignore keywords, comments etc from desktop file when searching. same as search_fields = [\"name\"]" default:"false"`
+	SearchFields                   []string          `koanf:"search_fields" desc:"desktop file fields to search, in order of preference: a match on a later field scores lower. one or more of name, exec, parent (an action's application name), generic_name, keywords, comment" default:"[\"name\", \"exec\", \"parent\", \"generic_name\", \"keywords\", \"comment\"]"`
+	SplitKeywords                  bool              `koanf:"split_keywords" desc:"match each keyword on its own, instead of all keywords joined into one string" default:"false"`
+	Subtext                        string            `koanf:"subtext" desc:"'match' shows the field the query matched, if it isn't the name, otherwise the generic name. 'generic_name' always shows the generic name (an action's application name), and nothing if it repeats the name" default:"match"`
 	IconPlaceholder                string            `koanf:"icon_placeholder" desc:"placeholder icon for apps without icon" default:"applications-other"`
 	Aliases                        map[string]string `koanf:"aliases" desc:"setup aliases for applications. Matched aliases will always be placed on top of the list. Example: 'ffp' => '<identifier>'. Check elephant log output when activating an item to get its identifier." default:""`
 	Blacklist                      []string          `koanf:"blacklist" desc:"blacklist desktop files from being parsed. Regexp." default:"<empty>"`
@@ -95,6 +98,7 @@ func Setup() {
 	}
 
 	parseRegexp()
+	parseSearchConfig()
 	loadFiles()
 
 	if config.WindowIntegration {
@@ -127,6 +131,9 @@ func LoadConfig() {
 		ActionMinScore:          20,
 		IgnorePinWithWindow:     true,
 		OnlySearchTitle:         false,
+		SearchFields:            []string{"name", "exec", "parent", "generic_name", "keywords", "comment"},
+		SplitKeywords:           false,
+		Subtext:                 "match",
 		ShowActions:             false,
 		ShowGeneric:             true,
 		ShowActionsWithoutQuery: false,
@@ -154,6 +161,34 @@ func parseRegexp() {
 		}
 
 		br = append(br, r)
+	}
+}
+
+func parseSearchConfig() {
+	if config.Subtext != "match" && config.Subtext != "generic_name" {
+		slog.Error(Name, "unknown subtext", config.Subtext)
+	}
+
+	searchFields = []searchField{}
+
+	if config.OnlySearchTitle {
+		searchFields = append(searchFields, fieldName)
+		return
+	}
+
+	for _, v := range config.SearchFields {
+		f, ok := searchFieldNames[v]
+		if !ok {
+			slog.Error(Name, "unknown search field", v)
+			continue
+		}
+
+		searchFields = append(searchFields, f)
+	}
+
+	if len(searchFields) == 0 {
+		slog.Error(Name, "search_fields", "no valid fields, searching names only")
+		searchFields = append(searchFields, fieldName)
 	}
 }
 
