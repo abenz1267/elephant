@@ -123,9 +123,24 @@ func trackSymlinks(filename string) {
 		return
 	}
 
+	// A symlink can be replaced with another symlink at the same path. Remove
+	// its old reverse mapping before recording the new target, or a later
+	// removal of the old target can affect this entry.
+	if previousTarget, ok := symlinkToReal[filename]; ok && previousTarget != targetPath {
+		untrackSymlink(filename, previousTarget)
+	}
+
 	// setup two-way tracking
-	if realToSymlink[targetPath] == nil {
-		realToSymlink[targetPath] = make([]string, 0)
+	// Repeated create or write events for one symlink must not add duplicate
+	// reverse mappings for the same target.
+	tracked := false
+	for _, symlink := range realToSymlink[targetPath] {
+		if symlink == filename {
+			tracked = true
+			break
+		}
+	}
+	if !tracked {
 		realToSymlink[targetPath] = append(realToSymlink[targetPath], filename)
 	}
 
@@ -134,6 +149,28 @@ func trackSymlinks(filename string) {
 	addDirToWatcher(filepath.Dir(targetPath), watchedDirs)
 
 	slog.Debug(Name, "symlink_tracked", filename, "target", targetPath)
+}
+
+// untrackSymlink removes both sides of a known symlink-to-target relationship.
+// The forward mapping is deleted only if it still points to targetPath, so a
+// delayed event for an old target cannot erase a newer relationship.
+func untrackSymlink(filename, targetPath string) {
+	if currentTarget, ok := symlinkToReal[filename]; ok && currentTarget == targetPath {
+		delete(symlinkToReal, filename)
+	}
+
+	symlinks := realToSymlink[targetPath]
+	for i, symlink := range symlinks {
+		if symlink == filename {
+			symlinks = append(symlinks[:i], symlinks[i+1:]...)
+			break
+		}
+	}
+	if len(symlinks) == 0 {
+		delete(realToSymlink, targetPath)
+	} else {
+		realToSymlink[targetPath] = symlinks
+	}
 }
 
 func addDirToWatcher(dir string, watchedDirs map[string]bool) {
@@ -265,30 +302,73 @@ func handleFileUpdate(path string) {
 	addNewEntry(path)
 }
 
+// handleFileRemove reconciles the index after a watched .desktop path is
+// removed or renamed. path can identify either:
+//   - a visible file in an XDG applications directory, possibly a symlink, or
+//   - the resolved target file in another watched directory.
+//
+// For a symlinked entry, those two paths use opposite sides of symlinkToReal
+// and realToSymlink and therefore require different cleanup.
 func handleFileRemove(path string) {
-	originPath, sym := isSymlink(path)
 	defer slog.Debug(Name, "file_removed", path)
 
-	filesMu.Lock()
-	delete(files, filepath.Base(path))
-	filesMu.Unlock()
-
-	if sym {
-		delete(symlinkToReal, path)
-
-		for i, s := range realToSymlink[originPath] {
-			if s == path {
-				realToSymlink[originPath] = append(realToSymlink[originPath][:i], realToSymlink[originPath][i+1:]...)
-			}
-		}
-		if len(realToSymlink[originPath]) == 0 {
-			delete(realToSymlink, originPath)
-		}
+	// A visible file or resolved target can be replaced at the same path before
+	// its queued remove event is handled. Reparse the path that now exists
+	// instead of deleting the replacement's entry.
+	if fileExists(path) {
+		handleFileUpdate(path)
+		return
 	}
 
-	if realToSymlink[path] != nil {
-		for _, symedFile := range realToSymlink[path] {
-			delete(symlinkToReal, symedFile)
+	// Remove an entry only if its current SourceFile is path itself or a visible
+	// symlink that is still recorded as pointing to this removed target file.
+	removeEntriesForPath(path)
+
+	// If path is a visible symlink, remove its saved forward relationship and
+	// its membership in the target file's reverse relationship. The symlink can
+	// no longer be resolved from disk, so use the relationship saved earlier.
+	if targetPath, tracked := symlinkToReal[path]; tracked {
+		untrackSymlink(path, targetPath)
+	}
+
+	// If path is a resolved target file, remove the forward relationships of
+	// visible symlinks that still point to it, then remove its reverse mapping.
+	// A symlink retargeted earlier is deliberately left associated with its new
+	// target.
+	if symlinks := realToSymlink[path]; symlinks != nil {
+		for _, symlink := range symlinks {
+			if symlinkToReal[symlink] == path {
+				delete(symlinkToReal, symlink)
+			}
+		}
+		delete(realToSymlink, path)
+	}
+}
+
+// removeEntriesForPath removes cached entries actually backed by path. If path
+// is a visible XDG file, the first check matches its SourceFile directly. If
+// path is a resolved target, the loop finds visible symlinks still pointing to
+// it and matches their SourceFile values. Desktop-entry identifiers are only
+// basenames, so deleting by basename alone could remove a newer entry backed
+// by another path.
+func removeEntriesForPath(path string) {
+	filesMu.Lock()
+	defer filesMu.Unlock()
+
+	if current, ok := files[filepath.Base(path)]; ok && current.SourceFile == path {
+		delete(files, filepath.Base(path))
+	}
+
+	// A resolved target is indexed under each visible symlink's basename, with
+	// the visible symlink stored as SourceFile. Confirm that both relationships
+	// are still current before removing that entry.
+	for _, symlink := range realToSymlink[path] {
+		if symlinkToReal[symlink] != path {
+			continue
+		}
+		identifier := filepath.Base(symlink)
+		if current, ok := files[identifier]; ok && current.SourceFile == symlink {
+			delete(files, identifier)
 		}
 	}
 }
