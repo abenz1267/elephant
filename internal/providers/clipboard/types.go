@@ -77,4 +77,4 @@ const (
 	ActionCombined   = "show_combined"
 )
 
-var ignoreMimetypes = []string{"x-kde-passwordManagerHint"}
+var ignoreMimetypes = []string{"x-kde-passwordManagerHint", "application/x-pem-file"}
