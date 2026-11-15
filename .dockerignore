@@ -1,0 +1,16 @@
+.git
+.jj
+.agents
+.codex
+.aws
+.env
+.env.*
+**/.env
+**/.env.*
+*.so
+**/*.so
+cmd/elephant/elephant
+build/
+tmp/
+result
+result-*

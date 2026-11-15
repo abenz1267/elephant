@@ -120,6 +120,44 @@ go build -buildmode=plugin
 cp desktopapplications.so ~/.config/elephant/providers/
 ```
 
+### Docker
+
+Build the image and check the binary:
+
+```bash
+docker build -t elephant .
+docker run --rm elephant version
+```
+
+The image includes the main binary and all provider plugins, built with the same
+Go toolchain. It runs as UID/GID 1000. Start the service with persistent user data
+and a shared Unix socket directory:
+
+```bash
+docker run --rm --name elephant \
+  --mount type=volume,src=elephant-config,dst=/home/elephant/.config/elephant \
+  --mount type=volume,src=elephant-cache,dst=/home/elephant/.cache/elephant \
+  --mount type=volume,src=elephant-data,dst=/home/elephant/.local/share/elephant \
+  --mount type=volume,src=elephant-runtime,dst=/run/elephant \
+  elephant
+```
+
+The socket is `/run/elephant/elephant/elephant.sock`. Other containers can mount
+`elephant-runtime` at `/run/elephant` and set `XDG_RUNTIME_DIR=/run/elephant` to
+connect. For a host client, bind-mount a directory owned by UID 1000 at
+`/run/elephant` instead, and set the client's `XDG_RUNTIME_DIR` to that host
+directory. Configuration can likewise be bind-mounted at
+`/home/elephant/.config/elephant`; mounted directories must be accessible to UID
+1000.
+
+Desktop providers need access to the relevant host files, Wayland socket, and
+session environment. The image supplies `fd`, ImageMagick, `qalc`, `wl-clipboard`,
+and `xdg-utils`; providers needing other commands (such as `bluetoothctl`,
+`playerctl`, or password-manager CLIs) require a derived image with those tools
+and access to their services. Host applications are not automatically available
+inside the container. Use `ignored_providers` in `elephant.toml` to disable
+unneeded providers.
+
 ## Usage
 
 ### Important
