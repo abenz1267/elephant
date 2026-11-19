@@ -227,6 +227,12 @@ func (z *Package) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Installed")
 				return
 			}
+		case "Outdated":
+			z.Outdated, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "Outdated")
+				return
+			}
 		case "FullInfo":
 			z.FullInfo, err = dc.ReadString()
 			if err != nil {
@@ -294,9 +300,9 @@ func (z *Package) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *Package) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 14
+	// map header, size 15
 	// write "Name"
-	err = en.Append(0x8e, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	err = en.Append(0x8f, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	if err != nil {
 		return
 	}
@@ -343,6 +349,16 @@ func (z *Package) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteBool(z.Installed)
 	if err != nil {
 		err = msgp.WrapError(err, "Installed")
+		return
+	}
+	// write "Outdated"
+	err = en.Append(0xa8, 0x4f, 0x75, 0x74, 0x64, 0x61, 0x74, 0x65, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.Outdated)
+	if err != nil {
+		err = msgp.WrapError(err, "Outdated")
 		return
 	}
 	// write "FullInfo"
@@ -441,9 +457,9 @@ func (z *Package) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Package) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 14
+	// map header, size 15
 	// string "Name"
-	o = append(o, 0x8e, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	o = append(o, 0x8f, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	o = msgp.AppendString(o, z.Name)
 	// string "Description"
 	o = append(o, 0xab, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e)
@@ -457,6 +473,9 @@ func (z *Package) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "Installed"
 	o = append(o, 0xa9, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x65, 0x64)
 	o = msgp.AppendBool(o, z.Installed)
+	// string "Outdated"
+	o = append(o, 0xa8, 0x4f, 0x75, 0x74, 0x64, 0x61, 0x74, 0x65, 0x64)
+	o = msgp.AppendBool(o, z.Outdated)
 	// string "FullInfo"
 	o = append(o, 0xa8, 0x46, 0x75, 0x6c, 0x6c, 0x49, 0x6e, 0x66, 0x6f)
 	o = msgp.AppendString(o, z.FullInfo)
@@ -535,6 +554,12 @@ func (z *Package) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "Installed")
 				return
 			}
+		case "Outdated":
+			z.Outdated, bts, err = msgp.ReadBoolBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Outdated")
+				return
+			}
 		case "FullInfo":
 			z.FullInfo, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
@@ -603,6 +628,6 @@ func (z *Package) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Package) Msgsize() (s int) {
-	s = 1 + 5 + msgp.StringPrefixSize + len(z.Name) + 12 + msgp.StringPrefixSize + len(z.Description) + 11 + msgp.StringPrefixSize + len(z.Repository) + 8 + msgp.StringPrefixSize + len(z.Version) + 10 + msgp.BoolSize + 9 + msgp.StringPrefixSize + len(z.FullInfo) + 4 + msgp.StringPrefixSize + len(z.URL) + 8 + msgp.StringPrefixSize + len(z.URLPath) + 11 + msgp.StringPrefixSize + len(z.Maintainer) + 10 + msgp.StringPrefixSize + len(z.Submitter) + 9 + msgp.IntSize + 11 + msgp.Float64Size + 15 + msgp.Int64Size + 13 + msgp.Int64Size
+	s = 1 + 5 + msgp.StringPrefixSize + len(z.Name) + 12 + msgp.StringPrefixSize + len(z.Description) + 11 + msgp.StringPrefixSize + len(z.Repository) + 8 + msgp.StringPrefixSize + len(z.Version) + 10 + msgp.BoolSize + 9 + msgp.BoolSize + 9 + msgp.StringPrefixSize + len(z.FullInfo) + 4 + msgp.StringPrefixSize + len(z.URL) + 8 + msgp.StringPrefixSize + len(z.URLPath) + 11 + msgp.StringPrefixSize + len(z.Maintainer) + 10 + msgp.StringPrefixSize + len(z.Submitter) + 9 + msgp.IntSize + 11 + msgp.Float64Size + 15 + msgp.Int64Size + 13 + msgp.Int64Size
 	return
 }
