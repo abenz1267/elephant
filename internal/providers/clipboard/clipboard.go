@@ -90,6 +90,15 @@ func getClipboardText() (string, error) {
 	return string(out), err
 }
 
+func hasImageType(mt []string) bool {
+	for _, m := range mt {
+		if _, ok := imgTypes[m]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func updateImage(out []byte) {
 	mt := getMimetypes()
 
@@ -139,6 +148,12 @@ func updateImage(out []byte) {
 }
 
 func updateText(text string) bool {
+	mt := getMimetypes()
+
+	if hasImageType(mt) {
+		return false
+	}
+
 	if strings.TrimSpace(text) == "" {
 		return true
 	}
@@ -146,16 +161,6 @@ func updateText(text string) bool {
 	if config.IgnoreSymbols {
 		if _, ok := symbols[text]; ok {
 			return true
-		}
-	}
-
-	mt := getMimetypes()
-
-	if slices.Contains(mt, "text/_moz_htmlcontext") || slices.Contains(mt, "chromium/x-source-url") {
-		for k := range imgTypes {
-			if slices.Contains(mt, k) {
-				return false
-			}
 		}
 	}
 

@@ -30,7 +30,7 @@ func Setup() {
 	imgTypes["image/png"] = "png"
 	imgTypes["image/jpg"] = "jpg"
 	imgTypes["image/jpeg"] = "jpeg"
-	imgTypes["image/webm"] = "webm"
+	imgTypes["image/webp"] = "webp"
 
 	ls, err := exec.LookPath("localsend")
 	if ls != "" && err == nil {
