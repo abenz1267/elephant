@@ -38,8 +38,7 @@ func parseFile(path, l, ll string) (*DesktopFile, error) {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		slog.Error(Name, "parseFile", err)
-		os.Exit(1)
+		return nil, err
 	}
 
 	parts := splitIntoParsebles(data)
